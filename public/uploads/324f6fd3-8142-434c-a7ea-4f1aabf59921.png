@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/uploads/new-logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Property Radar Aurangabad</title>
+    <meta name="description" content="Find the best properties in Aurangabad with advanced search and radar technology" />
+    <meta name="author" content="Property Radar Aurangabad" />
+    
+    <!-- Terminal/Hacker Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+
+    <meta property="og:title" content="Property Radar Aurangabad" />
+    <meta property="og:description" content="Find the best properties in Aurangabad with advanced search and radar technology" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/uploads/new-logo.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@PropertyRadarAurangabad" />
+    <meta name="twitter:image" content="/uploads/new-logo.png" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx?t=1754067208989"></script>
+  </body>
+</html>
