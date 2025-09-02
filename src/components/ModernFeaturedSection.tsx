@@ -20,10 +20,10 @@ interface Property {
   property_type: string;
   transaction_type: string;
   images?: string[];
-  featured_at: string; // Added featured_at
+  featured_at: string; // Assuming this was part of the original interface for featured properties
 }
 
-export const FeaturedPropertiesSection: React.FC = () => {
+export const ModernFeaturedSection: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
