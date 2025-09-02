@@ -45,18 +45,13 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? 'scale-95' 
-          : 'scale-100'
+          ? 'py-2 bg-background/80 backdrop-blur-2xl border-b border-white/20 dark:border-white/10 shadow-2xl shadow-primary/10' 
+          : 'py-4 bg-background/60 backdrop-blur-xl border-b border-white/30 dark:border-white/15 shadow-xl shadow-primary/5'
       }`}>
-        <div className={`mx-auto px-6 transition-all duration-300 ${
-          scrolled 
-            ? 'bg-background/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-2xl shadow-primary/10' 
-            : 'bg-background/40 backdrop-blur-xl border border-white/30 dark:border-white/15 shadow-xl shadow-primary/5'
-        } rounded-2xl`}>
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between h-16 gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-8">
             
             {/* Left: Logo */}
             <div 
@@ -211,7 +206,6 @@ export const Header: React.FC = () => {
                   </div>
                 </SheetContent>
               </Sheet>
-            </div>
             </div>
           </div>
         </div>

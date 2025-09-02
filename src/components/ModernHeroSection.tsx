@@ -28,8 +28,6 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
   const [bhkType, setBhkType] = useState('all');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  // Removed parallax effects
-
   const handleSearch = () => {
     const searchParams = new URLSearchParams();
     if (selectedLocation !== 'all') searchParams.set('location', selectedLocation);
@@ -63,9 +61,19 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       navigate('/dashboard');
     }
   };
-  return <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-background to-muted/30">
-      {/* Curved Background Elements */}
-      <div className="absolute inset-0 opacity-40">
+  return (
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center" 
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1560518883-ff51f8165708?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}
+      >
+        {/* Overlay for text readability */}
+        <div className="absolute inset-0 bg-black/50 dark:bg-black/70"></div>
+      </div>
+
+      {/* Curved Background Elements (kept for subtle effect, adjusted opacity) */}
+      <div className="absolute inset-0 opacity-20">
         <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
           <defs>
             <linearGradient id="heroGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -94,12 +102,8 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-4 pt-20 pb-16">
-        {/* Background Image Overlay */}
-        <div 
-          className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/20 to-primary/20 pointer-events-none rounded-b-3xl"
-        />
-        <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
+      <div className="relative z-10 w-full pt-20 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
           {/* Featured mini-carousel above title */}
           <div className="w-full max-w-5xl mx-auto">
             <MiniFeaturedCarousel />
@@ -112,18 +116,18 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
           <br />
           <div className="relative space-y-4 max-w-4xl mx-auto">
             <div className="relative z-10">
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white">
                 <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-fade-in">
                   {t('find_your_perfect')}
                 </span>
-                <span className="text-foreground"> {t('property_in')}</span>
+                <span className="text-white"> {t('property_in')}</span>
               </h1>
               <AnimatedCityName />
             </div>
           </div>
 
           {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-foreground max-w-2xl mx-auto font-light leading-relaxed">
+          <p className="text-xl md:text-2xl text-white max-w-2xl mx-auto font-light leading-relaxed">
             {t('discover_premium_real_estate')}
           </p>
 
@@ -225,7 +229,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
           {/* Stats */}
           <div className="flex items-center justify-center space-x-2 mt-8">
-            <div className="flex items-center space-x-2 px-4 py-2 bg-card/50 backdrop-blur-sm rounded-full border border-border/50">
+            <div className="flex items-center space-x-2 px-4 py-2 bg-card/50 backdrop-blur-sm rounded-full border border-border/50 text-white">
               <TrendingUp className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">
                 <span className="text-primary font-bold animate-pulse">{totalProperties.toLocaleString()}</span> {t('verified_properties')}
@@ -237,5 +241,6 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
       {/* Auth Dialog */}
       <GoogleSignInDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
-    </div>;
+    </div>
+  );
 };
