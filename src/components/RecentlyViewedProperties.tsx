@@ -78,8 +78,7 @@ export const RecentlyViewedProperties = () => {
         .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images')
         .in('id', uniquePropertyIds)
         .eq('approval_status', 'approved')
-        .eq('listing_status', 'Active')
-        .not('deleted_at', 'is', null);
+        .eq('listing_status', 'active'); // Removed .not('deleted_at', 'is', null);
 
       if (propertiesError) {
         console.error('RecentlyViewedProperties: Error fetching properties:', propertiesError);
@@ -104,6 +103,7 @@ export const RecentlyViewedProperties = () => {
       setRecentlyViewed(propertiesWithViewDate || []);
     } catch (error) {
       console.error('Error fetching recently viewed properties:', error);
+      setError((error as Error).message); // Set error state for display if needed
     } finally {
       setLoading(false);
     }
@@ -127,6 +127,31 @@ export const RecentlyViewedProperties = () => {
             {[...Array(3)].map((_, i) => (
               <div key={i} className="h-48 bg-muted rounded-lg animate-pulse" />
             ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            Recently Viewed Properties
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-red-500">
+            <p>Error loading recently viewed properties: {error}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={fetchRecentlyViewed}
+            >
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>
