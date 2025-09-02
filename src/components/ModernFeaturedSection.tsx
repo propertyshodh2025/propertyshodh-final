@@ -20,7 +20,6 @@ interface Property {
   property_type: string;
   transaction_type: string;
   images?: string[];
-  featured_at: string; // Assuming this was part of the original interface for featured properties
 }
 
 export const ModernFeaturedSection: React.FC = () => {
@@ -28,24 +27,25 @@ export const ModernFeaturedSection: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { language, t } = useLanguage();
+  // Removed parallax effect
 
   useEffect(() => {
   const fetchFeaturedProperties = async () => {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, location, price, bhk, carpet_area, property_type, transaction_type, images, featured_at')
+          .select('id, title, location, price, bhk, carpet_area, property_type, transaction_type, images')
           .eq('is_featured', true)
-          .eq('listing_status', 'active')
+          .eq('listing_status', 'Active')
           .limit(6)
-          .order('featured_at', { ascending: false }); // Order by featured_at for featured properties
+          .order('featured_at', { ascending: false });
 
         console.log('Featured properties query result:', { data, error });
 
         if (error) throw error;
         setProperties(data || []);
       } catch (error) {
-        console.error('Error fetching featured properties:', error);
+        console.error('Error fetching properties:', error);
       } finally {
         setLoading(false);
       }
@@ -94,13 +94,13 @@ export const ModernFeaturedSection: React.FC = () => {
     <section className="py-24 bg-gradient-to-b from-background to-muted/20 relative overflow-hidden">
       {/* Background Curves */}
       <div className="absolute inset-0 opacity-40">
-        <svg
-          className="absolute top-0 right-0 w-1/2 h-full"
-          viewBox="0 0 500 1000"
+        <svg 
+          className="absolute top-0 right-0 w-1/2 h-full" 
+          viewBox="0 0 500 1000" 
           preserveAspectRatio="xMaxYMid slice"
         >
-          <path
-            d="M500,0 Q300,200 400,400 T500,800 L500,1000 L500,0 Z"
+          <path 
+            d="M500,0 Q300,200 400,400 T500,800 L500,1000 L500,0 Z" 
             fill="hsl(var(--primary))"
             fillOpacity="0.03"
           />
@@ -123,7 +123,7 @@ export const ModernFeaturedSection: React.FC = () => {
         {/* Properties Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {properties.map((property, index) => (
-            <Card
+            <Card 
               key={property.id}
               className="group overflow-hidden rounded-3xl border-0 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer"
               onClick={() => navigate(`/property/${property.id}`)}
@@ -134,8 +134,8 @@ export const ModernFeaturedSection: React.FC = () => {
               {/* Property Image */}
               <div className="relative h-64 overflow-hidden">
                 {property.images && property.images.length > 0 ? (
-                  <img
-                    src={property.images[0]}
+                  <img 
+                    src={property.images[0]} 
                     alt={property.title}
                     className="w-full h-full object-cover"
                   />
@@ -144,17 +144,17 @@ export const ModernFeaturedSection: React.FC = () => {
                     <div className="text-6xl opacity-30">🏠</div>
                   </div>
                 )}
-
+                
                 {/* Overlay Elements */}
                 <div className="absolute top-4 left-4">
                   <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm capitalize">
                     {translateEnum(property.transaction_type, language as any)}
                   </Badge>
                 </div>
-
+                
                 <div className="absolute top-4 right-4">
                   <div className="bg-card/90 backdrop-blur-sm rounded-full p-2">
-                    <Star className="h-4 w-4 text-yellow-500 fill-current" /> {/* Kept Star icon */}
+                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
                   </div>
                 </div>
 
@@ -204,8 +204,8 @@ export const ModernFeaturedSection: React.FC = () => {
                 </div>
 
                 {/* View Details Button */}
-                <Button
-                  variant="ghost"
+                <Button 
+                  variant="ghost" 
                   className="w-full group/btn hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                 >
                   <span>{t('property.viewDetails')}</span>
