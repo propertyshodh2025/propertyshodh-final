@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Bed, Bath, Square, Star, ArrowRight } from 'lucide-react';
+import { MapPin, Bed, Bath, Square, Clock, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -20,38 +20,37 @@ interface Property {
   property_type: string;
   transaction_type: string;
   images?: string[];
+  created_at: string; // Added created_at
 }
 
-export const ModernFeaturedSection: React.FC = () => {
+export const LatestPropertiesSection: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { language, t } = useLanguage();
-  // Removed parallax effect
 
   useEffect(() => {
-  const fetchFeaturedProperties = async () => {
+  const fetchLatestProperties = async () => {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, location, price, bhk, carpet_area, property_type, transaction_type, images')
-          .eq('is_featured', true)
-          .eq('listing_status', 'Active')
+          .select('id, title, location, price, bhk, carpet_area, property_type, transaction_type, images, created_at')
+          .eq('listing_status', 'active')
           .limit(6)
-          .order('featured_at', { ascending: false });
+          .order('created_at', { ascending: false }); // Order by creation date for latest properties
 
-        console.log('Featured properties query result:', { data, error });
+        console.log('Latest properties query result:', { data, error });
 
         if (error) throw error;
         setProperties(data || []);
       } catch (error) {
-        console.error('Error fetching properties:', error);
+        console.error('Error fetching latest properties:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFeaturedProperties();
+    fetchLatestProperties();
   }, []);
 
   const formatPrice = (price: number) => {
@@ -94,13 +93,13 @@ export const ModernFeaturedSection: React.FC = () => {
     <section className="py-24 bg-gradient-to-b from-background to-muted/20 relative overflow-hidden">
       {/* Background Curves */}
       <div className="absolute inset-0 opacity-40">
-        <svg 
-          className="absolute top-0 right-0 w-1/2 h-full" 
-          viewBox="0 0 500 1000" 
+        <svg
+          className="absolute top-0 right-0 w-1/2 h-full"
+          viewBox="0 0 500 1000"
           preserveAspectRatio="xMaxYMid slice"
         >
-          <path 
-            d="M500,0 Q300,200 400,400 T500,800 L500,1000 L500,0 Z" 
+          <path
+            d="M500,0 Q300,200 400,400 T500,800 L500,1000 L500,0 Z"
             fill="hsl(var(--primary))"
             fillOpacity="0.03"
           />
@@ -112,18 +111,18 @@ export const ModernFeaturedSection: React.FC = () => {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              {t('featured.title')}
+              {t('latest.title')}
             </span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            {t('featured.subtitle')}
+            {t('latest.subtitle')}
           </p>
         </div>
 
         {/* Properties Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {properties.map((property, index) => (
-            <Card 
+            <Card
               key={property.id}
               className="group overflow-hidden rounded-3xl border-0 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer"
               onClick={() => navigate(`/property/${property.id}`)}
@@ -134,8 +133,8 @@ export const ModernFeaturedSection: React.FC = () => {
               {/* Property Image */}
               <div className="relative h-64 overflow-hidden">
                 {property.images && property.images.length > 0 ? (
-                  <img 
-                    src={property.images[0]} 
+                  <img
+                    src={property.images[0]}
                     alt={property.title}
                     className="w-full h-full object-cover"
                   />
@@ -144,17 +143,17 @@ export const ModernFeaturedSection: React.FC = () => {
                     <div className="text-6xl opacity-30">🏠</div>
                   </div>
                 )}
-                
+
                 {/* Overlay Elements */}
                 <div className="absolute top-4 left-4">
                   <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm capitalize">
                     {translateEnum(property.transaction_type, language as any)}
                   </Badge>
                 </div>
-                
+
                 <div className="absolute top-4 right-4">
                   <div className="bg-card/90 backdrop-blur-sm rounded-full p-2">
-                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                    <Clock className="h-4 w-4 text-blue-500" /> {/* Changed icon to Clock */}
                   </div>
                 </div>
 
@@ -204,8 +203,8 @@ export const ModernFeaturedSection: React.FC = () => {
                 </div>
 
                 {/* View Details Button */}
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="w-full group/btn hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                 >
                   <span>{t('property.viewDetails')}</span>
@@ -223,7 +222,7 @@ export const ModernFeaturedSection: React.FC = () => {
             size="lg"
             className="px-8 py-4 text-lg font-semibold rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transform transition-all duration-300 hover:scale-105 shadow-lg"
           >
-            {t('featured.viewAll')}
+            {t('latest.viewAll')}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>

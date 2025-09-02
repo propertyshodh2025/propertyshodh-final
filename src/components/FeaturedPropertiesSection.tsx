@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Bed, Bath, Square, ArrowRight, Star } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, Bed, Bath, Square, Star, ArrowRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
 import { TranslatableText } from '@/components/TranslatableText';
 import { translateEnum } from '@/lib/staticTranslations';
 import { formatNumberWithLocale } from '@/lib/locale';
@@ -15,33 +15,37 @@ interface Property {
   title: string;
   location: string;
   price: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  area?: number;
+  bhk: number;
+  carpet_area: number;
   property_type: string;
+  transaction_type: string;
   images?: string[];
+  featured_at: string; // Added featured_at
 }
 
 export const FeaturedPropertiesSection: React.FC = () => {
-  const navigate = useNavigate();
-  const { t, language } = useLanguage();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { language, t } = useLanguage();
 
   useEffect(() => {
-    const fetchFeaturedProperties = async () => {
+  const fetchFeaturedProperties = async () => {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('*')
-          .eq('listing_status', 'Active')
+          .select('id, title, location, price, bhk, carpet_area, property_type, transaction_type, images, featured_at')
+          .eq('is_featured', true)
+          .eq('listing_status', 'active')
           .limit(6)
-          .order('created_at', { ascending: false });
+          .order('featured_at', { ascending: false }); // Order by featured_at for featured properties
+
+        console.log('Featured properties query result:', { data, error });
 
         if (error) throw error;
         setProperties(data || []);
       } catch (error) {
-        console.error('Error fetching properties:', error);
+        console.error('Error fetching featured properties:', error);
       } finally {
         setLoading(false);
       }
@@ -63,20 +67,20 @@ export const FeaturedPropertiesSection: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-16 bg-background">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-2">{t('featured.loadingTitle')}</h2>
-            <p className="text-muted-foreground">{t('featured.loadingSubtitle')}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, index) => (
-              <Card key={index} className="animate-pulse">
-                <div className="aspect-[4/3] bg-muted rounded-t-lg"></div>
-                <CardContent className="p-4 space-y-3">
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                  <div className="h-6 bg-muted rounded w-1/3"></div>
+      <section className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="overflow-hidden rounded-3xl">
+                <div className="h-64 bg-muted animate-pulse" />
+                <CardContent className="p-6">
+                  <div className="h-4 bg-muted rounded animate-pulse mb-2" />
+                  <div className="h-6 bg-muted rounded animate-pulse mb-4" />
+                  <div className="flex space-x-4">
+                    {[...Array(3)].map((_, j) => (
+                      <div key={j} className="h-4 w-12 bg-muted rounded animate-pulse" />
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -87,115 +91,140 @@ export const FeaturedPropertiesSection: React.FC = () => {
   }
 
   return (
-    <section className="py-16 bg-background">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-12">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{t('featured.title')}</h2>
-            <p className="text-muted-foreground">{t('featured.subtitle')}</p>
-          </div>
-          <Button 
-            variant="outline" 
-            className="hidden lg:flex items-center gap-2 flex-shrink-0"
-            onClick={() => navigate('/properties')}
-          >
-            {t('featured.viewAll')}
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+    <section className="py-24 bg-gradient-to-b from-background to-muted/20 relative overflow-hidden">
+      {/* Background Curves */}
+      <div className="absolute inset-0 opacity-40">
+        <svg
+          className="absolute top-0 right-0 w-1/2 h-full"
+          viewBox="0 0 500 1000"
+          preserveAspectRatio="xMaxYMid slice"
+        >
+          <path
+            d="M500,0 Q300,200 400,400 T500,800 L500,1000 L500,0 Z"
+            fill="hsl(var(--primary))"
+            fillOpacity="0.03"
+          />
+        </svg>
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Section Header */}
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              {t('featured.title')}
+            </span>
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            {t('featured.subtitle')}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {properties.map((property) => (
-            <Card 
-              key={property.id} 
-              className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 overflow-hidden"
+        {/* Properties Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {properties.map((property, index) => (
+            <Card
+              key={property.id}
+              className="group overflow-hidden rounded-3xl border-0 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer"
               onClick={() => navigate(`/property/${property.id}`)}
+              style={{
+                animationDelay: `${index * 150}ms`
+              }}
             >
               {/* Property Image */}
-              <div className="aspect-[4/3] relative overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
+              <div className="relative h-64 overflow-hidden">
                 {property.images && property.images.length > 0 ? (
-                  <img 
-                    src={property.images[0]} 
+                  <img
+                    src={property.images[0]}
                     alt={property.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <Square className="w-12 h-12 mx-auto mb-2" />
-                      <span className="text-sm">{t('property.noImage')}</span>
-                    </div>
+                  <div className="w-full h-full bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 flex items-center justify-center">
+                    <div className="text-6xl opacity-30">🏠</div>
                   </div>
                 )}
-                
-                {/* Property Type Badge */}
-                <Badge className="absolute top-3 left-3 bg-background/90 text-foreground hover:bg-background capitalize">
-                  {translateEnum(property.property_type, language as any)}
-                </Badge>
-                
-                {/* Featured Badge */}
-                <Badge className="absolute top-3 right-3 bg-yellow-500 text-white hover:bg-yellow-600">
-                  <Star className="w-3 h-3 mr-1" />
-                  {t('property.featured')}
-                </Badge>
+
+                {/* Overlay Elements */}
+                <div className="absolute top-4 left-4">
+                  <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm capitalize">
+                    {translateEnum(property.transaction_type, language as any)}
+                  </Badge>
+                </div>
+
+                <div className="absolute top-4 right-4">
+                  <div className="bg-card/90 backdrop-blur-sm rounded-full p-2">
+                    <Star className="h-4 w-4 text-yellow-500 fill-current" /> {/* Kept Star icon */}
+                  </div>
+                </div>
+
+                {/* Price Overlay */}
+                <div className="absolute bottom-4 left-4">
+                  <div className="bg-card/95 backdrop-blur-sm rounded-2xl px-4 py-2">
+                    <span className="text-lg font-bold text-primary">
+                      {formatPrice(property.price)}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <CardContent className="p-3 sm:p-4 space-y-3">
-                {/* Property Title */}
-                <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors text-sm sm:text-base">
-                  <TranslatableText text={property.title} context="property.title" />
-                </h3>
-
-                {/* Location */}
-                  <div className="flex items-center text-muted-foreground text-sm">
-                    <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
-                    <span className="truncate">{translateEnum(property.location, language as any)}</span>
+              {/* Property Details */}
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">
+                      <TranslatableText text={property.title} context="property.title" />
+                    </h3>
+                    <div className="flex items-center text-muted-foreground">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{translateEnum(property.location, language as any)}</span>
+                    </div>
                   </div>
-
-                {/* Property Details */}
-                <div className="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground flex-wrap">
-                  {property.bedrooms && (
-                    <div className="flex items-center gap-1">
-                      <Bed className="w-3 h-3" />
-                      <span>{formatNumberWithLocale(property.bedrooms, language as any)} {translateEnum('bhk', language as any)}</span>
-                    </div>
-                  )}
-                  {property.bathrooms && (
-                    <div className="flex items-center gap-1">
-                      <Bath className="w-3 h-3" />
-                      <span>{formatNumberWithLocale(property.bathrooms, language as any)}</span>
-                    </div>
-                  )}
-                  {property.area && (
-                    <div className="flex items-center gap-1">
-                      <Square className="w-3 h-3" />
-                      <span>{formatNumberWithLocale(property.area, language as any)} {translateEnum('sq ft', language as any)}</span>
-                    </div>
-                  )}
+                  <Badge variant="outline" className="capitalize">
+                    {translateEnum(property.property_type, language as any)}
+                  </Badge>
                 </div>
 
-                {/* Price */}
-                <div className="flex items-center justify-between">
-                  <div className="text-lg sm:text-xl font-bold text-primary">
-                    {formatPrice(property.price)}
+                {/* Property Stats */}
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center">
+                      <Bed className="h-4 w-4 mr-1" />
+                      <span>{formatNumberWithLocale(property.bhk, language as any)} {translateEnum('bhk', language as any)}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Square className="h-4 w-4 mr-1" />
+                      <span>{formatNumberWithLocale(property.carpet_area, language as any)} {translateEnum('sq ft', language as any)}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span className="text-xs capitalize">{translateEnum(property.property_type, language as any)}</span>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 p-0 text-xs sm:text-sm">
-                    {t('property.viewDetails')}
-                    <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
                 </div>
+
+                {/* View Details Button */}
+                <Button
+                  variant="ghost"
+                  className="w-full group/btn hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                >
+                  <span>{t('property.viewDetails')}</span>
+                  <ArrowRight className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
+                </Button>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="text-center mt-8 lg:hidden">
-          <Button 
-            variant="outline" 
-            className="w-full"
+        {/* View All Button */}
+        <div className="text-center mt-16">
+          <Button
             onClick={() => navigate('/properties')}
+            size="lg"
+            className="px-8 py-4 text-lg font-semibold rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transform transition-all duration-300 hover:scale-105 shadow-lg"
           >
             {t('featured.viewAll')}
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </div>
