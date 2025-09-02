@@ -69,7 +69,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
         style={{ backgroundImage: "url('/uploads/city_ai.jpg')" }}
       >
         {/* Overlay for text readability */}
-        <div className="absolute inset-0 bg-black/70 dark:bg-black/80"></div>
+        <div className="absolute inset-0 bg-black/30 dark:bg-black/50"></div>
       </div>
 
       {/* Curved Background Elements (kept for subtle effect, adjusted opacity) */}
