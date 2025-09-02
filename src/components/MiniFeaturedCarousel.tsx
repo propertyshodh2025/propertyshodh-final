@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-// Carousel removed: using continuous marquee scroll
 import { useLanguage } from '@/contexts/LanguageContext';
 import { TranslatableText } from '@/components/TranslatableText';
 import { formatINRShort } from '@/lib/locale';
@@ -100,7 +99,7 @@ export const MiniFeaturedCarousel: React.FC = () => {
     if (!el) return;
 
     let last = performance.now();
-    const speed = 60; // px/s tuned for smaller cards
+    const speed = 90; // Increased speed for larger cards
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     const tick = (now: number) => {
@@ -150,7 +149,7 @@ export const MiniFeaturedCarousel: React.FC = () => {
               return (
                 <div
                   key={`${p.id}-${idx}`}
-                  className="flex-none shrink-0 w-[130px] sm:w-[150px] md:w-[170px] lg:w-[190px] xl:w-[210px]"
+                  className="flex-none shrink-0 w-[180px] sm:w-[200px] md:w-[220px] lg:w-[240px] xl:w-[260px]" // Increased width
                   aria-hidden={isClone}
                 >
                   <article
