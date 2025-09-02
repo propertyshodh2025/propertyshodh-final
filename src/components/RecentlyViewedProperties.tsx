@@ -73,12 +73,12 @@ export const RecentlyViewedProperties = () => {
       console.log('RecentlyViewedProperties: Unique property IDs:', uniquePropertyIds);
       
       // Fetch property details
+      // Removed client-side filters for approval_status and listing_status
+      // Relying on RLS to filter what the user is authorized to see.
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
         .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images')
-        .in('id', uniquePropertyIds)
-        .eq('approval_status', 'approved')
-        .eq('listing_status', 'active'); // Removed .not('deleted_at', 'is', null);
+        .in('id', uniquePropertyIds);
 
       if (propertiesError) {
         console.error('RecentlyViewedProperties: Error fetching properties:', propertiesError);

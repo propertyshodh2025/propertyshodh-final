@@ -1,186 +1,88 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
-const SUPABASE_URL = "https://bujpqglebnkdwlbguekm.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1anBxZ2xlYm5rZHdsYmd1ZWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0ODE2MjEsImV4cCI6MjA2ODA1NzYyMX0.Db4ysTZ2uNEAy59uXjMx8fllwoAUlgyqAxZftZ1WKI8";
-
-// Create a special admin client that doesn't use auth context
-export const adminSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-  // Override default headers to ensure we get admin access
-  global: {
-    headers: {
-      'x-admin-bypass': 'true'
-    }
-  }
-});
-
-// Types for admin session management
 interface AdminSession {
-  id: string;
+  admin_id: string;
   username: string;
   role: string;
-  sessionToken: string;
-  expiresAt: string;
+  is_active: boolean;
 }
 
-interface AdminAuthResult {
-  success: boolean;
-  admin?: AdminSession;
-  error?: string;
-}
+const ADMIN_SESSION_KEY = 'supabase-admin-session';
 
-// Secure admin authentication with server-side session management
-export const authenticateAdmin = async (username: string, password: string): Promise<AdminAuthResult> => {
+export const validateAdminSession = async (): Promise<{ success: boolean; admin?: AdminSession | null; error?: string }> => {
+  const sessionToken = localStorage.getItem(ADMIN_SESSION_KEY);
+
+  if (!sessionToken) {
+    return { success: false, error: 'No admin session found' };
+  }
+
   try {
-    // Call the secure authentication function
-    const { data, error } = await adminSupabase.rpc('authenticate_admin', {
-      _username: username,
-      _password: password
-    });
+    const { data, error } = await supabase.rpc('validate_admin_session', { _session_token: sessionToken });
 
     if (error) {
+      console.error('RPC validate_admin_session error:', error);
+      localStorage.removeItem(ADMIN_SESSION_KEY); // Clear invalid session
       return { success: false, error: error.message };
     }
 
-    if (!data || data.length === 0) {
-      return { success: false, error: 'Invalid credentials' };
+    if (data && data.length > 0) {
+      const admin = data[0];
+      return { success: true, admin: admin as AdminSession };
+    } else {
+      localStorage.removeItem(ADMIN_SESSION_KEY); // Clear expired/invalid session
+      return { success: false, error: 'Invalid or expired admin session' };
     }
-
-    const adminData = data[0];
-    
-    // Create server-side session
-    const { data: sessionToken, error: sessionError } = await adminSupabase.rpc('create_admin_session', {
-      _admin_id: adminData.id,
-      _ip_address: null, // Will be handled by PostgreSQL
-      _user_agent: navigator.userAgent
-    });
-
-    if (sessionError) {
-      return { success: false, error: 'Failed to create session' };
-    }
-
-    // Store session token securely
-    const adminSession: AdminSession = {
-      id: adminData.id,
-      username: adminData.username,
-      role: adminData.role,
-      sessionToken: sessionToken,
-      expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours
-    };
-
-    // Store in localStorage (will be replaced with httpOnly cookies in production)
-    localStorage.setItem('adminSession', JSON.stringify(adminSession));
-    
-    // Set PostgreSQL session variable
-    await setAdminSession(adminData.role);
-
-    return { success: true, admin: adminSession };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Authentication failed' };
+  } catch (err) {
+    console.error('Unexpected error during admin session validation:', err);
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    return { success: false, error: (err as Error).message };
   }
 };
 
-// Validate admin session server-side
-export const validateAdminSession = async (): Promise<AdminAuthResult> => {
+export const loginAdmin = async (username: string, password: string): Promise<{ success: boolean; admin?: AdminSession; sessionToken?: string; error?: string }> => {
   try {
-    const sessionStr = localStorage.getItem('adminSession');
-    if (!sessionStr) {
-      return { success: false, error: 'No session found' };
+    const { data, error } = await supabase.rpc('authenticate_admin', { _username: username, _password: password });
+
+    if (error) {
+      console.error('RPC authenticate_admin error:', error);
+      return { success: false, error: error.message };
     }
 
-    const session: AdminSession = JSON.parse(sessionStr);
-    
-    // Check if session is expired locally first
-    if (new Date(session.expiresAt) < new Date()) {
-      localStorage.removeItem('adminSession');
-      return { success: false, error: 'Session expired' };
+    if (data && data.length > 0) {
+      const admin = data[0];
+      if (admin.is_active) {
+        const { data: sessionData, error: sessionError } = await supabase.rpc('create_admin_session', { _admin_id: admin.id });
+        if (sessionError) {
+          console.error('RPC create_admin_session error:', sessionError);
+          return { success: false, error: sessionError.message };
+        }
+        const sessionToken = sessionData as string;
+        localStorage.setItem(ADMIN_SESSION_KEY, sessionToken);
+        return { success: true, admin: admin as AdminSession, sessionToken };
+      } else {
+        return { success: false, error: 'Admin account is inactive' };
+      }
+    } else {
+      return { success: false, error: 'Invalid username or password' };
     }
-
-    // Validate with server (this also extends the session)
-    const { data, error } = await adminSupabase.rpc('validate_admin_session', {
-      _session_token: session.sessionToken
-    });
-
-    if (error || !data || data.length === 0) {
-      localStorage.removeItem('adminSession');
-      return { success: false, error: 'Invalid session' };
-    }
-
-    const adminData = data[0];
-    
-    // Update session with fresh data
-    const updatedSession: AdminSession = {
-      ...session,
-      username: adminData.username,
-      role: adminData.role
-    };
-
-    localStorage.setItem('adminSession', JSON.stringify(updatedSession));
-    
-    // Set PostgreSQL session variable
-    await setAdminSession(adminData.role);
-
-    return { success: true, admin: updatedSession };
-  } catch (error) {
-    localStorage.removeItem('adminSession');
-    return { success: false, error: error instanceof Error ? error.message : 'Session validation failed' };
+  } catch (err) {
+    console.error('Unexpected error during admin login:', err);
+    return { success: false, error: (err as Error).message };
   }
 };
 
-// Logout admin and revoke session
-export const logoutAdmin = async (): Promise<void> => {
-  try {
-    const sessionStr = localStorage.getItem('adminSession');
-    if (sessionStr) {
-      const session: AdminSession = JSON.parse(sessionStr);
-      
-      // Revoke session on server
-      await adminSupabase.rpc('revoke_admin_session', {
-        _session_token: session.sessionToken
-      });
+export const logoutAdmin = async () => {
+  const sessionToken = localStorage.getItem(ADMIN_SESSION_KEY);
+  if (sessionToken) {
+    try {
+      await supabase.rpc('revoke_admin_session', { _session_token: sessionToken });
+    } catch (error) {
+      console.error('Error revoking admin session:', error);
     }
-  } catch (error) {
-    console.error('Failed to revoke session:', error);
-  } finally {
-    // Clear local storage
-    localStorage.removeItem('adminSession');
   }
+  localStorage.removeItem(ADMIN_SESSION_KEY);
 };
 
-// Helper function to get current admin session
-export const getCurrentAdminSession = (): AdminSession | null => {
-  try {
-    const sessionStr = localStorage.getItem('adminSession');
-    if (!sessionStr) return null;
-
-    const session: AdminSession = JSON.parse(sessionStr);
-    
-    // Check if session is expired
-    if (new Date(session.expiresAt) < new Date()) {
-      localStorage.removeItem('adminSession');
-      return null;
-    }
-
-    return session;
-  } catch (error) {
-    localStorage.removeItem('adminSession');
-    return null;
-  }
-};
-
-// Legacy helper function for backward compatibility
-export const isAdminAuthenticated = (): boolean => {
-  return getCurrentAdminSession() !== null;
-};
-
-// Helper function to set admin session variables in PostgreSQL
-export const setAdminSession = async (role: string): Promise<void> => {
-  try {
-    await adminSupabase.rpc('set_admin_session', { admin_role: role });
-  } catch (error) {
-    console.error('Failed to set admin session:', error);
-  }
+export const getCurrentAdminSession = (): string | null => {
+  return localStorage.getItem(ADMIN_SESSION_KEY);
 };
