@@ -17,6 +17,7 @@ import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumberWithLocale } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
+import SimilarPropertiesSection from '@/components/SimilarPropertiesSection'; // Import SimilarPropertiesSection
 
 // Lazy load heavy components
 const PropertyVerificationDetails = React.lazy(() => import('@/components/PropertyVerificationDetails'));
@@ -411,6 +412,18 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
               onShare={handleShare}
             />
           </div>
+        </div>
+
+        {/* Similar Properties Section at the end */}
+        <div className="mt-12 md:mt-16">
+          <SimilarPropertiesSection
+            currentPropertyId={id!}
+            propertyType={property.property_type || undefined}
+            propertyCategory={property.property_category || undefined}
+            transactionType={property.transaction_type || undefined}
+            location={property.location || undefined}
+            city={property.city || undefined}
+          />
         </div>
       </div>
     </div>
