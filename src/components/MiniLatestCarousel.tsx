@@ -135,7 +135,7 @@ export const MiniLatestCarousel = () => {
 
   return (
     <div className="w-full overflow-hidden py-4">
-      <h2 className="text-2xl font-bold mb-4 px-4">{t('latest_properties')}</h2>
+      <h2 className="text-2xl font-bold mb-4 text-white">{t('latest_properties')}</h2> {/* Removed px-4 */}
       <style jsx>{`
         .marquee {
           animation: marquee-scroll linear infinite;
