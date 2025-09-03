@@ -7,7 +7,7 @@ import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import MiniFeaturedCarousel from '@/components/MiniFeaturedCarousel';
+import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel'; // Corrected import to named export
 import { MiniLatestCarousel } from '@/components/MiniLatestCarousel'; // Import MiniLatestCarousel
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
