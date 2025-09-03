@@ -36,12 +36,12 @@ export const MiniFeaturedCarousel: React.FC = () => {
     const fetchFeatured = async () => { // Function to fetch featured properties
       setLoading(true); // Ensure loading state is true when fetching
       try {
-        console.log('Fetching featured properties with criteria: approval_status=approved, listing_status=Active, is_featured=true');
+        console.log('Fetching featured properties with criteria: approval_status=approved, listing_status=active, is_featured=true');
         const { data, error } = await supabase
           .from('properties')
           .select('id,title,price,location,images,created_at,is_featured,featured_at') // Select is_featured and featured_at
           .eq('approval_status', 'approved')
-          .eq('listing_status', 'Active') // Corrected to 'Active' (capital A)
+          .eq('listing_status', 'active') // Ensure this is lowercase 'active'
           .eq('is_featured', true) // Filter for featured properties
           .order('featured_at', { ascending: false, nullsFirst: false }) // Order by featured_at, ensuring nulls are last
           .limit(12);
@@ -51,15 +51,15 @@ export const MiniFeaturedCarousel: React.FC = () => {
           throw error;
         }
 
-        console.log('Fetched raw featured properties data for primary carousel:', data);
+        console.log('Fetched raw featured properties data:', data);
 
         if (isMounted) {
           const unique = Array.from(new Map(((data as any) || []).map((d: any) => [d.id, d])).values());
-          console.log('Processed unique featured properties for primary carousel:', unique);
+          console.log('Processed unique featured properties for carousel:', unique);
           setItems(unique as MiniProperty[]);
         }
       } catch (e) {
-        console.error('Failed to load featured properties in primary carousel catch block:', e);
+        console.error('Failed to load featured properties in catch block:', e);
       } finally {
         if (isMounted) setLoading(false);
       }

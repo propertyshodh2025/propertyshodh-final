@@ -7,8 +7,8 @@ import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import MiniFeaturedCarousel from '@/components/MiniFeaturedCarousel'; // Reverted import
-import { MiniLatestCarousel } from '@/components/MiniLatestCarousel'; // Reverted import
+import MiniFeaturedCarousel from '@/components/MiniFeaturedCarousel';
+import { MiniLatestCarousel } from '@/components/MiniLatestCarousel'; // Import MiniLatestCarousel
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
 
@@ -82,7 +82,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
               <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0.05" />
             </linearGradient>
             <linearGradient id="heroGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="hsl(var(--secondary))" stopOpacity="00.08" />
+              <stop offset="0%" stopColor="hsl(var(--secondary))" stopOpacity="0.08" />
               <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.03" />
             </linearGradient>
           </defs>
