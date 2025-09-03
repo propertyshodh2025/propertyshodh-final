@@ -43,7 +43,7 @@ export const MiniFeaturedCarousel = () => {
           .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images, is_featured')
           .eq('is_featured', true) // Filter for featured properties
           .eq('approval_status', 'approved')
-          .eq('listing_status', 'active')
+          .eq('listing_status', 'Active') // Changed to 'Active' (capital A)
           .order('created_at', { ascending: false })
           .limit(10);
 

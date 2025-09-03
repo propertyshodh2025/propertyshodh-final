@@ -41,7 +41,7 @@ export const MiniLatestCarousel = () => {
           .from('properties')
           .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images')
           .eq('approval_status', 'approved')
-          .eq('listing_status', 'active') // Ensure this is lowercase 'active'
+          .eq('listing_status', 'Active') // Changed to 'Active' (capital A)
           .order('created_at', { ascending: false }) // Order by creation date for latest properties
           .limit(10); // Fetch a reasonable number of latest properties
 
