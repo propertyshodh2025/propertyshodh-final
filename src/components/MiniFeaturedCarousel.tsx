@@ -12,6 +12,7 @@ interface MiniProperty {
   price: number;
   location: string;
   images?: string[] | null;
+  created_at: string; // Add created_at to the interface
 }
 
 export const MiniFeaturedCarousel: React.FC = () => {
@@ -26,19 +27,18 @@ export const MiniFeaturedCarousel: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
 
-  const nowIso = useMemo(() => new Date().toISOString(), []);
+  // nowIso is no longer needed for filtering, so it's removed.
 
   useEffect(() => {
     let isMounted = true;
-    const fetchFeatured = async () => {
+    const fetchLatest = async () => { // Renamed function for clarity
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id,title,price,location,images,featured_at,featured_until')
-          .eq('is_featured', true)
-          .eq('listing_status', 'Active')
-          .or(`featured_until.is.null,featured_until.gt.${nowIso}`)
-          .order('featured_at', { ascending: false })
+          .select('id,title,price,location,images,created_at') // Select created_at
+          .eq('approval_status', 'approved') // Ensure properties are approved
+          .eq('listing_status', 'active') // Ensure properties are active
+          .order('created_at', { ascending: false }) // Order by creation date for latest
           .limit(12);
         if (error) throw error;
         if (isMounted) {
@@ -46,16 +46,16 @@ export const MiniFeaturedCarousel: React.FC = () => {
           setItems(unique as MiniProperty[]);
         }
       } catch (e) {
-        console.error('Failed to load featured properties', e);
+        console.error('Failed to load latest properties', e);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
-    fetchFeatured();
+    fetchLatest(); // Call the updated fetch function
     return () => {
       isMounted = false;
     };
-  }, [nowIso]);
+  }, []); // Removed nowIso from dependencies as it's no longer used in the query
 
   const displayItems = useMemo(() => {
     const unique = Array.from(new Map(items.map((d) => [d.id, d])).values());
@@ -128,7 +128,7 @@ export const MiniFeaturedCarousel: React.FC = () => {
   if (loading || items.length === 0) return null;
 
    return (
-    <section aria-label="Featured properties" className="w-full mt-6 sm:mt-8 mb-0 -mb-8 sm:-mb-16">
+    <section aria-label="Recently posted properties" className="w-full mt-6 sm:mt-8 mb-0 -mb-8 sm:-mb-16">
       <div className="max-w-5xl mx-auto relative py-0">
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-12 sm:h-14 rounded-full bg-muted/40" />
         
@@ -163,7 +163,7 @@ export const MiniFeaturedCarousel: React.FC = () => {
                       {p.images && p.images[0] ? (
                         <img
                           src={p.images[0]}
-                          alt={`${p.title} featured property image`}
+                          alt={`${p.title} property image`}
                           loading="lazy"
                           className="block h-full w-full object-cover"
                         />
