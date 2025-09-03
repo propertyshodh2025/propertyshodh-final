@@ -150,6 +150,13 @@ export const MiniLatestCarousel = () => {
                 >
                   {property.transaction_type}
                 </Badge>
+                {/* Added 'New' badge for visual distinction */}
+                <Badge 
+                  variant="default" 
+                  className="absolute top-2 right-2 bg-green-500/80 backdrop-blur-sm text-white"
+                >
+                  New
+                </Badge>
               </div>
               <div className="p-3">
                 <h3 className="font-semibold text-sm mb-1 line-clamp-2">{property.title}</h3>
