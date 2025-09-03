@@ -7,8 +7,8 @@ import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel'; // Corrected import to named export
-import { MiniLatestCarousel } from '@/components/MiniLatestCarousel'; // Import MiniLatestCarousel
+import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel';
+import { MiniLatestCarousel } from '@/components/MiniLatestCarousel';
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
 
@@ -104,12 +104,12 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
       {/* Main Content */}
       <div className="relative z-10 w-full pt-20 pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
-          {/* Featured mini-carousel above title */}
-          <div className="w-full"> {/* Removed max-w-5xl mx-auto */}
-            <MiniFeaturedCarousel />
-          </div>
+        {/* Featured mini-carousel above title */}
+        <div className="w-full mb-8">
+          <MiniFeaturedCarousel />
+        </div>
 
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
           {/* Hero Title */}
           <br />
           <br />
@@ -220,11 +220,6 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
             </div>
           </div>
 
-          {/* Recently Posted Properties Carousel */}
-          <div className="w-full"> {/* Removed max-w-5xl mx-auto */}
-            <MiniLatestCarousel />
-          </div>
-
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <Button onClick={handlePostProperty} size="lg" className="relative px-8 py-4 text-lg font-semibold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-all duration-300 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-primary/10 before:via-accent/10 before:to-primary/10 before:animate-pulse before:-z-10">
@@ -242,6 +237,11 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
               </span>
             </div>
           </div>
+        </div>
+        
+        {/* Recently Posted Properties Carousel */}
+        <div className="w-full mt-8">
+          <MiniLatestCarousel />
         </div>
       </div>
 

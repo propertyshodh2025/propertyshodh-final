@@ -104,8 +104,8 @@ export const MiniLatestCarousel = () => {
 
   if (loading) {
     return (
-      <div className="w-full overflow-hidden py-4">
-        <h2 className="text-2xl font-bold mb-4 px-4">{t('latest_properties')}</h2>
+      <div className="w-full overflow-hidden py-4 px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-bold mb-4">{t('latest_properties')}</h2>
         <div className="flex gap-4 animate-pulse">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="min-w-[280px] h-64 bg-muted rounded-lg" />
@@ -117,7 +117,7 @@ export const MiniLatestCarousel = () => {
 
   if (error) {
     return (
-      <div className="w-full py-4 px-4 text-red-500">
+      <div className="w-full py-4 px-4 sm:px-6 lg:px-8 text-red-500">
         <h2 className="text-2xl font-bold mb-4">{t('latest_properties')}</h2>
         <p>{t('error_loading_properties')}: {error}</p>
       </div>
@@ -126,7 +126,7 @@ export const MiniLatestCarousel = () => {
 
   if (properties.length === 0) {
     return (
-      <div className="w-full py-4 px-4 text-muted-foreground">
+      <div className="w-full py-4 px-4 sm:px-6 lg:px-8 text-muted-foreground">
         <h2 className="text-2xl font-bold mb-4">{t('latest_properties')}</h2>
         <p>{t('no_latest_properties_available')}</p>
       </div>
@@ -134,8 +134,8 @@ export const MiniLatestCarousel = () => {
   }
 
   return (
-    <div className="w-full overflow-hidden py-4">
-      <h2 className="text-2xl font-bold mb-4 text-white">{t('latest_properties')}</h2> {/* Removed px-4 */}
+    <div className="w-full overflow-hidden py-4 px-4 sm:px-6 lg:px-8">
+      <h2 className="text-2xl font-bold mb-4 text-white">{t('latest_properties')}</h2>
       <style jsx>{`
         .marquee {
           animation: marquee-scroll linear infinite;
