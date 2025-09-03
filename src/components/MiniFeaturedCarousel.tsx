@@ -107,7 +107,7 @@ export const MiniFeaturedCarousel = () => {
   if (loading) {
     return (
       <div className="w-full overflow-hidden py-4">
-        <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
+        <h2 className="text-2xl font-bold mb-4 text-white">{t('featured_properties')}</h2> {/* Removed px-4 */}
         <div className="flex gap-4 animate-pulse">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="min-w-[280px] h-64 bg-muted rounded-lg" />
@@ -119,8 +119,8 @@ export const MiniFeaturedCarousel = () => {
 
   if (error) {
     return (
-      <div className="w-full py-4 px-4 text-red-500">
-        <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
+      <div className="w-full py-4 text-red-500">
+        <h2 className="text-2xl font-bold mb-4 text-white">{t('featured_properties')}</h2> {/* Removed px-4 */}
         <p className="text-white/70">{t('error_loading_properties')}: {error}</p>
       </div>
     );
@@ -128,8 +128,8 @@ export const MiniFeaturedCarousel = () => {
 
   if (properties.length === 0) {
     return (
-      <div className="w-full py-4 px-4 text-muted-foreground">
-        <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
+      <div className="w-full py-4 text-muted-foreground">
+        <h2 className="text-2xl font-bold mb-4 text-white">{t('featured_properties')}</h2> {/* Removed px-4 */}
         <p className="text-white/70">{t('no_featured_properties_available')}</p>
       </div>
     );
@@ -137,7 +137,7 @@ export const MiniFeaturedCarousel = () => {
 
   return (
     <div className="w-full overflow-hidden py-4">
-      <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
+      <h2 className="text-2xl font-bold mb-4 text-white">{t('featured_properties')}</h2> {/* Removed px-4 */}
       <style jsx>{`
         .marquee {
           animation: marquee-scroll linear infinite;

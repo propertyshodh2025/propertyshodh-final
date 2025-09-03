@@ -106,7 +106,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       <div className="relative z-10 w-full pt-20 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
           {/* Featured mini-carousel above title */}
-          <div className="w-full max-w-5xl mx-auto">
+          <div className="w-full"> {/* Removed max-w-5xl mx-auto */}
             <MiniFeaturedCarousel />
           </div>
 
