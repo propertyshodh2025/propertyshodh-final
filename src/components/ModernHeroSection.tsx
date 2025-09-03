@@ -240,9 +240,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
         </div>
         
         {/* Recently Posted Properties Carousel */}
-        <div className="w-full mt-8">
-          <MiniLatestCarousel />
-        </div>
+        {/* Removed MiniLatestCarousel as requested */}
       </div>
 
       {/* Auth Dialog */}
