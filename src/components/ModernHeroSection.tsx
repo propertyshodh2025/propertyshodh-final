@@ -8,6 +8,7 @@ import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import MiniFeaturedCarousel from '@/components/MiniFeaturedCarousel';
+import { MiniLatestCarousel } from '@/components/MiniLatestCarousel'; // Import MiniLatestCarousel
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
 
@@ -217,6 +218,11 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
                 {t('search_properties')}
               </Button>
             </div>
+          </div>
+
+          {/* Recently Posted Properties Carousel */}
+          <div className="w-full max-w-5xl mx-auto mt-8">
+            <MiniLatestCarousel />
           </div>
 
           {/* Action Buttons */}

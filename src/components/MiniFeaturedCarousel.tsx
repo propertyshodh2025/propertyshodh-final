@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { TranslatableText } from '@/components/TranslatableText';
 import { formatINRShort } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
+import { Badge } from '@/components/ui/badge'; // Import Badge component
 
 interface MiniProperty {
   id: string;
@@ -12,7 +13,9 @@ interface MiniProperty {
   price: number;
   location: string;
   images?: string[] | null;
-  created_at: string; // Add created_at to the interface
+  created_at: string;
+  is_featured?: boolean; // Add is_featured to the interface
+  featured_at?: string; // Add featured_at to the interface
 }
 
 export const MiniFeaturedCarousel: React.FC = () => {
@@ -27,18 +30,17 @@ export const MiniFeaturedCarousel: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
 
-  // nowIso is no longer needed for filtering, so it's removed.
-
   useEffect(() => {
     let isMounted = true;
-    const fetchLatest = async () => { // Renamed function for clarity
+    const fetchFeatured = async () => { // Renamed function to reflect its purpose
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id,title,price,location,images,created_at') // Select created_at
-          .eq('approval_status', 'approved') // Ensure properties are approved
-          .eq('listing_status', 'active') // Ensure properties are active
-          .order('created_at', { ascending: false }) // Order by creation date for latest
+          .select('id,title,price,location,images,created_at,is_featured,featured_at') // Select is_featured and featured_at
+          .eq('approval_status', 'approved')
+          .eq('listing_status', 'active')
+          .eq('is_featured', true) // Filter for featured properties
+          .order('featured_at', { ascending: false }) // Order by featured_at for featured properties
           .limit(12);
         if (error) throw error;
         if (isMounted) {
@@ -46,16 +48,16 @@ export const MiniFeaturedCarousel: React.FC = () => {
           setItems(unique as MiniProperty[]);
         }
       } catch (e) {
-        console.error('Failed to load latest properties', e);
+        console.error('Failed to load featured properties', e);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
-    fetchLatest(); // Call the updated fetch function
+    fetchFeatured(); // Call the updated fetch function
     return () => {
       isMounted = false;
     };
-  }, []); // Removed nowIso from dependencies as it's no longer used in the query
+  }, []);
 
   const displayItems = useMemo(() => {
     const unique = Array.from(new Map(items.map((d) => [d.id, d])).values());
@@ -128,7 +130,7 @@ export const MiniFeaturedCarousel: React.FC = () => {
   if (loading || items.length === 0) return null;
 
    return (
-    <section aria-label="Recently posted properties" className="w-full mt-6 sm:mt-8 mb-0 -mb-8 sm:-mb-16">
+    <section aria-label="Featured properties" className="w-full mt-6 sm:mt-8 mb-0 -mb-8 sm:-mb-16">
       <div className="max-w-5xl mx-auto relative py-0">
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-12 sm:h-14 rounded-full bg-muted/40" />
         
@@ -178,6 +180,14 @@ export const MiniFeaturedCarousel: React.FC = () => {
                       <p className="text-[8px] sm:text-[9px] text-muted-foreground line-clamp-1">{translateEnum(p.location, language)}</p>
                       <p className="text-[11px] sm:text-[12px] font-semibold">{formatINRShort(p.price, language)}</p>
                     </div>
+                    {p.is_featured && (
+                      <Badge 
+                        variant="default" 
+                        className="absolute top-2 right-2 bg-yellow-500/80 backdrop-blur-sm text-white"
+                      >
+                        Featured
+                      </Badge>
+                    )}
                   </article>
                 </div>
               );
