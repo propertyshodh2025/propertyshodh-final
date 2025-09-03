@@ -7,7 +7,7 @@ import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-// import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel'; // Removed
+import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel'; // Re-added
 import { MiniLatestCarousel } from '@/components/MiniLatestCarousel';
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
@@ -105,9 +105,9 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       {/* Main Content */}
       <div className="relative z-10 w-full pt-20 pb-16">
         {/* Featured mini-carousel above title */}
-        {/* <div className="w-full mb-8">
+        <div className="w-full mb-8">
           <MiniFeaturedCarousel />
-        </div> */}
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
           {/* Hero Title */}
