@@ -6,6 +6,7 @@ import { TranslatableText } from '@/components/TranslatableText';
 import { formatINRShort } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
 import { Badge } from '@/components/ui/badge'; // Import Badge component
+import { Card, CardContent } from '@/components/ui/card'; // Import Card components for consistent styling
 
 interface MiniProperty {
   id: string;
@@ -28,11 +29,11 @@ export const MiniFeaturedCarousel: React.FC = () => {
   const rafRef = React.useRef<number | null>(null);
   const pausedRef = React.useRef(false);
   const navigate = useNavigate();
-  const { language } = useLanguage();
+  const { t, language } = useLanguage(); // Destructure t from useLanguage
 
   useEffect(() => {
     let isMounted = true;
-    const fetchFeatured = async () => { // Renamed function to reflect its purpose
+    const fetchFeatured = async () => { // Function to fetch featured properties
       try {
         const { data, error } = await supabase
           .from('properties')
@@ -53,7 +54,7 @@ export const MiniFeaturedCarousel: React.FC = () => {
         if (isMounted) setLoading(false);
       }
     };
-    fetchFeatured(); // Call the updated fetch function
+    fetchFeatured(); // Call the fetch function
     return () => {
       isMounted = false;
     };
@@ -127,11 +128,32 @@ export const MiniFeaturedCarousel: React.FC = () => {
     };
   }, [displayItems]);
 
-  if (loading || items.length === 0) return null;
+  if (loading) {
+    return (
+      <div className="w-full overflow-hidden py-4">
+        <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
+        <div className="flex gap-4 animate-pulse">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="min-w-[280px] h-64 bg-muted rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="w-full py-4 px-4 text-muted-foreground">
+        <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
+        <p className="text-white/70">{t('no_featured_properties_available')}</p>
+      </div>
+    );
+  }
 
    return (
     <section aria-label="Featured properties" className="w-full mt-6 sm:mt-8 mb-0 -mb-8 sm:-mb-16">
       <div className="max-w-5xl mx-auto relative py-0">
+        <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2> {/* Added title */}
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-12 sm:h-14 rounded-full bg-muted/40" />
         
         
