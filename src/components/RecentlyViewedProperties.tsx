@@ -78,7 +78,7 @@ export const RecentlyViewedProperties = () => {
         .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images')
         .in('id', uniquePropertyIds)
         .eq('approval_status', 'approved')
-        .eq('listing_status', 'active'); // Removed .not('deleted_at', 'is', null);
+        .eq('listing_status', 'Active'); // Changed 'active' to 'Active'
 
       if (propertiesError) {
         console.error('RecentlyViewedProperties: Error fetching properties:', propertiesError);
