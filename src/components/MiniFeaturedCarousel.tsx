@@ -106,9 +106,9 @@ export const MiniFeaturedCarousel = () => {
 
   if (loading) {
     return (
-      <div className="w-full overflow-hidden py-4 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold mb-4 text-white">{t('featured_properties')}</h2>
-        <div className="flex gap-4 animate-pulse">
+      <div className="w-full overflow-hidden py-4">
+        <h2 className="text-2xl font-bold mb-4 text-white px-4 sm:px-6 lg:px-8">{t('featured_properties')}</h2>
+        <div className="flex gap-4 animate-pulse px-4 sm:px-6 lg:px-8">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="min-w-[280px] h-64 bg-muted rounded-lg" />
           ))}
@@ -136,8 +136,8 @@ export const MiniFeaturedCarousel = () => {
   }
 
   return (
-    <div className="w-full overflow-hidden py-4 px-4 sm:px-6 lg:px-8">
-      <h2 className="text-2xl font-bold mb-4 text-white">{t('featured_properties')}</h2>
+    <div className="w-full overflow-hidden py-4">
+      <h2 className="text-2xl font-bold mb-4 text-white px-4 sm:px-6 lg:px-8">{t('featured_properties')}</h2>
       <style jsx>{`
         .marquee {
           animation: marquee-scroll linear infinite;
@@ -150,7 +150,7 @@ export const MiniFeaturedCarousel = () => {
       `}</style>
       <div
         ref={trackRef}
-        className="marquee flex flex-nowrap items-stretch gap-4 will-change-transform"
+        className="marquee flex flex-nowrap items-stretch gap-4 will-change-transform px-4 sm:px-6 lg:px-8"
         style={{ width: `${properties.concat(properties).length * 280}px` }}
       >
         {properties.concat(properties).map((property, index) => (
