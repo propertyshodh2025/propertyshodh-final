@@ -36,7 +36,7 @@ export const MiniLatestCarousel = () => {
         .from('properties')
         .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images')
         .eq('approval_status', 'approved')
-        .eq('listing_status', 'Active')
+        .eq('listing_status', 'active') // Changed to lowercase 'active' for consistency
         .order('created_at', { ascending: false }) // Order by creation date for latest properties
         .limit(10); // Fetch a reasonable number of latest properties
 
@@ -129,7 +129,7 @@ export const MiniLatestCarousel = () => {
       <div
         ref={trackRef}
         className="marquee flex flex-nowrap items-stretch gap-4 will-change-transform"
-        style={{ width: `${properties.length * 280}px` }} // Approximate width for 10 items
+        style={{ width: `${properties.concat(properties).length * 280}px` }} // Approximate width for duplicated items
       >
         {properties.concat(properties).map((property, index) => ( // Duplicate for seamless loop
           <Card
