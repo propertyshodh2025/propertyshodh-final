@@ -7,8 +7,8 @@ import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import MiniFeaturedCarouselPrimary from '@/components/MiniFeaturedCarouselPrimary'; // Updated import
-import { MiniFeaturedCarouselMarquee } from '@/components/MiniFeaturedCarouselMarquee'; // Updated import
+import MiniFeaturedCarousel from '@/components/MiniFeaturedCarousel'; // Reverted import
+import { MiniLatestCarousel } from '@/components/MiniLatestCarousel'; // Reverted import
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
 
@@ -107,7 +107,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
           {/* Featured mini-carousel above title */}
           <div className="w-full max-w-5xl mx-auto">
-            <MiniFeaturedCarouselPrimary />
+            <MiniFeaturedCarousel />
           </div>
 
           {/* Hero Title */}
@@ -222,7 +222,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
           {/* Recently Posted Properties Carousel */}
           <div className="w-full max-w-5xl mx-auto mt-8">
-            <MiniFeaturedCarouselMarquee />
+            <MiniLatestCarousel />
           </div>
 
           {/* Action Buttons */}

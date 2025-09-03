@@ -25,7 +25,7 @@ interface Property {
   featured_at?: string; // Added for featured properties
 }
 
-export const MiniFeaturedCarouselMarquee = () => {
+export const MiniLatestCarousel = () => {
   const trackRef = useRef<HTMLDivElement>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ export const MiniFeaturedCarouselMarquee = () => {
           .from('properties')
           .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images, is_featured, featured_at')
           .eq('approval_status', 'approved')
-          .eq('listing_status', 'Active') // Changed to 'Active' (capital A)
+          .eq('listing_status', 'Active') // Corrected to 'Active' (capital A)
           .eq('is_featured', true) // Filter for featured properties
           .order('featured_at', { ascending: false, nullsFirst: false }) // Order by featured_at for featured properties
           .limit(10); // Fetch a reasonable number of featured properties

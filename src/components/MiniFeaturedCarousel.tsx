@@ -19,7 +19,7 @@ interface MiniProperty {
   featured_at?: string; // Add featured_at to the interface
 }
 
-export const MiniFeaturedCarouselPrimary: React.FC = () => {
+export const MiniFeaturedCarousel: React.FC = () => {
   const [items, setItems] = useState<MiniProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const trackRef = React.useRef<HTMLDivElement | null>(null);
@@ -41,7 +41,7 @@ export const MiniFeaturedCarouselPrimary: React.FC = () => {
           .from('properties')
           .select('id,title,price,location,images,created_at,is_featured,featured_at') // Select is_featured and featured_at
           .eq('approval_status', 'approved')
-          .eq('listing_status', 'Active') // Changed to 'Active' (capital A)
+          .eq('listing_status', 'Active') // Corrected to 'Active' (capital A)
           .eq('is_featured', true) // Filter for featured properties
           .order('featured_at', { ascending: false, nullsFirst: false }) // Order by featured_at, ensuring nulls are last
           .limit(12);
@@ -138,7 +138,7 @@ export const MiniFeaturedCarouselPrimary: React.FC = () => {
     };
   }, [displayItems]);
 
-  console.log('MiniFeaturedCarouselPrimary - current items length:', items.length, 'loading:', loading);
+  console.log('MiniFeaturedCarousel - current items length:', items.length, 'loading:', loading);
 
   if (loading) {
     return (
@@ -234,4 +234,4 @@ export const MiniFeaturedCarouselPrimary: React.FC = () => {
   );
 };
 
-export default MiniFeaturedCarouselPrimary;
+export default MiniFeaturedCarousel;
