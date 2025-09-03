@@ -7,8 +7,8 @@ import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import MiniFeaturedCarousel from '@/components/MiniFeaturedCarousel';
-import { MiniLatestCarousel } from '@/components/MiniLatestCarousel'; // Import MiniLatestCarousel
+import MiniFeaturedCarouselPrimary from '@/components/MiniFeaturedCarouselPrimary'; // Updated import
+import { MiniFeaturedCarouselMarquee } from '@/components/MiniFeaturedCarouselMarquee'; // Updated import
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
 
@@ -82,7 +82,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
               <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0.05" />
             </linearGradient>
             <linearGradient id="heroGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="hsl(var(--secondary))" stopOpacity="0.08" />
+              <stop offset="0%" stopColor="hsl(var(--secondary))" stopOpacity="00.08" />
               <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.03" />
             </linearGradient>
           </defs>
@@ -107,7 +107,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
           {/* Featured mini-carousel above title */}
           <div className="w-full max-w-5xl mx-auto">
-            <MiniFeaturedCarousel />
+            <MiniFeaturedCarouselPrimary />
           </div>
 
           {/* Hero Title */}
@@ -222,7 +222,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
           {/* Recently Posted Properties Carousel */}
           <div className="w-full max-w-5xl mx-auto mt-8">
-            <MiniLatestCarousel />
+            <MiniFeaturedCarouselMarquee />
           </div>
 
           {/* Action Buttons */}
