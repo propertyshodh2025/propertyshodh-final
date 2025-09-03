@@ -1,144 +1,108 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, Bed, Bath, Square, Star } from 'lucide-react'; // Added Star icon
 import { supabase } from '@/integrations/supabase/client';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { TranslatableText } from '@/components/TranslatableText';
 import { formatINRShort } from '@/lib/locale';
-import { translateEnum } from '@/lib/staticTranslations';
-import { Badge } from '@/components/ui/badge'; // Import Badge component
-import { Card, CardContent } from '@/components/ui/card'; // Import Card components for consistent styling
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useNavigate } from 'react-router-dom';
+import { TranslatableText } from '@/components/TranslatableText';
 
-interface MiniProperty {
+interface Property {
   id: string;
   title: string;
   price: number;
   location: string;
-  images?: string[] | null;
-  created_at: string;
-  is_featured?: boolean; // Add is_featured to the interface
-  featured_at?: string; // Add featured_at to the interface
+  city: string;
+  bhk: number;
+  bathrooms: number;
+  carpet_area: number;
+  property_type: string;
+  transaction_type: string;
+  images: string[];
+  is_featured: boolean; // Ensure this is part of the interface
 }
 
-export const MiniFeaturedCarousel: React.FC = () => {
-  const [items, setItems] = useState<MiniProperty[]>([]);
+export const MiniFeaturedCarousel = () => {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const trackRef = React.useRef<HTMLDivElement | null>(null);
-  const [duration, setDuration] = useState<number>(20); // fallback/unused with JS ticker
-  const offsetRef = React.useRef(0);
-  const singleWidthRef = React.useRef(0);
-  const rafRef = React.useRef<number | null>(null);
-  const pausedRef = React.useRef(false);
+  const [error, setError] = useState<string | null>(null);
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
-  const { t, language } = useLanguage(); // Destructure t from useLanguage
 
   useEffect(() => {
     let isMounted = true;
-    const fetchFeatured = async () => { // Function to fetch featured properties
-      setLoading(true); // Ensure loading state is true when fetching
+    const fetchFeaturedProperties = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        console.log('Fetching featured properties with criteria: approval_status=approved, listing_status=active, is_featured=true');
-        const { data, error } = await supabase
+        console.log('MiniFeaturedCarousel: Attempting to fetch featured properties...');
+        const { data, error: supabaseError } = await supabase
           .from('properties')
-          .select('id,title,price,location,images,created_at,is_featured,featured_at') // Select is_featured and featured_at
-          .eq('approval_status', 'approved')
-          .eq('listing_status', 'active') // Ensure this is lowercase 'active'
+          .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images, is_featured')
           .eq('is_featured', true) // Filter for featured properties
-          .order('featured_at', { ascending: false, nullsFirst: false }) // Order by featured_at, ensuring nulls are last
-          .limit(12);
+          .eq('approval_status', 'approved')
+          .eq('listing_status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-        if (error) {
-          console.error('Supabase error fetching featured properties:', error);
-          throw error;
+        if (supabaseError) {
+          console.error('MiniFeaturedCarousel: Supabase error fetching featured properties:', supabaseError);
+          if (isMounted) setError(supabaseError.message);
+          throw supabaseError;
         }
 
-        console.log('Fetched raw featured properties data:', data);
+        console.log('MiniFeaturedCarousel: Fetched raw featured properties data:', data);
 
         if (isMounted) {
-          const unique = Array.from(new Map(((data as any) || []).map((d: any) => [d.id, d])).values());
-          console.log('Processed unique featured properties for carousel:', unique);
-          setItems(unique as MiniProperty[]);
+          setProperties(data || []);
+          console.log('MiniFeaturedCarousel: Featured properties set, count:', (data || []).length);
         }
       } catch (e) {
-        console.error('Failed to load featured properties in catch block:', e);
+        console.error('MiniFeaturedCarousel: Failed to load featured properties in catch block:', e);
+        if (isMounted && !error) setError('Failed to load featured properties.');
       } finally {
         if (isMounted) setLoading(false);
       }
     };
-    fetchFeatured(); // Call the fetch function
+
+    fetchFeaturedProperties();
+
     return () => {
       isMounted = false;
     };
   }, []);
 
-  const displayItems = useMemo(() => {
-    const unique = Array.from(new Map(items.map((d) => [d.id, d])).values());
-    return unique;
-  }, [items]);
-
-  // Measure content width to set smooth marquee duration
   useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
+    const track = trackRef.current;
+    if (!track || properties.length === 0) return;
 
-    const measure = () => {
-      const totalWidth = el.scrollWidth; // width of two copies combined
-      const half = totalWidth / 2; // single set width
-      singleWidthRef.current = half; // store for JS ticker loop
-      const pxPerSecond = 120; // control speed (fallback for CSS animation)
-      const d = Math.max(half / pxPerSecond, 10);
-      setDuration(d);
-    };
+    let animationFrameId: number;
+    let currentPosition = 0;
+    const speed = 0.5;
 
-    measure();
-
-    let ro: ResizeObserver | null = null;
-    try {
-      ro = new ResizeObserver(() => measure());
-      ro.observe(el);
-    } catch {}
-
-    const onResize = () => measure();
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      window.removeEventListener('resize', onResize);
-      if (ro) ro.disconnect();
-    };
-  }, [displayItems]);
-
-  // JS-driven continuous ticker for perfect seamless loop
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-
-    let last = performance.now();
-    const speed = 90; // Increased speed for larger cards
-    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-    const tick = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-
-      if (!pausedRef.current && !mql.matches) {
-        let offset = offsetRef.current - speed * dt;
-        const w = singleWidthRef.current || el.scrollWidth / 2;
-        if (w > 0) {
-          while (offset <= -w) offset += w; // wrap seamlessly
+    const animate = () => {
+      if (track.scrollWidth > track.clientWidth) {
+        currentPosition -= speed;
+        if (Math.abs(currentPosition) >= track.scrollWidth / 2) {
+          currentPosition = 0;
         }
-        offsetRef.current = offset;
-        el.style.transform = `translateX(${offset}px)`;
+        track.style.transform = `translateX(${currentPosition}px)`;
       }
-
-      rafRef.current = requestAnimationFrame(tick);
+      animationFrameId = requestAnimationFrame(animate);
     };
 
-    rafRef.current = requestAnimationFrame(tick);
+    animationFrameId = requestAnimationFrame(animate);
+
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, [displayItems]);
+  }, [properties]);
 
-  console.log('MiniFeaturedCarousel - current items length:', items.length, 'loading:', loading);
+  const handlePropertyClick = (propertyId: string) => {
+    navigate(`/property/${propertyId}`);
+  };
 
   if (loading) {
     return (
@@ -153,7 +117,16 @@ export const MiniFeaturedCarousel: React.FC = () => {
     );
   }
 
-  if (items.length === 0) {
+  if (error) {
+    return (
+      <div className="w-full py-4 px-4 text-red-500">
+        <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
+        <p className="text-white/70">{t('error_loading_properties')}: {error}</p>
+      </div>
+    );
+  }
+
+  if (properties.length === 0) {
     return (
       <div className="w-full py-4 px-4 text-muted-foreground">
         <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
@@ -162,76 +135,84 @@ export const MiniFeaturedCarousel: React.FC = () => {
     );
   }
 
-   return (
-    <section aria-label="Featured properties" className="w-full mt-6 sm:mt-8 mb-0 -mb-8 sm:-mb-16">
-      <div className="max-w-5xl mx-auto relative py-0">
-        <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2> {/* Added title */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-12 sm:h-14 rounded-full bg-muted/40" />
-        
-        
-        <div className="relative z-10 ticker overflow-hidden" onMouseEnter={() => (pausedRef.current = true)} onMouseLeave={() => (pausedRef.current = false)}>
-          <style>{`
-            @keyframes marquee { 0% { transform: translateX(0) } 100% { transform: translateX(-50%) } }
-            @media (prefers-reduced-motion: reduce) { .marquee { animation: none !important; transform: translateX(0) !important; } }
-            .ticker:hover .marquee { animation-play-state: paused; }
-          `}</style>
-          <div
-            ref={trackRef}
-            className="marquee flex flex-nowrap items-stretch gap-1 will-change-transform"
-            style={{ transform: 'translateX(0)' }}
+  return (
+    <div className="w-full overflow-hidden py-4">
+      <h2 className="text-2xl font-bold mb-4 px-4 text-white">{t('featured_properties')}</h2>
+      <style jsx>{`
+        .marquee {
+          animation: marquee-scroll linear infinite;
+          animation-duration: ${properties.length * 5}s;
+        }
+        @keyframes marquee-scroll {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+      <div
+        ref={trackRef}
+        className="marquee flex flex-nowrap items-stretch gap-4 will-change-transform"
+        style={{ width: `${properties.concat(properties).length * 280}px` }}
+      >
+        {properties.concat(properties).map((property, index) => (
+          <Card
+            key={`${property.id}-${index}`}
+            className="min-w-[280px] cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => handlePropertyClick(property.id)}
           >
-            {[...displayItems, ...displayItems].map((p, idx) => {
-              const isClone = idx >= displayItems.length;
-              return (
-                <div
-                  key={`${p.id}-${idx}`}
-                  className="flex-none shrink-0 w-[180px] sm:w-[200px] md:w-[220px] lg:w-[240px] xl:w-[260px]" // Increased width
-                  aria-hidden={isClone}
+            <CardContent className="p-0">
+              <div className="relative">
+                <img
+                  src={property.images?.[0] || '/placeholder.svg'}
+                  alt={property.title}
+                  loading="lazy"
+                  className="w-full h-40 object-cover rounded-t-lg"
+                />
+                <Badge
+                  variant="secondary"
+                  className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
                 >
-                  <article
-                    role="button"
-                    tabIndex={isClone ? -1 : 0}
-                    onClick={() => navigate(`/property/${p.id}`)}
-                    onKeyDown={(e) => e.key === 'Enter' && !isClone && navigate(`/property/${p.id}`)}
-                    className="h-full cursor-pointer select-none rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300"
+                  <TranslatableText text={property.transaction_type} context="property.transaction_type" />
+                </Badge>
+                {property.is_featured && (
+                  <Badge
+                    variant="default"
+                    className="absolute top-2 right-2 bg-yellow-500/80 backdrop-blur-sm text-white flex items-center gap-1"
                   >
-                    <div className="aspect-[16/9] w-full overflow-hidden rounded-t-lg bg-muted">
-                      {p.images && p.images[0] ? (
-                        <img
-                          src={p.images[0]}
-                          alt={`${p.title} property image`}
-                          loading="lazy"
-                          className="block h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center text-muted-foreground text-[10px]">
-                          No image
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-0.5 sm:p-1 space-y-0.5">
-                      <h3 className="text-[9px] sm:text-[10px] font-semibold line-clamp-1"><TranslatableText text={p.title} context="property.title" /></h3>
-                      <p className="text-[8px] sm:text-[9px] text-muted-foreground line-clamp-1">{translateEnum(p.location, language)}</p>
-                      <p className="text-[11px] sm:text-[12px] font-semibold">{formatINRShort(p.price, language)}</p>
-                    </div>
-                    {p.is_featured && (
-                      <Badge 
-                        variant="default" 
-                        className="absolute top-2 right-2 bg-yellow-500/80 backdrop-blur-sm text-white"
-                      >
-                        Featured
-                      </Badge>
-                    )}
-                  </article>
+                    <Star className="h-3 w-3 fill-current" />
+                    {t('featured')}
+                  </Badge>
+                )}
+              </div>
+              <div className="p-3">
+                <h3 className="font-semibold text-sm mb-1 line-clamp-2"><TranslatableText text={property.title} context="property.title" /></h3>
+                <p className="text-md font-bold text-primary mb-1">
+                  {formatINRShort(property.price, language)}
+                </p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                  <MapPin className="h-3 w-3" />
+                  <span className="truncate"><TranslatableText text={property.location} context="property.location" />, <TranslatableText text={property.city} context="property.city" /></span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Bed className="h-3 w-3" />
+                    <span>{property.bhk} {t('bhk')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Bath className="h-3 w-3" />
+                    <span>{property.bathrooms} {t('bath')}</span>
+                  </div>
+                  {property.carpet_area && (
+                    <div className="flex items-center gap-1">
+                      <Square className="h-3 w-3" />
+                      <span>{property.carpet_area} {t('sq_ft')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      <link rel="canonical" href="/" />
-    </section>
+    </div>
   );
 };
-
-export default MiniFeaturedCarousel;
