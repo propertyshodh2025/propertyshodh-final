@@ -7,7 +7,7 @@ import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel';
+// import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel'; // Removed
 import { MiniLatestCarousel } from '@/components/MiniLatestCarousel';
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
@@ -105,9 +105,9 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       {/* Main Content */}
       <div className="relative z-10 w-full pt-20 pb-16">
         {/* Featured mini-carousel above title */}
-        <div className="w-full mb-8">
+        {/* <div className="w-full mb-8">
           <MiniFeaturedCarousel />
-        </div>
+        </div> */}
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
           {/* Hero Title */}
@@ -138,12 +138,11 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
               
               {/* Transaction Type Tabs */}
               <div className="flex justify-center mb-6">
-                <div className="bg-muted/50 rounded-2xl p-1 flex">
-                  {['buy', 'rent', 'lease'].map(type => <button key={type} onClick={() => setTransactionType(type)} className={`px-6 py-3 rounded-xl font-medium capitalize transition-all duration-300 ${transactionType === type ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
+                {/* ... (transaction type buttons) */}
+                {['buy', 'rent', 'lease'].map(type => <button key={type} onClick={() => setTransactionType(type)} className={`px-6 py-3 rounded-xl font-medium capitalize transition-all duration-300 ${transactionType === type ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
                       {t(type)}
                     </button>)}
                 </div>
-              </div>
 
               {/* Search Filters */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -240,7 +239,9 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
         </div>
         
         {/* Recently Posted Properties Carousel */}
-        {/* Removed MiniLatestCarousel as requested */}
+        <div className="w-full mt-8">
+          <MiniLatestCarousel />
+        </div>
       </div>
 
       {/* Auth Dialog */}
