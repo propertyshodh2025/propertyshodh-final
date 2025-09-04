@@ -16,7 +16,7 @@ import EnhancedPropertyDetailsWrapper from "./pages/EnhancedPropertyDetailsWrapp
 import Properties from "./pages/Properties";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsersManagement from "./pages/AdminUsersManagement";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard"; // Corrected import to default
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import { SuperSuperAdminDashboard } from "./pages/SuperSuperAdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import UserDashboard from "./pages/UserDashboard";
@@ -28,6 +28,7 @@ import LanguageSEO from "@/components/LanguageSEO";
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
 import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
+import AdminActivities from "./pages/AdminActivities"; // New import
 
 const queryClient = new QueryClient();
 
@@ -74,7 +75,10 @@ const AppContent = () => {
         }>
           {/* Nested route for site settings */}
           <Route path="settings" element={<AdminSiteSettings />} />
-          {/* Add other nested routes for SuperAdminDashboard here if any */}
+          {/* Nested route for admin activities */}
+          <Route path="activities" element={<AdminActivities />} />
+          {/* Default child route for admin management content */}
+          <Route index element={<AdminManagementContent />} />
         </Route>
         <Route path="/omega-admin" element={
           <AdminRouteProtection requiredRole="super_super_admin">
