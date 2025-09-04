@@ -1,33 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { adminSupabase } from '@/lib/adminSupabase';
-import { formatDateTime } from '@/lib/dateUtils';
-import { AdminActivityLogger } from '@/components/admin/AdminActivityLogger';
-import { AdminActivityFeed } from '@/components/admin/AdminActivityFeed';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Users, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  LogOut, 
-  Shield, 
-  Eye,
-  EyeOff,
-  Calendar,
-  Activity,
-  Settings // Import Settings icon
-} from 'lucide-react';
-import { AdminSiteSettings } from '@/components/admin/AdminSiteSettings'; // Import the new settings component
-import { TranslatableText } from '@/components/TranslatableText'; // Ensure TranslatableText is imported
+import { Loader2, User, Shield, CheckCircle, XCircle, PlusCircle, LogOut } from 'lucide-react';
+import { TranslatableText } from '@/components/TranslatableText';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AdminCredential {
   id: string;
@@ -36,534 +20,299 @@ interface AdminCredential {
   is_active: boolean;
   created_at: string;
   last_login: string | null;
+  created_by: string | null;
 }
 
-const SuperAdminDashboard = () => {
+const SuperAdminDashboard: React.FC = () => {
+  const { adminSession, signOutAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdminAuthenticated, adminRole, loading, adminLogout } = useAdminAuth();
-  
-  const [adminCredentials, setAdminCredentials] = useState<AdminCredential[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingAdmin, setEditingAdmin] = useState<AdminCredential | null>(null);
-  
-  // Form states
-  const [newUsername, setNewUsername] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'admin' | 'superadmin'>('admin');
-  const [showPassword, setShowPassword] = useState(false);
+  const { t } = useLanguage();
 
-  useEffect(() => {
-    if (!loading) {
-      if (!isAdminAuthenticated) {
-        navigate('/admin-login');
-        return;
-      }
-      if (adminRole !== 'superadmin' && adminRole !== 'super_super_admin') {
-        navigate('/admin');
-        return;
-      }
-      fetchAdminCredentials();
-    }
-  }, [isAdminAuthenticated, adminRole, loading, navigate]);
+  const [admins, setAdmins] = useState<AdminCredential[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newAdminUsername, setNewAdminUsername] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState<'admin' | 'superadmin'>('admin');
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
 
-  const fetchAdminCredentials = async () => {
-    try {
-      const { data, error } = await adminSupabase
-        .from('admin_credentials')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const fetchAdmins = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.rpc('get_admin_credentials');
 
-      if (error) throw error;
-      
-      // Filter based on role hierarchy - superadmin can't see super_super_admin accounts
-      let filteredData = data || [];
-      if (adminRole === 'superadmin') {
-        filteredData = filteredData.filter(admin => admin.role !== 'super_super_admin');
-      }
-      
-      setAdminCredentials(filteredData);
-    } catch (error) {
+    if (error) {
       console.error('Error fetching admin credentials:', error);
       toast({
-        title: "Error",
-        description: "Failed to fetch admin credentials",
-        variant: "destructive",
+        title: t('error'),
+        description: t('failed_to_fetch_admin_credentials'),
+        variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
+    } else {
+      setAdmins(data || []);
     }
+    setLoading(false);
   };
+
+  useEffect(() => {
+    fetchAdmins();
+  }, []);
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newUsername.trim() || !newPassword.trim()) {
-      toast({
-        title: "Error",
-        description: "Username and password are required",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    setCreatingAdmin(true);
     try {
-      const { error } = await adminSupabase.rpc('create_admin_credential', {
-        _username: newUsername.trim(),
-        _password: newPassword,
-        _role: newRole
+      const { data, error } = await supabase.rpc('create_admin_credential', {
+        _username: newAdminUsername,
+        _password: newAdminPassword,
+        _role: newAdminRole,
       });
 
-      if (error) throw error;
-
-      // Log the activity
-      await AdminActivityLogger.logAdminCreate(newUsername.trim(), newRole);
-
-      toast({
-        title: "Success",
-        description: "Admin credential created successfully",
-      });
-
-      setNewUsername('');
-      setNewPassword('');
-      setNewRole('admin');
-      setShowCreateForm(false);
-      fetchAdminCredentials();
-    } catch (error: any) {
-      console.error('Error creating admin:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create admin credential",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdatePassword = async (adminId: string, newPassword: string) => {
-    try {
-      const { error } = await adminSupabase.rpc('update_admin_password', {
-        _admin_id: adminId,
-        _new_password: newPassword
-      });
-
-      if (error) throw error;
-
-      // Log the activity
-      const adminToUpdate = adminCredentials.find(a => a.id === adminId);
-      if (adminToUpdate) {
-        await AdminActivityLogger.logAdminUpdate(adminId, adminToUpdate.username, {
-          action: 'password_updated'
+      if (error) {
+        console.error('Error creating admin:', error);
+        toast({
+          title: t('error'),
+          description: error.message || t('failed_to_create_admin'),
+          variant: 'destructive',
         });
-      }
-
-      toast({
-        title: "Success",
-        description: "Password updated successfully",
-      });
-
-      setEditingAdmin(null);
-      fetchAdminCredentials();
-    } catch (error: any) {
-      console.error('Error updating password:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update password",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdateUsername = async (adminId: string, newUsername: string) => {
-    try {
-      const { error } = await adminSupabase.rpc('update_admin_username', {
-        _admin_id: adminId,
-        _new_username: newUsername
-      });
-
-      if (error) throw error;
-
-      // Log the activity
-      const adminToUpdate = adminCredentials.find(a => a.id === adminId);
-      if (adminToUpdate) {
-        await AdminActivityLogger.logAdminUpdate(adminId, adminToUpdate.username, {
-          action: 'username_updated',
-          old_username: adminToUpdate.username,
-          new_username: newUsername
+      } else {
+        toast({
+          title: t('success'),
+          description: t('admin_created_successfully'),
         });
+        setNewAdminUsername('');
+        setNewAdminPassword('');
+        setNewAdminRole('admin');
+        fetchAdmins(); // Refresh the list
       }
-
+    } catch (err) {
+      console.error('Error creating admin:', err);
       toast({
-        title: "Success",
-        description: "Username updated successfully",
+        title: t('error'),
+        description: t('failed_to_create_admin'),
+        variant: 'destructive',
       });
-
-      setEditingAdmin(null);
-      fetchAdminCredentials();
-    } catch (error: any) {
-      console.error('Error updating username:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update username",
-        variant: "destructive",
-      });
+    } finally {
+      setCreatingAdmin(false);
     }
   };
 
-  const handleToggleActive = async (adminId: string, isActive: boolean) => {
-    try {
-      const { error } = await adminSupabase
-        .from('admin_credentials')
-        .update({ is_active: !isActive })
-        .eq('id', adminId);
-
-      if (error) throw error;
-
-      // Log the activity
-      const adminToUpdate = adminCredentials.find(a => a.id === adminId);
-      if (adminToUpdate) {
-        if (!isActive) {
-          await AdminActivityLogger.logAdminUpdate(adminId, adminToUpdate.username, {
-            action: 'activated'
-          });
-        } else {
-          await AdminActivityLogger.logAdminDeactivate(adminId, adminToUpdate.username);
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: `Admin ${!isActive ? 'activated' : 'deactivated'} successfully`,
-      });
-
-      fetchAdminCredentials();
-    } catch (error: any) {
+  const handleToggleAdminStatus = async (adminId: string, currentStatus: boolean) => {
+    const { error } = await supabase.rpc('toggle_admin_status', { _admin_id: adminId });
+    if (error) {
       console.error('Error toggling admin status:', error);
       toast({
-        title: "Error",
-        description: "Failed to update admin status",
-        variant: "destructive",
+        title: t('error'),
+        description: error.message || t('failed_to_toggle_admin_status'),
+        variant: 'destructive',
       });
+    } else {
+      toast({
+        title: t('success'),
+        description: currentStatus ? t('admin_deactivated') : t('admin_activated'),
+      });
+      fetchAdmins(); // Refresh the list
     }
   };
 
-  const handleLogout = () => {
-    adminLogout();
-    navigate('/admin-login');
+  const handleDeleteAdmin = async (adminId: string) => {
+    if (!window.confirm(t('confirm_delete_admin'))) return;
+
+    const { error } = await supabase.rpc('delete_admin_credential', { _admin_id: adminId });
+    if (error) {
+      console.error('Error deleting admin:', error);
+      toast({
+        title: t('error'),
+        description: error.message || t('failed_to_delete_admin'),
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: t('success'),
+        description: t('admin_deleted_successfully'),
+      });
+      fetchAdmins(); // Refresh the list
+    }
   };
 
-  if (loading || isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const filteredAdmins = admins.filter(admin => admin.role !== 'super_super_admin');
+  const totalAdmins = filteredAdmins.length;
+  const activeAdmins = filteredAdmins.filter(admin => admin.is_active).length;
+  const superAdmins = filteredAdmins.filter(admin => admin.role === 'superadmin').length;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Shield className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold"><TranslatableText text="SuperAdmin Dashboard" /></h1>
-              <p className="text-sm text-muted-foreground"><TranslatableText text="Manage admin credentials and permissions" /></p>
-            </div>
-          </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            <TranslatableText text="Logout" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-foreground">
+            <TranslatableText text="Super Admin Dashboard" />
+          </h1>
+          <Button onClick={signOutAdmin} variant="outline" className="flex items-center gap-2">
+            <LogOut size={16} />
+            <TranslatableText text="Sign Out" />
           </Button>
         </div>
-      </header>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+        {/* Admin Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium"><TranslatableText text="Total Admins" /></CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">
+                <TranslatableText text="Total Admins" />
+              </CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{adminCredentials.length}</div>
+              <div className="text-2xl font-bold">{totalAdmins}</div>
+              <p className="text-xs text-muted-foreground">
+                <TranslatableText text="Excluding Omega Admins" />
+              </p>
             </CardContent>
           </Card>
-          
-          <Card>
+          <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium"><TranslatableText text="Active Admins" /></CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">
+                <TranslatableText text="Active Admins" />
+              </CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {adminCredentials.filter(admin => admin.is_active).length}
-              </div>
+              <div className="text-2xl font-bold">{activeAdmins}</div>
+              <p className="text-xs text-muted-foreground">
+                <TranslatableText text="Currently active" />
+              </p>
             </CardContent>
           </Card>
-          
-          <Card>
+          <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium"><TranslatableText text="SuperAdmins" /></CardTitle>
+              <CardTitle className="text-sm font-medium">
+                <TranslatableText text="Super Admins" />
+              </CardTitle>
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {adminCredentials.filter(admin => admin.role === 'superadmin').length}
-              </div>
+              <div className="text-2xl font-bold">{superAdmins}</div>
+              <p className="text-xs text-muted-foreground">
+                <TranslatableText text="With elevated privileges" />
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="credentials" className="w-full">
-          <TabsList className="grid w-full grid-cols-3"> {/* Changed grid-cols-2 to grid-cols-3 */}
-            <TabsTrigger value="credentials" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <TranslatableText text="Admin Credentials" />
-            </TabsTrigger>
-            <TabsTrigger value="activities" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              <TranslatableText text="Admin Activities" />
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2"> {/* New tab trigger */}
-              <Settings className="h-4 w-4" />
-              <TranslatableText text="Site Settings" />
-            </TabsTrigger>
-          </TabsList>
+        {/* Create New Admin */}
+        <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-xl">
+              <TranslatableText text="Create New Admin" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateAdmin} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div className="space-y-2">
+                <Label htmlFor="username"><TranslatableText text="Username" /></Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={newAdminUsername}
+                  onChange={(e) => setNewAdminUsername(e.target.value)}
+                  placeholder={t('enter_username')}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password"><TranslatableText text="Password" /></Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newAdminPassword}
+                  onChange={(e) => setNewAdminPassword(e.target.value)}
+                  placeholder={t('enter_password')}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role"><TranslatableText text="Role" /></Label>
+                <Select value={newAdminRole} onValueChange={(value: 'admin' | 'superadmin') => setNewAdminRole(value)}>
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder={t('select_role')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin"><TranslatableText text="Admin" /></SelectItem>
+                    <SelectItem value="superadmin"><TranslatableText text="Super Admin" /></SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" disabled={creatingAdmin} className="md:col-span-3">
+                {creatingAdmin ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                )}
+                <TranslatableText text="Create Admin" />
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="credentials" className="space-y-6">
-            {/* Create Admin Section */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle><TranslatableText text="Admin Credentials Management" /></CardTitle>
-                  <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    <TranslatableText text="Create New Admin" />
-                  </Button>
-                </div>
-              </CardHeader>
-              
-              {showCreateForm && (
-                <CardContent>
-                  <form onSubmit={handleCreateAdmin} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="username"><TranslatableText text="Username" /></Label>
-                        <Input
-                          id="username"
-                          value={newUsername}
-                          onChange={(e) => setNewUsername(e.target.value)}
-                          placeholder="Enter username"
-                          required
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="password"><TranslatableText text="Password" /></Label>
-                        <div className="relative">
-                          <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder="Enter password"
-                            required
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="role"><TranslatableText text="Role" /></Label>
-                        <Select value={newRole} onValueChange={(value: 'admin' | 'superadmin') => setNewRole(value)}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin"><TranslatableText text="Admin" /></SelectItem>
-                            {/* Only super_super_admin can create superadmin accounts */}
-                            {adminRole === 'super_super_admin' && (
-                              <SelectItem value="superadmin"><TranslatableText text="SuperAdmin" /></SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                      <Button type="submit"><TranslatableText text="Create Admin" /></Button>
-                      <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
-                        <TranslatableText text="Cancel" />
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              )}
-            </Card>
-
-            {/* Admin Credentials List */}
-            <Card>
-              <CardHeader>
-                <CardTitle><TranslatableText text="Existing Admin Credentials" /></CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {adminCredentials.map((admin) => (
-                    <div key={admin.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">{admin.username}</span>
-                            <Badge variant={
-                              admin.role === 'super_super_admin' ? 'default' : 
-                              admin.role === 'superadmin' ? 'default' : 'secondary'
-                            }>
-                              {admin.role === 'super_super_admin' ? <TranslatableText text="Super Super Admin" /> : 
-                               admin.role === 'superadmin' ? <TranslatableText text="SuperAdmin" /> : <TranslatableText text="Admin" />}
-                            </Badge>
-                            <Badge variant={admin.is_active ? 'default' : 'destructive'}>
-                              {admin.is_active ? <TranslatableText text="Active" /> : <TranslatableText text="Inactive" />}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                            <span className="flex items-center">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              <TranslatableText text="Created" />: {formatDateTime(admin.created_at)}
-                            </span>
-                            {admin.last_login && (
-                              <span>
-                                <TranslatableText text="Last login" />: {formatDateTime(admin.last_login)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        {/* Prevent superadmin from editing higher-level accounts */}
-                        {(adminRole === 'super_super_admin' || 
-                          (adminRole === 'superadmin' && admin.role === 'admin')) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingAdmin(admin)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {/* Prevent superadmin from deactivating higher-level accounts */}
-                        {(adminRole === 'super_super_admin' || 
-                          (adminRole === 'superadmin' && admin.role === 'admin')) && (
-                          <Button
-                            variant={admin.is_active ? "destructive" : "default"}
-                            size="sm"
-                            onClick={() => handleToggleActive(admin.id, admin.is_active)}
-                          >
-                            {admin.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+        {/* Admin List */}
+        <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-xl">
+              <TranslatableText text="Manage Admins" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead><TranslatableText text="Username" /></TableHead>
+                    <TableHead><TranslatableText text="Role" /></TableHead>
+                    <TableHead><TranslatableText text="Status" /></TableHead>
+                    <TableHead><TranslatableText text="Last Login" /></TableHead>
+                    <TableHead className="text-right"><TranslatableText text="Actions" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAdmins.map((admin) => (
+                    <TableRow key={admin.id}>
+                      <TableCell className="font-medium">{admin.username}</TableCell>
+                      <TableCell>{admin.role}</TableCell>
+                      <TableCell>
+                        <Badge variant={admin.is_active ? 'default' : 'destructive'}>
+                          {admin.is_active ? t('active') : t('inactive')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{admin.last_login ? new Date(admin.last_login).toLocaleString() : t('never')}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleAdminStatus(admin.id, admin.is_active)}
+                          disabled={admin.id === adminSession?.admin_id} // Prevent deactivating self
+                        >
+                          {admin.is_active ? <XCircle size={16} className="mr-1" /> : <CheckCircle size={16} className="mr-1" />}
+                          {admin.is_active ? t('deactivate') : t('activate')}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteAdmin(admin.id)}
+                          disabled={admin.id === adminSession?.admin_id} // Prevent deleting self
+                        >
+                          <TranslatableText text="Delete" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="activities" className="space-y-6">
-            <AdminActivityFeed />
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-6"> {/* New tab content for settings */}
-            <AdminSiteSettings />
-          </TabsContent>
-        </Tabs>
-
-        {/* Edit Admin Modal */}
-        {editingAdmin && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md">
-              <CardHeader>
-                <CardTitle><TranslatableText text="Edit Admin" />: {editingAdmin.username}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Update Username Form */}
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    const username = formData.get('username') as string;
-                    if (username.trim() && username !== editingAdmin.username) {
-                      handleUpdateUsername(editingAdmin.id, username.trim());
-                    }
-                  }}>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="new-username"><TranslatableText text="Username" /></Label>
-                        <Input
-                          id="new-username"
-                          name="username"
-                          type="text"
-                          placeholder="Enter new username"
-                          defaultValue={editingAdmin.username}
-                          required
-                        />
-                      </div>
-                      <Button type="submit" className="w-full"><TranslatableText text="Update Username" /></Button>
-                    </div>
-                  </form>
-
-                  <div className="border-t pt-4">
-                    {/* Update Password Form */}
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      const password = formData.get('password') as string;
-                      if (password.trim()) {
-                        handleUpdatePassword(editingAdmin.id, password);
-                      }
-                    }}>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="new-password"><TranslatableText text="New Password" /></Label>
-                          <Input
-                            id="new-password"
-                            name="password"
-                            type="password"
-                            placeholder="Enter new password"
-                            required
-                          />
-                        </div>
-                        <Button type="submit" className="w-full"><TranslatableText text="Update Password" /></Button>
-                      </div>
-                    </form>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button type="button" variant="outline" onClick={() => setEditingAdmin(null)}>
-                      <TranslatableText text="Close" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
