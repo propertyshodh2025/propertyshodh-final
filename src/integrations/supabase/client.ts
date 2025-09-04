@@ -5,6 +5,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase URL or Anon Key is missing. Please check your environment variables.');
+  // Throw an error to prevent the app from starting with an invalid client
+  throw new Error('Supabase URL or Anon Key is required.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
