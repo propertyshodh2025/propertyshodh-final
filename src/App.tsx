@@ -16,7 +16,7 @@ import EnhancedPropertyDetailsWrapper from "./pages/EnhancedPropertyDetailsWrapp
 import Properties from "./pages/Properties";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsersManagement from "./pages/AdminUsersManagement";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import { SuperAdminDashboard } from "./pages/SuperAdminDashboard"; // Changed to named import
 import { SuperSuperAdminDashboard } from "./pages/SuperSuperAdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import UserDashboard from "./pages/UserDashboard";
@@ -24,7 +24,6 @@ import PresentationPage from "./pages/PresentationPage";
 import NotFound from "./pages/NotFound";
 import ServicesPage from "./pages/ServicesPage";
 import LanguageSEO from "@/components/LanguageSEO";
-// AdminSettingsPage import removed
 
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
@@ -65,7 +64,6 @@ const AppContent = () => {
             </MobileVerificationGuard>
           </AdminRouteProtection>
         } />
-        {/* AdminSettingsPage route removed */}
         <Route path="/superadmin" element={
           <AdminRouteProtection requiredRole="superadmin">
             <MobileVerificationGuard>
