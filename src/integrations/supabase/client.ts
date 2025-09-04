@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+console.log('DEBUG: VITE_SUPABASE_URL:', supabaseUrl ? 'Loaded' : 'NOT Loaded');
+console.log('DEBUG: VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Loaded' : 'NOT Loaded');
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase URL or Anon Key is missing. Please check your environment variables.');
   // Throw an error to prevent the app from starting with an invalid client
