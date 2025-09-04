@@ -16,7 +16,7 @@ import EnhancedPropertyDetailsWrapper from "./pages/EnhancedPropertyDetailsWrapp
 import Properties from "./pages/Properties";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsersManagement from "./pages/AdminUsersManagement";
-import { SuperAdminDashboard } from "./pages/SuperAdminDashboard";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard"; // Corrected import to default
 import { SuperSuperAdminDashboard } from "./pages/SuperSuperAdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import UserDashboard from "./pages/UserDashboard";
@@ -27,7 +27,7 @@ import LanguageSEO from "@/components/LanguageSEO";
 
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
-import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings"; // Import the new settings component
+import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
 
 const queryClient = new QueryClient();
 
