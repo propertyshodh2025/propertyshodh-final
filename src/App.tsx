@@ -16,7 +16,7 @@ import EnhancedPropertyDetailsWrapper from "./pages/EnhancedPropertyDetailsWrapp
 import Properties from "./pages/Properties";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsersManagement from "./pages/AdminUsersManagement";
-import { SuperAdminDashboard } from "./pages/SuperAdminDashboard"; // Changed to named import
+import { SuperAdminDashboard } from "./pages/SuperAdminDashboard";
 import { SuperSuperAdminDashboard } from "./pages/SuperSuperAdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import UserDashboard from "./pages/UserDashboard";
@@ -27,6 +27,7 @@ import LanguageSEO from "@/components/LanguageSEO";
 
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
+import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings"; // Import the new settings component
 
 const queryClient = new QueryClient();
 
@@ -70,7 +71,11 @@ const AppContent = () => {
               <SuperAdminDashboard />
             </MobileVerificationGuard>
           </AdminRouteProtection>
-        } />
+        }>
+          {/* Nested route for site settings */}
+          <Route path="settings" element={<AdminSiteSettings />} />
+          {/* Add other nested routes for SuperAdminDashboard here if any */}
+        </Route>
         <Route path="/omega-admin" element={
           <AdminRouteProtection requiredRole="super_super_admin">
             <MobileVerificationGuard>
