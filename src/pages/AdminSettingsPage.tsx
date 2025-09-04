@@ -1,164 +1,129 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TranslatableText } from '@/components/TranslatableText';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Settings } from 'lucide-react';
 
 const AdminSettingsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { t } = useLanguage();
-
-  const [centralContactNumber, setCentralContactNumber] = useState('');
+  const [centralContactNumber, setCentralContactNumber] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [settingsId, setSettingsId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('site_settings')
-          .select('id, central_contact_number')
-          .limit(1)
-          .single();
-
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-          throw error;
-        }
-
-        if (data) {
-          setCentralContactNumber(data.central_contact_number);
-          setSettingsId(data.id);
-        } else {
-          // If no settings exist, we'll create one on save
-          setCentralContactNumber('');
-        }
-      } catch (err) {
-        console.error('Error fetching site settings:', err);
-        toast({
-          title: t('error'),
-          description: t('failed_to_fetch_settings'),
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchSettings();
-  }, [toast, t]);
+  }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    try {
-      if (settingsId) {
-        // Update existing settings
-        const { error } = await supabase
-          .from('site_settings')
-          .update({ central_contact_number: centralContactNumber, updated_at: new Date().toISOString() })
-          .eq('id', settingsId);
+  const fetchSettings = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('central_contact_number')
+      .limit(1)
+      .single();
 
-        if (error) throw error;
-      } else {
-        // Insert new settings if none exist
-        const { data, error } = await supabase
-          .from('site_settings')
-          .insert({ central_contact_number: centralContactNumber })
-          .select('id')
-          .single();
-
-        if (error) throw error;
-        setSettingsId(data.id);
-      }
-
+    if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error('Error fetching site settings:', error);
       toast({
-        title: t('success'),
-        description: t('settings_saved_successfully'),
+        title: <TranslatableText text="Error" />,
+        description: <TranslatableText text="Failed to fetch site settings." />,
+        variant: "destructive",
       });
-    } catch (err) {
-      console.error('Error saving site settings:', err);
-      toast({
-        title: t('error'),
-        description: t('failed_to_save_settings'),
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
+    } else if (data) {
+      setCentralContactNumber(data.central_contact_number || '');
+    } else {
+      // If no settings exist, we might need to create a default entry
+      // For now, we'll just set an empty string and allow saving
+      setCentralContactNumber('');
     }
+    setLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>{t('loading_settings')}...</p>
-      </div>
-    );
-  }
+  const handleSave = async () => {
+    setIsSaving(true);
+    let errorOccurred = false;
+
+    // First, try to update an existing entry
+    const { data: updateData, error: updateError } = await supabase
+      .from('site_settings')
+      .update({ central_contact_number: centralContactNumber, updated_at: new Date().toISOString() })
+      .limit(1)
+      .select();
+
+    if (updateError) {
+      console.error('Error updating site settings:', updateError);
+      errorOccurred = true;
+    }
+
+    // If no row was updated (meaning it didn't exist), try to insert
+    if (!updateData || updateData.length === 0) {
+      const { error: insertError } = await supabase
+        .from('site_settings')
+        .insert({ central_contact_number: centralContactNumber })
+        .select();
+
+      if (insertError) {
+        console.error('Error inserting site settings:', insertError);
+        errorOccurred = true;
+      }
+    }
+
+    if (!errorOccurred) {
+      toast({
+        title: <TranslatableText text="Success" />,
+        description: <TranslatableText text="Central contact number updated successfully!" />,
+      });
+    } else {
+      toast({
+        title: <TranslatableText text="Error" />,
+        description: <TranslatableText text="Failed to update central contact number." />,
+        variant: "destructive",
+      });
+    }
+    setIsSaving(false);
+    fetchSettings(); // Re-fetch to ensure state is consistent
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            onClick={() => navigate(-1)}
-            variant="outline"
-            size="sm"
-            className="rounded-full bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300"
-          >
-            <ArrowLeft size={16} className="mr-2" />
-            {t('back')}
+    <div className="container mx-auto py-8 px-4">
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-6 w-6 text-primary" />
+            <TranslatableText text="Admin Settings" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-muted-foreground">
+            <TranslatableText text="Manage global settings for the application, such as the centralized contact number for all property listings." />
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="centralContactNumber">
+              <TranslatableText text="Central PropertyShodh Contact Number" />
+            </Label>
+            <Input
+              id="centralContactNumber"
+              type="tel"
+              value={centralContactNumber}
+              onChange={(e) => setCentralContactNumber(e.target.value)}
+              placeholder="e.g., +91 98765 43210"
+              disabled={loading || isSaving}
+            />
+            <p className="text-sm text-muted-foreground">
+              <TranslatableText text="This number will be displayed on all property detail pages for inquiries." />
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter className="border-t pt-4">
+          <Button onClick={handleSave} disabled={loading || isSaving}>
+            {isSaving ? <TranslatableText text="Saving..." /> : <TranslatableText text="Save Settings" />}
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Settings size={28} className="text-primary" />
-            <TranslatableText text="Site Settings" />
-          </h1>
-        </div>
-
-        <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-xl md:text-2xl text-foreground">
-              <TranslatableText text="Central Contact Number" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSave} className="space-y-6">
-              <div>
-                <Label htmlFor="centralContactNumber" className="text-foreground">
-                  <TranslatableText text="PropertyShodh Contact Number" />
-                </Label>
-                <Input
-                  id="centralContactNumber"
-                  type="text"
-                  value={centralContactNumber}
-                  onChange={(e) => setCentralContactNumber(e.target.value)}
-                  placeholder={t('enter_contact_number')}
-                  className="mt-2 bg-white/5 border-white/20 text-foreground"
-                  required
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  <TranslatableText text="This number will be displayed on all property listings for inquiries." />
-                </p>
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white rounded-xl h-12 font-medium transition-all duration-300 shadow-lg"
-                disabled={isSaving}
-              >
-                {isSaving ? t('saving') + '...' : t('save_settings')}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
