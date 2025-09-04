@@ -28,7 +28,8 @@ import LanguageSEO from "@/components/LanguageSEO";
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
 import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
-import AdminActivities from "./pages/AdminActivities"; // New import
+import AdminActivities from "./pages/AdminActivities";
+import { AdminManagementContent } from "@/components/admin/AdminManagementContent"; // Corrected: Added missing import
 
 const queryClient = new QueryClient();
 
