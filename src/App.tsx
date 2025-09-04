@@ -24,7 +24,7 @@ import PresentationPage from "./pages/PresentationPage";
 import NotFound from "./pages/NotFound";
 import ServicesPage from "./pages/ServicesPage";
 import LanguageSEO from "@/components/LanguageSEO";
-import AdminSettingsPage from "./pages/AdminSettingsPage"; // Import the new page
+// AdminSettingsPage import removed
 
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
@@ -65,13 +65,7 @@ const AppContent = () => {
             </MobileVerificationGuard>
           </AdminRouteProtection>
         } />
-        <Route path="/admin/settings" element={
-          <AdminRouteProtection requiredRole="admin">
-            <MobileVerificationGuard>
-              <AdminSettingsPage />
-            </MobileVerificationGuard>
-          </AdminRouteProtection>
-        } />
+        {/* AdminSettingsPage route removed */}
         <Route path="/superadmin" element={
           <AdminRouteProtection requiredRole="superadmin">
             <MobileVerificationGuard>
