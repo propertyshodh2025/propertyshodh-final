@@ -26,15 +26,16 @@ const ModernPropertyDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   
   const [property, setProperty] = useState<Property | null>(null);
   const [verificationDetails, setVerificationDetails] = useState<any>(null);
+  const [centralContactNumber, setCentralContactNumber] = useState<string | null>(null); // New state for central contact
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProperty = async () => {
+    const fetchData = async () => {
       if (!id) {
         setError('Property ID not found');
         setLoading(false);
@@ -44,11 +45,12 @@ const ModernPropertyDetails: React.FC = () => {
       try {
         setLoading(true);
         
-        const { data, error: propertyError } = await supabase
+        // Fetch property details
+        const { data: propertyData, error: propertyError } = await supabase
           .from('properties')
           .select('*')
           .eq('id', id)
-          .eq('listing_status', 'Active')
+          .eq('listing_status', 'active')
           .maybeSingle();
         
         if (propertyError) {
@@ -57,15 +59,15 @@ const ModernPropertyDetails: React.FC = () => {
           return;
         }
 
-        if (!data) {
+        if (!propertyData) {
           setError('Property not found');
           return;
         }
         
-        setProperty(data);
+        setProperty(propertyData);
         
         // Fetch verification details if property is verified
-        if (data.verification_status === 'verified') {
+        if (propertyData.verification_status === 'verified') {
           const { data: verificationData, error: verificationError } = await supabase
             .from('property_verification_details')
             .select('*')
@@ -76,6 +78,20 @@ const ModernPropertyDetails: React.FC = () => {
             setVerificationDetails(verificationData);
           }
         }
+
+        // Fetch central contact number
+        const { data: settingsData, error: settingsError } = await supabase
+          .from('site_settings')
+          .select('central_contact_number')
+          .limit(1)
+          .single();
+
+        if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 means no rows found
+          console.error('Error fetching site settings:', settingsError);
+        } else if (settingsData) {
+          setCentralContactNumber(settingsData.central_contact_number);
+        }
+
       } catch (err) {
         console.error('Error:', err);
         setError('An unexpected error occurred');
@@ -84,7 +100,7 @@ const ModernPropertyDetails: React.FC = () => {
       }
     };
     
-    fetchProperty();
+    fetchData();
   }, [id]);
 
   const handleShare = () => {
@@ -109,8 +125,8 @@ const ModernPropertyDetails: React.FC = () => {
       const fullShareText = `${shareText}\n\n🔗 View Property: ${window.location.href}`;
       navigator.clipboard.writeText(fullShareText);
       toast({
-        title: "Property details copied!",
-        description: "Property details and link have been copied to your clipboard",
+        title: t('property_details_copied'),
+        description: t('property_details_link_copied_to_clipboard'),
       });
     }
   };
@@ -121,22 +137,23 @@ const ModernPropertyDetails: React.FC = () => {
     
     return `🏠 ${property.title}
 
-💰 Price: ₹${(property.price / 100000).toFixed(1)}L
-📍 Location: ${property.location}, ${property.city}
-🏢 Type: ${property.property_type}
-${property.bhk ? `🛏️ BHK: ${property.bhk}` : ''}
-${property.carpet_area ? `📐 Area: ${property.carpet_area} sq ft` : ''}
-${property.built_year ? `📅 Built: ${property.built_year}` : ''}
-${property.facing ? `🧭 Facing: ${property.facing}` : ''}
-${property.furnishing ? `🪑 Furnishing: ${property.furnishing}` : ''}
+💰 ${t('price')}: ₹${(property.price / 100000).toFixed(1)}L
+📍 ${t('location')}: ${translateEnum(property.location, language)}, ${translateEnum(property.city, language)}
+🏢 ${t('type')}: ${translateEnum(property.property_type as any, language)}
+${property.bhk ? `🛏️ ${t('bhk_label')}: ${formatNumberWithLocale(property.bhk, language)} BHK` : ''}
+${property.carpet_area ? `📐 ${t('area')}: ${formatNumberWithLocale(property.carpet_area, language)} sq ft` : ''}
+${property.built_year ? `📅 ${t('built')}: ${formatNumberWithLocale(property.built_year, language)}` : ''}
+${property.facing ? `🧭 ${t('facing')}: ${translateEnum(property.facing as any, language)}` : ''}
+${property.furnishing ? `🪑 ${t('furnishing')}: ${translateEnum(property.furnishing as any, language)}` : ''}
 
-${highlights ? `✨ Highlights:\n✓ ${highlights}` : ''}
+${highlights ? `✨ ${t('highlights')}:\n✓ ${highlights}` : ''}
 
-${amenities ? `🎯 Amenities: ${amenities}` : ''}
+${amenities ? `🎯 ${t('amenities')}: ${amenities}` : ''}
 
-${property.contact_number ? `📞 Contact: ${property.contact_number}` : ''}
+${centralContactNumber ? `📞 ${t('contact')}: ${centralContactNumber}` : ''}
+${property.id ? `🆔 ${t('property_id')}: ${property.id.slice(-8).toUpperCase()}` : ''}
 
-${property.description ? `📋 Description:\n${property.description.slice(0, 150)}${property.description.length > 150 ? '...' : ''}` : ''}`;
+${property.description ? `📋 ${t('description')}:\n${property.description.slice(0, 150)}${property.description.length > 150 ? '...' : ''}` : ''}`;
   };
 
   if (loading) {
@@ -151,9 +168,9 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
             <Home size={32} className="text-destructive" />
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-foreground mb-2">Property Not Found</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-2">{t('property_not_found')}</h2>
             <p className="text-muted-foreground text-lg">
-              {error || "The property you're looking for doesn't exist or has been removed."}
+              {error || t('property_not_exist_or_removed')}
             </p>
           </div>
           <div className="flex gap-4 justify-center">
@@ -161,14 +178,14 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
               onClick={() => navigate('/search')}
               className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
             >
-              Browse Properties
+              {t('browse_properties')}
             </Button>
             <Button 
               variant="outline" 
               onClick={() => navigate('/')}
               className="border-white/20 hover:bg-white/10"
             >
-              Back to Home
+              {t('back_to_home')}
             </Button>
           </div>
         </div>
@@ -179,26 +196,26 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
   const propertyStats = [
     { 
       icon: Bed, 
-      label: 'BHK', 
-      value: property.bhk ? `${formatNumberWithLocale(property.bhk, language)} BHK` : 'N/A',
+      label: t('bhk_label'), 
+      value: property.bhk ? `${formatNumberWithLocale(property.bhk, language)} BHK` : t('not_available'),
       gradient: 'from-blue-500 to-blue-600'
     },
     { 
       icon: Square, 
-      label: 'Area', 
-      value: property.carpet_area ? `${formatNumberWithLocale(property.carpet_area, language)} sq ft` : 'N/A',
+      label: t('area'), 
+      value: property.carpet_area ? `${formatNumberWithLocale(property.carpet_area, language)} sq ft` : t('not_available'),
       gradient: 'from-green-500 to-green-600'
     },
     { 
       icon: Home, 
-      label: 'Type', 
-      value: property.property_type,
+      label: t('type'), 
+      value: translateEnum(property.property_type as any, language),
       gradient: 'from-purple-500 to-purple-600'
     },
     { 
       icon: Calendar, 
-      label: 'Built', 
-      value: property.built_year ? formatNumberWithLocale(property.built_year, language) : 'N/A',
+      label: t('built'), 
+      value: property.built_year ? formatNumberWithLocale(property.built_year, language) : t('not_available'),
       gradient: 'from-orange-500 to-orange-600'
     }
   ];
@@ -229,7 +246,7 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
               className="rounded-full bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300"
             >
               <ArrowLeft size={16} className="mr-2" />
-              Back
+              {t('back')}
             </Button>
             <ThemeToggle />
           </div>
@@ -254,7 +271,7 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
                         fill={star <= 4 ? "currentColor" : "none"}
                       />
                     ))}
-                    <span className="ml-2 text-sm">4.0 (24 reviews)</span>
+                    <span className="ml-2 text-sm">4.0 ({t('reviews', { count: 24 })})</span>
                   </div>
                   {property.verification_status && (
                     <VerificationBadge
@@ -274,7 +291,7 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
               </div>
               {property.carpet_area && (
                 <div className="text-sm text-muted-foreground">
-                  ₹{formatNumberWithLocale(Math.round(property.price / property.carpet_area), language)}/sq ft
+                  ₹{formatNumberWithLocale(Math.round(property.price / property.carpet_area), language)}/{t('sq_ft')}
                 </div>
               )}
             </div>
@@ -317,7 +334,7 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
                 <CardHeader>
                   <CardTitle className="text-xl md:text-2xl text-foreground flex items-center gap-2">
                     <TrendingUp size={24} className="text-primary" />
-                    Property Highlights
+                    <TranslatableText text="Property Highlights" />
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -336,28 +353,30 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
             {/* Description */}
             <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
               <CardHeader>
-                <CardTitle className="text-xl md:text-2xl text-foreground">About This Property</CardTitle>
+                <CardTitle className="text-xl md:text-2xl text-foreground">
+                  <TranslatableText text="About This Property" />
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <p className="text-muted-foreground leading-relaxed text-sm md:text-lg">
-                  <TranslatableText text={property.description || 'No description available for this property.'} context={`property.description:${property.id}`} />
+                  <TranslatableText text={property.description || t('no_description_available')} context={`property.description:${property.id}`} />
                 </p>
                 
                 <Separator className="bg-white/10" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { label: 'Floor', value: property.floor || 'N/A' },
-                    { label: 'Facing', value: property.facing || 'N/A' },
-                    { label: 'Furnishing', value: property.furnishing || 'N/A' },
-                    { label: 'Possession', value: property.possession_status || 'N/A' },
-                    { label: 'Transaction Type', value: property.transaction_type || 'Buy' },
-                    { label: 'Property Category', value: property.property_category || 'Residential' }
+                    { label: t('floor'), value: property.floor || t('not_available') },
+                    { label: t('facing'), value: translateEnum((property.facing || property.facing_direction || property.facing_direction_detailed) as any, language) || t('not_available') },
+                    { label: t('furnishing'), value: translateEnum(property.furnishing as any, language) || t('not_available') },
+                    { label: t('possession'), value: translateEnum(property.possession_status as any, language) || t('not_available') },
+                    { label: t('transaction_type'), value: translateEnum(property.transaction_type as any, language) || t('buy') },
+                    { label: t('property_category'), value: translateEnum(property.property_category as any, language) || t('residential') }
                   ].map((spec, index) => (
                     <div key={index} className="flex justify-between py-2 md:py-3 border-b border-border/30 last:border-b-0">
                       <span className="font-medium text-muted-foreground text-sm md:text-base">{spec.label}:</span>
                       <span className="text-foreground font-semibold text-sm md:text-base">
-                        {spec.label === 'Transaction Type' || spec.label === 'Property Category' ? translateEnum(spec.value, language) : spec.value}
+                        {spec.value}
                       </span>
                     </div>
                   ))}
@@ -369,7 +388,9 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
             {property.amenities && property.amenities.length > 0 && (
               <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-2xl">
                 <CardHeader>
-                  <CardTitle className="text-xl md:text-2xl text-foreground">Amenities</CardTitle>
+                  <CardTitle className="text-xl md:text-2xl text-foreground">
+                    <TranslatableText text="Amenities" />
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -410,6 +431,7 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
             <PropertyContactCard 
               property={property}
               onShare={handleShare}
+              globalContactNumber={centralContactNumber} // Pass the central contact number
             />
           </div>
         </div>

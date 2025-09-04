@@ -111,7 +111,7 @@ export const ModernFeaturedSection: React.FC = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-accent to-primary dark:from-blue-400 dark:via-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
               {t('featured.title')}
             </span>
           </h2>

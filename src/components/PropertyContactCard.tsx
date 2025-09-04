@@ -15,27 +15,33 @@ interface PropertyContactCardProps {
   property: Property;
   onSave?: () => void;
   onShare?: () => void;
+  globalContactNumber: string | null; // New prop for the centralized contact number
 }
 
 export const PropertyContactCard: React.FC<PropertyContactCardProps> = ({
   property,
   onSave,
-  onShare
+  onShare,
+  globalContactNumber // Destructure the new prop
 }) => {
   const { saveProperty, removeSavedProperty, isPropertySaved } = useSavedProperties();
   const { toast } = useToast();
   const isSaved = isPropertySaved(property.id);
   const { language, t } = useLanguage();
+
+  const contactNumberToUse = globalContactNumber; // Use the global number if provided
+
   const handleCall = () => {
-    if (property.contact_number) {
-      window.open(`tel:${property.contact_number}`, '_self');
+    if (contactNumberToUse) {
+      window.open(`tel:${contactNumberToUse}`, '_self');
     }
   };
 
   const handleWhatsApp = () => {
-    if (property.contact_number) {
-      const message = `Hi! I'm interested in your property "${property.title}" listed for ₹${(property.price / 100000).toFixed(1)}L. Can you please provide more details?`;
-      const whatsappUrl = `https://wa.me/91${property.contact_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    if (contactNumberToUse) {
+      const propertyIdShort = property.id.slice(-8).toUpperCase();
+      const message = `Hi! I'm interested in your property "${property.title}" (ID: ${propertyIdShort}) listed for ₹${(property.price / 100000).toFixed(1)}L. Can you please provide more details?`;
+      const whatsappUrl = `https://wa.me/91${contactNumberToUse.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
     }
   };
@@ -45,21 +51,21 @@ export const PropertyContactCard: React.FC<PropertyContactCardProps> = ({
       if (isSaved) {
         await removeSavedProperty(property.id);
         toast({
-          title: "Property removed",
-          description: "Property removed from your saved list"
+          title: t('property_removed'),
+          description: t('property_removed_from_saved_list')
         });
       } else {
         await saveProperty(property.id);
         toast({
-          title: "Property saved",
-          description: "Property added to your saved list"
+          title: t('property_saved'),
+          description: t('property_added_to_saved_list')
         });
       }
       onSave?.();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save property. Please try again.",
+        title: t('error'),
+        description: t('failed_to_save_property'),
         variant: "destructive"
       });
     }
@@ -84,7 +90,7 @@ export const PropertyContactCard: React.FC<PropertyContactCardProps> = ({
             {formatINRShort(property.price, language)}
           </div>
           <div className="text-sm text-muted-foreground">
-            {property.carpet_area && `₹${formatNumberWithLocale(Math.round(property.price / property.carpet_area), language)}/sq ft`}
+            {property.carpet_area && `₹${formatNumberWithLocale(Math.round(property.price / property.carpet_area), language)}/${t('sq_ft')}`}
           </div>
         </div>
 
@@ -95,7 +101,7 @@ export const PropertyContactCard: React.FC<PropertyContactCardProps> = ({
           <Button 
             onClick={handleCall}
             className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 rounded-xl h-12 font-medium transition-all duration-300 hover:scale-105 shadow-lg"
-            disabled={!property.contact_number}
+            disabled={!contactNumberToUse}
           >
             <Phone size={18} className="mr-2" />
             {t('call_now')}
@@ -104,7 +110,7 @@ export const PropertyContactCard: React.FC<PropertyContactCardProps> = ({
           <Button 
             onClick={handleWhatsApp}
             className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 rounded-xl h-12 font-medium transition-all duration-300 hover:scale-105 shadow-lg"
-            disabled={!property.contact_number}
+            disabled={!contactNumberToUse}
           >
             <MessageCircle size={18} className="mr-2" />
             {t('whatsapp')}
@@ -165,21 +171,21 @@ export const PropertyContactCard: React.FC<PropertyContactCardProps> = ({
           </div>
         </div>
 
-        {/* Agent Info */}
-        {property.agent_name && (
+        {/* Agent Info - This section will now show the global contact number if available */}
+        {contactNumberToUse && (
           <>
             <Separator className="bg-white/10" />
             <div className="space-y-2">
-              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t('listed_by')}</h4>
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t('contact_us')}</h4>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
-                    {property.agent_name.charAt(0).toUpperCase()}
+                    PS
                   </span>
                 </div>
                 <div>
-                  <div className="font-medium">{property.agent_name}</div>
-                  <div className="text-xs text-muted-foreground">Property Agent</div>
+                  <div className="font-medium">PropertyShodh</div>
+                  <div className="text-xs text-muted-foreground">{contactNumberToUse}</div>
                 </div>
               </div>
             </div>

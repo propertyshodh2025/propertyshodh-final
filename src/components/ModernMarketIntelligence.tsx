@@ -179,7 +179,7 @@ export const ModernMarketIntelligence: React.FC = () => {
             <span className="text-sm font-medium text-primary">{t('ai_powered_research')}</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-accent to-primary dark:from-blue-400 dark:via-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
               {t('market_intelligence')}
             </span>
           </h2>

@@ -64,13 +64,16 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
   };
   return (
     <div className="relative min-h-screen overflow-hidden">
+      {/* Solid Background Layer */}
+      <div className="absolute inset-0 bg-white dark:bg-black"></div>
+      
       {/* Background Image */}
       <div 
-        className="absolute inset-0 bg-cover bg-center" 
+        className="absolute inset-0 bg-cover bg-center opacity-90 dark:opacity-80" 
         style={{ backgroundImage: "url('/uploads/city_ai.jpg')" }}
       >
         {/* Overlay for text readability */}
-        <div className="absolute inset-0 bg-black/30 dark:bg-black/50"></div>
+        <div className="absolute inset-0 bg-black/30 dark:bg-black/40"></div>
       </div>
 
       {/* Curved Background Elements (kept for subtle effect, adjusted opacity) */}
@@ -105,7 +108,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       {/* Main Content */}
       <div className="relative z-10 w-full pt-20 pb-16">
         {/* Featured mini-carousel above title */}
-        <div className="w-full mb-8">
+        <div className="w-full mb-8 mt-8">
           <MiniFeaturedCarousel />
         </div>
 
@@ -117,18 +120,18 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
           <br />
           <div className="relative space-y-4 max-w-4xl mx-auto">
             <div className="relative z-10">
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white">
-                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-fade-in">
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground">
+                <span className="bg-gradient-to-r from-primary via-accent to-primary dark:from-blue-400 dark:via-purple-400 dark:to-blue-400 bg-clip-text text-transparent animate-fade-in">
                   {t('find_your_perfect')}
                 </span>
-                <span className="text-white"> {t('property_in')}</span>
+                <span className="text-foreground"> {t('property_in')}</span>
               </h1>
               <AnimatedCityName />
             </div>
           </div>
 
           {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-white max-w-2xl mx-auto font-light leading-relaxed">
+          <p className="text-xl md:text-2xl text-foreground max-w-2xl mx-auto font-light leading-relaxed">
             {t('discover_premium_real_estate')}
           </p>
 
@@ -229,7 +232,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
           {/* Stats */}
           <div className="flex items-center justify-center space-x-2 mt-8">
-            <div className="flex items-center space-x-2 px-4 py-2 bg-card/50 backdrop-blur-sm rounded-full border border-border/50 text-white">
+            <div className="flex items-center space-x-2 px-4 py-2 bg-card/50 backdrop-blur-sm rounded-full border border-border/50 text-foreground">
               <TrendingUp className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">
                 <span className="text-primary font-bold animate-pulse">{totalProperties.toLocaleString()}</span> {t('verified_properties')}

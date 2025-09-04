@@ -5,7 +5,6 @@ import { Header } from '@/components/Header';
 import { ModernHeroSection } from '@/components/ModernHeroSection';
 import { ModernServicesSection } from '@/components/ModernServicesSection';
 import { ModernFeaturedSection } from '@/components/ModernFeaturedSection';
-import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel';
 import { EnhancedSearchEngine } from '@/components/EnhancedSearchEngine';
 import { ModernMarketIntelligence } from '@/components/ModernMarketIntelligence';
 import { RecentlyViewedProperties } from '@/components/RecentlyViewedProperties';
@@ -94,9 +93,6 @@ const Index = () => {
 
       {/* Modern Hero Section */}
       <ModernHeroSection totalProperties={totalProperties} />
-
-      {/* Mini Featured Carousel */}
-      <MiniFeaturedCarousel />
 
       {/* Modern Services Section */}
       <ModernServicesSection />

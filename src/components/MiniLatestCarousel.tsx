@@ -39,9 +39,9 @@ export const MiniLatestCarousel = () => {
         console.log('MiniLatestCarousel: Attempting to fetch latest properties...');
         const { data, error: supabaseError } = await supabase
           .from('properties')
-          .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images')
+          .select('id, title, price, location, city, bhk, bathrooms, carpet_area, property_type, transaction_type, images, created_at')
           .eq('approval_status', 'approved')
-          .eq('listing_status', 'Active') // Changed to 'Active' (capital A)
+          .eq('listing_status', 'Active')
           .order('created_at', { ascending: false }) // Order by creation date for latest properties
           .limit(10); // Fetch a reasonable number of latest properties
 
@@ -51,11 +51,11 @@ export const MiniLatestCarousel = () => {
           throw supabaseError;
         }
 
-        console.log('MiniLatestCarousel: Fetched raw properties data:', data);
+        console.log('MiniLatestCarousel: Fetched latest properties data:', data);
 
         if (isMounted) {
           setProperties(data || []);
-          console.log('MiniLatestCarousel: Properties set, count:', (data || []).length);
+          console.log('MiniLatestCarousel: Latest properties set, count:', (data || []).length);
         }
       } catch (e) {
         console.error('MiniLatestCarousel: Failed to load latest properties in catch block:', e);
@@ -105,7 +105,7 @@ export const MiniLatestCarousel = () => {
   if (loading) {
     return (
       <div className="w-full overflow-hidden py-4 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold mb-4">{t('latest_properties')}</h2>
+        <h2 className="text-2xl font-bold mb-4">Latest Property</h2>
         <div className="flex gap-4 animate-pulse">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="min-w-[280px] h-64 bg-muted rounded-lg" />
@@ -118,7 +118,7 @@ export const MiniLatestCarousel = () => {
   if (error) {
     return (
       <div className="w-full py-4 px-4 sm:px-6 lg:px-8 text-red-500">
-        <h2 className="text-2xl font-bold mb-4">{t('latest_properties')}</h2>
+        <h2 className="text-2xl font-bold mb-4">Latest Property</h2>
         <p>{t('error_loading_properties')}: {error}</p>
       </div>
     );
@@ -127,7 +127,7 @@ export const MiniLatestCarousel = () => {
   if (properties.length === 0) {
     return (
       <div className="w-full py-4 px-4 sm:px-6 lg:px-8 text-muted-foreground">
-        <h2 className="text-2xl font-bold mb-4">{t('latest_properties')}</h2>
+        <h2 className="text-2xl font-bold mb-4">Latest Property</h2>
         <p>{t('no_latest_properties_available')}</p>
       </div>
     );
@@ -135,7 +135,7 @@ export const MiniLatestCarousel = () => {
 
   return (
     <div className="w-full overflow-hidden py-4 px-4 sm:px-6 lg:px-8">
-      <h2 className="text-2xl font-bold mb-4 text-white">{t('latest_properties')}</h2>
+      <h2 className="text-2xl font-bold mb-4 text-foreground">Latest Property</h2>
       <style jsx>{`
         .marquee {
           animation: marquee-scroll linear infinite;

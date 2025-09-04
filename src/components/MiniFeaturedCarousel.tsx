@@ -107,7 +107,7 @@ export const MiniFeaturedCarousel = () => {
   if (loading) {
     return (
       <div className="w-full overflow-hidden py-4">
-        <h2 className="text-2xl font-bold mb-4 text-white px-4 sm:px-6 lg:px-8">{t('featured_properties')}</h2>
+        <h2 className="text-2xl font-bold mb-4 text-foreground px-4 sm:px-6 lg:px-8">{t('featured_properties')}</h2>
         <div className="flex gap-4 animate-pulse px-4 sm:px-6 lg:px-8">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="min-w-[280px] h-64 bg-muted rounded-lg" />
@@ -120,8 +120,8 @@ export const MiniFeaturedCarousel = () => {
   if (error) {
     return (
       <div className="w-full py-4 px-4 sm:px-6 lg:px-8 text-red-500">
-        <h2 className="text-2xl font-bold mb-4 text-white">{t('featured_properties')}</h2>
-        <p className="text-white/70">{t('error_loading_properties')}: {error}</p>
+        <h2 className="text-2xl font-bold mb-4 text-foreground">{t('featured_properties')}</h2>
+        <p className="text-muted-foreground">{t('error_loading_properties')}: {error}</p>
       </div>
     );
   }
@@ -129,15 +129,15 @@ export const MiniFeaturedCarousel = () => {
   if (properties.length === 0) {
     return (
       <div className="w-full py-4 px-4 sm:px-6 lg:px-8 text-muted-foreground">
-        <h2 className="text-2xl font-bold mb-4 text-white">{t('featured_properties')}</h2>
-        <p className="text-white/70">{t('no_featured_properties_available')}</p>
+        <h2 className="text-2xl font-bold mb-4 text-foreground">{t('featured_properties')}</h2>
+        <p className="text-muted-foreground">{t('no_featured_properties_available')}</p>
       </div>
     );
   }
 
   return (
     <div className="w-full overflow-hidden py-4">
-      <h2 className="text-2xl font-bold mb-4 text-white px-4 sm:px-6 lg:px-8">{t('featured_properties')}</h2>
+      <h2 className="text-2xl font-bold mb-4 text-foreground px-4 sm:px-6 lg:px-8">{t('featured_properties')}</h2>
       <style jsx>{`
         .marquee {
           animation: marquee-scroll linear infinite;

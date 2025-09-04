@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +24,7 @@ import PresentationPage from "./pages/PresentationPage";
 import NotFound from "./pages/NotFound";
 import ServicesPage from "./pages/ServicesPage";
 import LanguageSEO from "@/components/LanguageSEO";
+import AdminSettingsPage from "./pages/AdminSettingsPage"; // Import the new page
 
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
@@ -62,6 +62,13 @@ const AppContent = () => {
           <AdminRouteProtection requiredRole="admin">
             <MobileVerificationGuard>
               <AdminUsersManagement />
+            </MobileVerificationGuard>
+          </AdminRouteProtection>
+        } />
+        <Route path="/admin/settings" element={
+          <AdminRouteProtection requiredRole="admin">
+            <MobileVerificationGuard>
+              <AdminSettingsPage />
             </MobileVerificationGuard>
           </AdminRouteProtection>
         } />
