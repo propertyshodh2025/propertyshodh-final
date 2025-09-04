@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge'; // Added this import
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, User, Shield, CheckCircle, XCircle, PlusCircle, LogOut } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
@@ -164,9 +164,7 @@ const SuperAdminDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalAdmins}</div>
-              <p className="text-xs text-muted-foreground">
-                <TranslatableText text="Excluding Omega Admins" />
-              </p>
+              {/* Removed: <p className="text-xs text-muted-foreground"><TranslatableText text="Excluding Omega Admins" /></p> */}
             </CardContent>
           </Card>
           <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-xl">
