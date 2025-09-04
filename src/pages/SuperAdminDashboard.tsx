@@ -10,9 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, Shield, CheckCircle, XCircle, PlusCircle, LogOut } from 'lucide-react';
+import { Loader2, User, Shield, CheckCircle, XCircle, PlusCircle, LogOut, Edit, KeyRound } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { EditAdminUsernameDialog } from '@/components/admin/EditAdminUsernameDialog'; // New import
+import { ResetAdminPasswordDialog } from '@/components/admin/ResetAdminPasswordDialog'; // New import
 
 interface AdminCredential {
   id: string;
@@ -37,6 +39,10 @@ const SuperAdminDashboard: React.FC = () => {
   const [newAdminRole, setNewAdminRole] = useState<'admin' | 'superadmin'>('admin');
   const [creatingAdmin, setCreatingAdmin] = useState(false);
 
+  const [isEditUsernameDialogOpen, setIsEditUsernameDialogOpen] = useState(false);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [selectedAdmin, setSelectedAdmin] = useState<AdminCredential | null>(null);
+
   const fetchAdmins = async () => {
     setLoading(true);
     const { data, error } = await supabase.rpc('get_admin_credentials');
@@ -45,7 +51,7 @@ const SuperAdminDashboard: React.FC = () => {
       console.error('Error fetching admin credentials:', error);
       toast({
         title: t('error'),
-        description: t('failed_to_fetch_admin_credentials'),
+        description: error.message || t('failed_to_fetch_admin_credentials'),
         variant: 'destructive',
       });
     } else {
@@ -98,6 +104,16 @@ const SuperAdminDashboard: React.FC = () => {
   };
 
   const handleToggleAdminStatus = async (adminId: string, currentStatus: boolean) => {
+    // Prevent deactivating self
+    if (adminId === adminSession?.admin_id) {
+      toast({
+        title: t('permission_denied'),
+        description: t('cannot_deactivate_own_account'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const { error } = await supabase.rpc('toggle_admin_status', { _admin_id: adminId });
     if (error) {
       console.error('Error toggling admin status:', error);
@@ -116,6 +132,16 @@ const SuperAdminDashboard: React.FC = () => {
   };
 
   const handleDeleteAdmin = async (adminId: string) => {
+    // Prevent deleting self
+    if (adminId === adminSession?.admin_id) {
+      toast({
+        title: t('permission_denied'),
+        description: t('cannot_delete_own_account'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!window.confirm(t('confirm_delete_admin'))) return;
 
     const { error } = await supabase.rpc('delete_admin_credential', { _admin_id: adminId });
@@ -133,6 +159,16 @@ const SuperAdminDashboard: React.FC = () => {
       });
       fetchAdmins(); // Refresh the list
     }
+  };
+
+  const openEditUsernameDialog = (admin: AdminCredential) => {
+    setSelectedAdmin(admin);
+    setIsEditUsernameDialogOpen(true);
+  };
+
+  const openResetPasswordDialog = (admin: AdminCredential) => {
+    setSelectedAdmin(admin);
+    setIsResetPasswordDialogOpen(true);
   };
 
   const filteredAdmins = admins.filter(admin => admin.role !== 'super_super_admin');
@@ -164,7 +200,6 @@ const SuperAdminDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalAdmins}</div>
-              {/* Removed: <p className="text-xs text-muted-foreground"><TranslatableText text="Excluding Omega Admins" /></p> */}
             </CardContent>
           </Card>
           <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-xl">
@@ -290,6 +325,24 @@ const SuperAdminDashboard: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => openEditUsernameDialog(admin)}
+                          disabled={admin.id === adminSession?.admin_id} // Prevent modifying self
+                        >
+                          <Edit size={16} className="mr-1" />
+                          <TranslatableText text="Edit Username" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openResetPasswordDialog(admin)}
+                          disabled={admin.id === adminSession?.admin_id} // Prevent modifying self
+                        >
+                          <KeyRound size={16} className="mr-1" />
+                          <TranslatableText text="Reset Password" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleToggleAdminStatus(admin.id, admin.is_active)}
                           disabled={admin.id === adminSession?.admin_id} // Prevent deactivating self
                         >
@@ -313,6 +366,24 @@ const SuperAdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {selectedAdmin && (
+        <>
+          <EditAdminUsernameDialog
+            isOpen={isEditUsernameDialogOpen}
+            onClose={() => setIsEditUsernameDialogOpen(false)}
+            adminId={selectedAdmin.id}
+            currentUsername={selectedAdmin.username}
+            onSuccess={fetchAdmins}
+          />
+          <ResetAdminPasswordDialog
+            isOpen={isResetPasswordDialogOpen}
+            onClose={() => setIsResetPasswordDialogOpen(false)}
+            adminId={selectedAdmin.id}
+            onSuccess={fetchAdmins}
+          />
+        </>
+      )}
     </div>
   );
 };
