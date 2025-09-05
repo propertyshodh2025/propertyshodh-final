@@ -11,6 +11,7 @@ import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel'; // Re-
 import { MiniLatestCarousel } from '@/components/MiniLatestCarousel';
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
+import { Combobox } from '@/components/ui/combobox'; // New import for Combobox
 
 interface ModernHeroSectionProps {
   totalProperties: number;
@@ -39,22 +40,34 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
     if (bhkType !== 'all') searchParams.set('bedrooms', bhkType);
     navigate(`/search?${searchParams.toString()}`);
   };
-  const handleLocationSelect = (location: string) => {
-    setSelectedLocation(location);
-    // Also add to selected areas if not already there
-    if (!selectedAreas.includes(location)) {
-      setSelectedAreas(prev => [...prev, location]);
+
+  const locationOptions = [
+    { value: 'all', label: t('all_locations') },
+    ...AURANGABAD_AREAS.map(area => ({
+      value: area,
+      label: translateEnum(area, language as any)
+    }))
+  ];
+
+  const handleLocationSelect = (value: string) => {
+    setSelectedLocation(value);
+    if (value !== 'all' && !selectedAreas.includes(value)) {
+      setSelectedAreas(prev => [...prev, value]);
+    } else if (value === 'all') {
+      setSelectedAreas([]); // Clear selected areas if 'all locations' is chosen
     }
   };
+
   const handleAreaSelection = (areas: string[]) => {
     setSelectedAreas(areas);
-    // Update dropdown to show first selected area
     if (areas.length > 0) {
+      // If areas are selected from map, update selectedLocation to the first one
       setSelectedLocation(areas[0]);
     } else {
       setSelectedLocation('all');
     }
   };
+
   const handlePostProperty = () => {
     if (!user) {
       setShowAuthDialog(true);
@@ -148,7 +161,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
                 </div>
 
               {/* Search Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"> {/* Changed to md:grid-cols-3 */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">{t('property_type_label')}</label>
                   <select value={propertyCategory} onChange={e => setPropertyCategory(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
@@ -179,21 +192,17 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
                   </select>
                 </div>
 
-                <div className="space-y-2">
+                {/* Location Dropdown - now spans full width */}
+                <div className="space-y-2 md:col-span-3"> {/* Added md:col-span-3 */}
                   <label className="text-sm font-medium text-muted-foreground">{t('location_label')}</label>
-                  <div className="relative">
-                    <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} className="w-full px-4 py-3 pr-10 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-transparent appearance-none">
-                      <option value="all">{t('all_locations')}</option>
-                      {AURANGABAD_AREAS.map(area => (
-                        <option key={area} value={area}>
-                          {translateEnum(area, language as any)}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </div>
+                  <Combobox
+                    options={locationOptions}
+                    value={selectedLocation}
+                    onValueChange={handleLocationSelect}
+                    placeholder={t('select_location')}
+                    emptyMessage={t('no_location_found')}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
                 </div>
               </div>
 
