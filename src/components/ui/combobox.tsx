@@ -68,7 +68,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
         <Command>
           <CommandInput placeholder={t('search_options')} />
           <CommandEmpty><TranslatableText text={emptyMessage} /></CommandEmpty>
-          <CommandGroup>
+          <CommandGroup className="max-h-[200px] overflow-y-auto"> {/* Added max-h and overflow-y-auto */}
             {options.map((option) => (
               <CommandItem
                 key={option.value}
