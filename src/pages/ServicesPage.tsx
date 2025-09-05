@@ -158,7 +158,7 @@ const whyChooseUs = [
   },
 ];
 
-export const ServicesPage: React.FC = () => {
+const ServicesPage: React.FC = () => { // Changed to a regular function declaration
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -257,3 +257,5 @@ export const ServicesPage: React.FC = () => {
     </div>
   );
 };
+
+export default ServicesPage; // Added default export
