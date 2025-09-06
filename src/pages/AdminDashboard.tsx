@@ -240,7 +240,7 @@ const AdminDashboard = () => {
         .from('user_activities')
         .select(`
           *,
-          profiles!user_activities_user_id_fkey (
+          profiles!fk_user_id_profiles (
             full_name,
             email
           )
