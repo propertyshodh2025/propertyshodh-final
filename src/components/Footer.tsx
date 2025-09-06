@@ -1,90 +1,130 @@
-"use client";
-
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone } from 'lucide-react';
-import { TranslatableText } from './TranslatableText';
+import { Home, Mail, Phone, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
 
-const Footer = () => {
+export const Footer: React.FC = () => {
+  const navigate = useNavigate();
+  const { t } = useLanguage();
+
+  const footerSections = [
+    {
+      title: t('footer.company'),
+      links: [
+        { label: t('footer.aboutUs'), href: '/about' },
+        { label: t('footer.contactUs'), href: '/contact' },
+        { label: t('footer.careers'), href: '/careers' },
+        { label: t('footer.privacyPolicy'), href: '/privacy' },
+        { label: t('footer.termsOfService'), href: '/terms' },
+      ]
+    },
+    {
+      title: t('footer.properties'),
+      links: [
+        { label: t('footer.buyProperties'), href: '/search?type=buy' },
+        { label: t('footer.rentProperties'), href: '/search?type=rent' },
+        { label: t('footer.commercial'), href: '/search?type=commercial' },
+        { label: t('footer.plotsLand'), href: '/search?type=plots' },
+        { label: t('footer.allProperties'), href: '/properties' },
+      ]
+    },
+    {
+      title: t('footer.services'),
+      links: [
+        { label: t('footer.homeLoans'), href: '/services/loans' },
+        { label: t('footer.propertyValuation'), href: '/services/valuation' },
+        { label: t('footer.legalServices'), href: '/services/legal' },
+        { label: t('footer.interiorDesign'), href: '/services/interior' },
+        { label: t('footer.propertyManagement'), href: '/services/management' },
+      ]
+    },
+    {
+      title: t('footer.popularAreas'),
+      links: [
+        { label: 'CIDCO Aurangabad', href: '/search?location=cidco' },
+        { label: 'Waluj Industrial Area', href: '/search?location=waluj' },
+        { label: 'Kanchanwadi', href: '/search?location=kanchanwadi' },
+        { label: 'Garkheda', href: '/search?location=garkheda' },
+        { label: 'Osmanpura', href: '/search?location=osmanpura' },
+      ]
+    }
+  ];
+
   return (
     <footer className="bg-secondary text-secondary-foreground">
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-8">
           {/* Brand Section */}
-          <div className="lg:col-span-2 space-y-4">
-            <Link to="/" className="flex items-center">
-              <img src="/logo.svg" alt="PropertyShodh Logo" className="h-10 w-auto" />
-            </Link>
-            <p className="text-sm text-muted-foreground">
-              <TranslatableText textKey="footer_tagline" defaultText="Your trusted partner in finding the perfect property." />
+          <div className="sm:col-span-2 lg:col-span-1 space-y-4">
+            <div 
+              className="flex items-center gap-2 cursor-pointer" 
+              onClick={() => navigate('/')}
+            >
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Home className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-bold text-secondary-foreground">PropertyShodh</span>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              {t('footer.description')}
             </p>
-            <div className="flex space-x-4 mt-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Facebook size={20} />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Twitter size={20} />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Linkedin size={20} />
-              </a>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                <span>Aurangabad, Maharashtra</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                <span>+91 98765 43210</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                <span>info@propertyshodh.com</span>
+              </div>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4"><TranslatableText textKey="footer_quick_links" defaultText="Quick Links" /></h3>
-            <ul className="space-y-2">
-              <li><Link to="/properties" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_properties" defaultText="Properties" /></Link></li>
-              <li><Link to="/about" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_about_us" defaultText="About Us" /></Link></li>
-              <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_contact_us" defaultText="Contact Us" /></Link></li>
-              <li><Link to="/faq" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_faq" defaultText="FAQ" /></Link></li>
-              <li><Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_terms" defaultText="Terms & Conditions" /></Link></li>
-            </ul>
-          </div>
-
-          {/* Services */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4"><TranslatableText textKey="footer_services" defaultText="Services" /></h3>
-            <ul className="space-y-2">
-              <li><Link to="/sell-property" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_sell_property" defaultText="Sell Your Property" /></Link></li>
-              <li><Link to="/rent-property" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_rent_property" defaultText="Rent Your Property" /></Link></li>
-              <li><Link to="/property-valuation" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_property_valuation" defaultText="Property Valuation" /></Link></li>
-              <li><Link to="/legal-advice" className="text-muted-foreground hover:text-primary transition-colors"><TranslatableText textKey="footer_legal_advice" defaultText="Legal Advice" /></Link></li>
-            </ul>
-          </div>
-
-          {/* Contact Info */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4"><TranslatableText textKey="footer_contact_info" defaultText="Contact Info" /></h3>
-            <ul className="space-y-2">
-              <li className="flex items-center space-x-2 text-muted-foreground">
-                <Mail size={16} />
-                <span>info@propertyshodh.com</span>
-              </li>
-              <li className="flex items-center space-x-2 text-muted-foreground">
-                <Phone size={16} />
-                <span>+91 98765 43210</span>
-              </li>
-              <li className="text-muted-foreground">
-                <TranslatableText textKey="footer_address_line1" defaultText="123 Property Lane," /><br />
-                <TranslatableText textKey="footer_address_line2" defaultText="Real Estate City, PIN 400001" />
-              </li>
-            </ul>
-          </div>
+          {/* Footer Links */}
+          {footerSections.map((section, index) => (
+            <div key={index} className="space-y-4">
+              <h3 className="font-semibold text-lg text-secondary-foreground">{section.title}</h3>
+              <ul className="space-y-2">
+                {section.links.map((link, linkIndex) => (
+                  <li key={linkIndex}>
+                    <button 
+                      onClick={() => navigate(link.href)}
+                      className="text-muted-foreground hover:text-secondary-foreground transition-colors text-sm"
+                    >
+                      {link.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
-        {/* Copyright */}
-        <div className="border-t border-muted-foreground/20 mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} <TranslatableText textKey="footer_copyright" defaultText="PropertyShodh. All rights reserved." /></p>
+        {/* Bottom Section */}
+        <div className="border-t border-border mt-8 lg:mt-12 pt-6 lg:pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-muted-foreground text-sm text-center md:text-left">
+              {t('footer.rights')}
+            </div>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 md:gap-6 text-sm text-muted-foreground">
+              <button onClick={() => navigate('/privacy')} className="hover:text-secondary-foreground transition-colors">
+                {t('footer.privacyPolicy')}
+              </button>
+              <button onClick={() => navigate('/terms')} className="hover:text-secondary-foreground transition-colors">
+                {t('footer.termsOfService')}
+              </button>
+              <button onClick={() => navigate('/sitemap')} className="hover:text-secondary-foreground transition-colors">
+                {t('footer.sitemap')}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
   );
 };
-
-export default Footer;
