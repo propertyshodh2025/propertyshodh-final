@@ -52,6 +52,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
     // Store search activity in Supabase
     if (user) {
+      console.log('Attempting to store search activity for user:', user.id); // Added diagnostic log
       try {
         const { error } = await supabase.from('user_activities').insert({
           user_id: user.id,
@@ -70,10 +71,14 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
         });
         if (error) {
           console.error('Error storing search activity:', error);
+        } else {
+          console.log('Search activity stored successfully!'); // Added success log
         }
       } catch (error) {
         console.error('Exception storing search activity:', error);
       }
+    } else {
+      console.log('User not logged in, skipping search activity storage.'); // Added diagnostic log
     }
 
     navigate(`/search?${searchParams.toString()}`);
