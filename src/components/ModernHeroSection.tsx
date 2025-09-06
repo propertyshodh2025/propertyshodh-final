@@ -12,6 +12,7 @@ import { MiniLatestCarousel } from '@/components/MiniLatestCarousel';
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
 import { Combobox } from '@/components/ui/combobox'; // New import for Combobox
+import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 
 interface ModernHeroSectionProps {
   totalProperties: number;
@@ -30,7 +31,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
   const [bhkType, setBhkType] = useState('all');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     const searchParams = new URLSearchParams();
     if (selectedLocation !== 'all') searchParams.set('location', selectedLocation);
     if (selectedAreas.length > 0) searchParams.set('areas', selectedAreas.join(','));
@@ -38,6 +39,43 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
     if (propertyCategory !== 'residential') searchParams.set('category', propertyCategory);
     if (propertySubtype !== 'all') searchParams.set('subtype', propertySubtype);
     if (bhkType !== 'all') searchParams.set('bedrooms', bhkType);
+
+    // Construct search query string for storage
+    const searchQueryText = [
+      selectedLocation !== 'all' ? selectedLocation : '',
+      selectedAreas.length > 0 ? selectedAreas.join(', ') : '',
+      transactionType !== 'buy' ? transactionType : '',
+      propertyCategory !== 'residential' ? propertyCategory : '',
+      propertySubtype !== 'all' ? propertySubtype : '',
+      bhkType !== 'all' ? bhkType : '',
+    ].filter(Boolean).join(', ');
+
+    // Store search activity in Supabase
+    if (user) {
+      try {
+        const { error } = await supabase.from('user_activities').insert({
+          user_id: user.id,
+          activity_type: 'search',
+          search_query: searchQueryText || 'General Search',
+          metadata: {
+            filters: {
+              location: selectedLocation,
+              areas: selectedAreas,
+              transactionType,
+              propertyCategory,
+              propertySubtype,
+              bhkType,
+            },
+          },
+        });
+        if (error) {
+          console.error('Error storing search activity:', error);
+        }
+      } catch (error) {
+        console.error('Exception storing search activity:', error);
+      }
+    }
+
     navigate(`/search?${searchParams.toString()}`);
   };
 
