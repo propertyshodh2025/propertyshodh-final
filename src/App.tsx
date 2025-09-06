@@ -3,11 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
-import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeProvider } from '@/components/ui/theme-provider'; // Corrected import path
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer'; // Changed from named import to default import
+import Footer from '@/components/Footer';
 import Index from '@/pages/Index';
 import Properties from '@/pages/Properties';
 import PropertyDetail from '@/pages/PropertyDetail';
@@ -101,7 +101,7 @@ import AdminPropertyEmailSettingsPage from '@/pages/AdminPropertyEmailSettingsPa
 import AdminPropertySmsSettingsPage from '@/pages/AdminPropertySmsSettingsPage';
 import AdminPropertyPushSettingsPage from '@/pages/AdminPropertyPushSettingsPage';
 import AdminPropertyIntegrationsSettingsPage from '@/pages/AdminPropertyIntegrationsSettingsPage';
-import AdminPropertyApiKeysPage from '@/pages/AdminPropertyApiKeysPage';
+import AdminPropertyApiKeysSettingsPage from '@/pages/AdminPropertyApiKeysSettingsPage';
 import AdminPropertyWebhooksSettingsPage from '@/pages/AdminPropertyWebhooksSettingsPage';
 import AdminPropertyLogsSettingsPage from '@/pages/AdminPropertyLogsSettingsPage';
 import AdminPropertyErrorsSettingsPage from '@/pages/AdminPropertyErrorsSettingsPage';
@@ -525,171 +525,6 @@ import AdminPropertySettingsOverviewConfigurationPage from '@/pages/AdminPropert
 import AdminPropertyAccountOverviewConfigurationPage from '@/pages/AdminPropertyAccountOverviewConfigurationPage';
 import AdminPropertyProfileOverviewConfigurationPage from '@/pages/AdminPropertyProfileOverviewConfigurationPage';
 import AdminPropertySecurityOverviewConfigurationPage from '@/pages/AdminPropertySecurityOverviewConfigurationPage';
-import AdminPropertyNotificationsAlertsConfigurationPage from '@/pages/AdminPropertyNotificationsAlertsConfigurationPage';
-import AdminPropertyEmailAlertsConfigurationPage from '@/pages/AdminPropertyEmailAlertsConfigurationPage';
-import AdminPropertySmsAlertsConfigurationPage from '@/pages/AdminPropertySmsAlertsConfigurationPage';
-import AdminPropertyPushAlertsConfigurationPage from '@/pages/AdminPropertyPushAlertsConfigurationPage';
-import AdminPropertyIntegrationsAlertsConfigurationPage from '@/pages/AdminPropertyIntegrationsAlertsConfigurationPage';
-import AdminPropertyApiKeysAlertsConfigurationPage from '@/pages/AdminPropertyApiKeysAlertsConfigurationPage';
-import AdminPropertyWebhooksAlertsConfigurationPage from '@/pages/AdminPropertyWebhooksAlertsConfigurationPage';
-import AdminPropertyLogsAlertsConfigurationPage from '@/pages/AdminPropertyLogsAlertsConfigurationPage';
-import AdminPropertyErrorsAlertsConfigurationPage from '@/pages/AdminPropertyErrorsAlertsConfigurationPage';
-import AdminPropertyHealthAlertsConfigurationPage from '@/pages/AdminPropertyHealthAlertsConfigurationPage';
-import AdminPropertyStatusAlertsConfigurationPage from '@/pages/AdminPropertyStatusAlertsConfigurationPage';
-import AdminPropertyMaintenanceAlertsConfigurationPage from '@/pages/AdminPropertyMaintenanceAlertsConfigurationPage';
-import AdminPropertyBackupAlertsConfigurationPage from '@/pages/AdminPropertyBackupAlertsConfigurationPage';
-import AdminPropertyRestoreAlertsConfigurationPage from '@/pages/AdminPropertyRestoreAlertsConfigurationPage';
-import AdminPropertyDeploymentsAlertsConfigurationPage from '@/pages/AdminPropertyDeploymentsAlertsConfigurationPage';
-import AdminPropertyRollbacksAlertsConfigurationPage from '@/pages/AdminPropertyRollbacksAlertsConfigurationPage';
-import AdminPropertyVersionsAlertsConfigurationPage from '@/pages/AdminPropertyVersionsAlertsConfigurationPage';
-import AdminPropertyUpdatesAlertsConfigurationPage from '@/pages/AdminPropertyUpdatesAlertsConfigurationPage';
-import AdminPropertyMigrationsAlertsConfigurationPage from '@/pages/AdminPropertyMigrationsAlertsConfigurationPage';
-import AdminPropertySchemaAlertsConfigurationPage from '@/pages/AdminPropertySchemaAlertsConfigurationPage';
-import AdminPropertyDatabaseAlertsConfigurationPage from '@/pages/AdminPropertyDatabaseAlertsConfigurationPage';
-import AdminPropertyStorageAlertsConfigurationPage from '@/pages/AdminPropertyStorageAlertsConfigurationPage';
-import AdminPropertyFunctionsAlertsConfigurationPage from '@/pages/AdminPropertyFunctionsAlertsConfigurationPage';
-import AdminPropertyAuthAlertsConfigurationPage from '@/pages/AdminPropertyAuthAlertsConfigurationPage';
-import AdminPropertyRealtimeAlertsConfigurationPage from '@/pages/AdminPropertyRealtimeAlertsConfigurationPage';
-import AdminPropertyEdgeFunctionsAlertsConfigurationPage from '@/pages/AdminPropertyEdgeFunctionsAlertsConfigurationPage';
-import AdminPropertySecretsAlertsConfigurationPage from '@/pages/AdminPropertySecretsAlertsConfigurationPage';
-import AdminPropertyBillingAlertsConfigurationPage from '@/pages/AdminPropertyBillingAlertsConfigurationPage';
-import AdminPropertyUsageAlertsConfigurationPage from '@/pages/AdminPropertyUsageAlertsConfigurationPage';
-import AdminPropertySettingsAlertsConfigurationPage from '@/pages/AdminPropertySettingsAlertsConfigurationPage';
-import AdminPropertyAccountAlertsConfigurationPage from '@/pages/AdminPropertyAccountAlertsConfigurationPage';
-import AdminPropertyProfileAlertsConfigurationPage from '@/pages/AdminPropertyProfileAlertsConfigurationPage';
-import AdminPropertySecurityAlertsConfigurationPage from '@/pages/AdminPropertySecurityAlertsConfigurationPage';
-import AdminPropertyNotificationsReportsAlertsConfigurationPage from '@/pages/AdminPropertyNotificationsReportsAlertsConfigurationPage';
-import AdminPropertyEmailReportsAlertsConfigurationPage from '@/pages/AdminPropertyEmailReportsAlertsConfigurationPage';
-import AdminPropertySmsReportsAlertsConfigurationPage from '@/pages/AdminPropertySmsReportsAlertsConfigurationPage';
-import AdminPropertyPushReportsAlertsConfigurationPage from '@/pages/AdminPropertyPushReportsAlertsConfigurationPage';
-import AdminPropertyIntegrationsReportsAlertsConfigurationPage from '@/pages/AdminPropertyIntegrationsReportsAlertsConfigurationPage';
-import AdminPropertyApiKeysReportsAlertsConfigurationPage from '@/pages/AdminPropertyApiKeysReportsAlertsConfigurationPage';
-import AdminPropertyWebhooksReportsAlertsConfigurationPage from '@/pages/AdminPropertyWebhooksReportsAlertsConfigurationPage';
-import AdminPropertyLogsReportsAlertsConfigurationPage from '@/pages/AdminPropertyLogsReportsAlertsConfigurationPage';
-import AdminPropertyErrorsReportsAlertsConfigurationPage from '@/pages/AdminPropertyErrorsReportsAlertsConfigurationPage';
-import AdminPropertyHealthReportsAlertsConfigurationPage from '@/pages/AdminPropertyHealthReportsAlertsConfigurationPage';
-import AdminPropertyStatusReportsAlertsConfigurationPage from '@/pages/AdminPropertyStatusReportsAlertsConfigurationPage';
-import AdminPropertyMaintenanceReportsAlertsConfigurationPage from '@/pages/AdminPropertyMaintenanceReportsAlertsConfigurationPage';
-import AdminPropertyBackupReportsAlertsConfigurationPage from '@/pages/AdminPropertyBackupReportsAlertsConfigurationPage';
-import AdminPropertyRestoreReportsAlertsConfigurationPage from '@/pages/AdminPropertyRestoreReportsAlertsConfigurationPage';
-import AdminPropertyDeploymentsReportsAlertsConfigurationPage from '@/pages/AdminPropertyDeploymentsReportsAlertsConfigurationPage';
-import AdminPropertyRollbacksReportsAlertsConfigurationPage from '@/pages/AdminPropertyRollbacksReportsAlertsConfigurationPage';
-import AdminPropertyVersionsReportsAlertsConfigurationPage from '@/pages/AdminPropertyVersionsReportsAlertsConfigurationPage';
-import AdminPropertyUpdatesReportsAlertsConfigurationPage from '@/pages/AdminPropertyUpdatesReportsAlertsConfigurationPage';
-import AdminPropertyMigrationsReportsAlertsConfigurationPage from '@/pages/AdminPropertyMigrationsReportsAlertsConfigurationPage';
-import AdminPropertySchemaReportsAlertsConfigurationPage from '@/pages/AdminPropertySchemaReportsAlertsConfigurationPage';
-import AdminPropertyDatabaseReportsAlertsConfigurationPage from '@/pages/AdminPropertyDatabaseReportsAlertsConfigurationPage';
-import AdminPropertyStorageReportsAlertsConfigurationPage from '@/pages/AdminPropertyStorageReportsAlertsConfigurationPage';
-import AdminPropertyFunctionsReportsAlertsConfigurationPage from '@/pages/AdminPropertyFunctionsReportsAlertsConfigurationPage';
-import AdminPropertyAuthReportsAlertsConfigurationPage from '@/pages/AdminPropertyAuthReportsAlertsConfigurationPage';
-import AdminPropertyRealtimeReportsAlertsConfigurationPage from '@/pages/AdminPropertyRealtimeReportsAlertsConfigurationPage';
-import AdminPropertyEdgeFunctionsReportsAlertsConfigurationPage from '@/pages/AdminPropertyEdgeFunctionsReportsAlertsConfigurationPage';
-import AdminPropertySecretsReportsAlertsConfigurationPage from '@/pages/AdminPropertySecretsReportsAlertsConfigurationPage';
-import AdminPropertyBillingReportsAlertsConfigurationPage from '@/pages/AdminPropertyBillingReportsAlertsConfigurationPage';
-import AdminPropertyUsageReportsAlertsConfigurationPage from '@/pages/AdminPropertyUsageReportsAlertsConfigurationPage';
-import AdminPropertySettingsReportsAlertsConfigurationPage from '@/pages/AdminPropertySettingsReportsAlertsConfigurationPage';
-import AdminPropertyAccountReportsAlertsConfigurationPage from '@/pages/AdminPropertyAccountReportsAlertsConfigurationPage';
-import AdminPropertyProfileReportsAlertsConfigurationPage from '@/pages/AdminPropertyProfileReportsAlertsConfigurationPage';
-import AdminPropertySecurityReportsAlertsConfigurationPage from '@/pages/AdminPropertySecurityReportsAlertsConfigurationPage';
-import AdminPropertyNotificationsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyNotificationsAnalyticsAlertsConfigurationPage';
-import AdminPropertyEmailAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyEmailAnalyticsAlertsConfigurationPage';
-import AdminPropertySmsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertySmsAnalyticsAlertsConfigurationPage';
-import AdminPropertyPushAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyPushAnalyticsAlertsConfigurationPage';
-import AdminPropertyIntegrationsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyIntegrationsAnalyticsAlertsConfigurationPage';
-import AdminPropertyApiKeysAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyApiKeysAnalyticsAlertsConfigurationPage';
-import AdminPropertyWebhooksAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyWebhooksAnalyticsAlertsConfigurationPage';
-import AdminPropertyLogsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyLogsAnalyticsAlertsConfigurationPage';
-import AdminPropertyErrorsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyErrorsAnalyticsAlertsConfigurationPage';
-import AdminPropertyHealthAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyHealthAnalyticsAlertsConfigurationPage';
-import AdminPropertyStatusAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyStatusAnalyticsAlertsConfigurationPage';
-import AdminPropertyMaintenanceAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyMaintenanceAnalyticsAlertsConfigurationPage';
-import AdminPropertyBackupAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyBackupAnalyticsAlertsConfigurationPage';
-import AdminPropertyRestoreAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyRestoreAnalyticsAlertsConfigurationPage';
-import AdminPropertyDeploymentsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyDeploymentsAnalyticsAlertsConfigurationPage';
-import AdminPropertyRollbacksAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyRollbacksAnalyticsAlertsConfigurationPage';
-import AdminPropertyVersionsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyVersionsAnalyticsAlertsConfigurationPage';
-import AdminPropertyUpdatesAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyUpdatesAnalyticsAlertsConfigurationPage';
-import AdminPropertyMigrationsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyMigrationsAnalyticsAlertsConfigurationPage';
-import AdminPropertySchemaAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertySchemaAnalyticsAlertsConfigurationPage';
-import AdminPropertyDatabaseAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyDatabaseAnalyticsAlertsConfigurationPage';
-import AdminPropertyStorageAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyStorageAnalyticsAlertsConfigurationPage';
-import AdminPropertyFunctionsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyFunctionsAnalyticsAlertsConfigurationPage';
-import AdminPropertyAuthAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyAuthAnalyticsAlertsConfigurationPage';
-import AdminPropertyRealtimeAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyRealtimeAnalyticsAlertsConfigurationPage';
-import AdminPropertyEdgeFunctionsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyEdgeFunctionsAnalyticsAlertsConfigurationPage';
-import AdminPropertySecretsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertySecretsAnalyticsAlertsConfigurationPage';
-import AdminPropertyBillingAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyBillingAnalyticsAlertsConfigurationPage';
-import AdminPropertyUsageAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyUsageAnalyticsAlertsConfigurationPage';
-import AdminPropertySettingsAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertySettingsAnalyticsAlertsConfigurationPage';
-import AdminPropertyAccountAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyAccountAnalyticsAlertsConfigurationPage';
-import AdminPropertyProfileAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertyProfileAnalyticsAlertsConfigurationPage';
-import AdminPropertySecurityAnalyticsAlertsConfigurationPage from '@/pages/AdminPropertySecurityAnalyticsAlertsConfigurationPage';
-import AdminPropertyNotificationsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyNotificationsDashboardAlertsConfigurationPage';
-import AdminPropertyEmailDashboardAlertsConfigurationPage from '@/pages/AdminPropertyEmailDashboardAlertsConfigurationPage';
-import AdminPropertySmsDashboardAlertsConfigurationPage from '@/pages/AdminPropertySmsDashboardAlertsConfigurationPage';
-import AdminPropertyPushDashboardAlertsConfigurationPage from '@/pages/AdminPropertyPushDashboardAlertsConfigurationPage';
-import AdminPropertyIntegrationsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyIntegrationsDashboardAlertsConfigurationPage';
-import AdminPropertyApiKeysDashboardAlertsConfigurationPage from '@/pages/AdminPropertyApiKeysDashboardAlertsConfigurationPage';
-import AdminPropertyWebhooksDashboardAlertsConfigurationPage from '@/pages/AdminPropertyWebhooksDashboardAlertsConfigurationPage';
-import AdminPropertyLogsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyLogsDashboardAlertsConfigurationPage';
-import AdminPropertyErrorsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyErrorsDashboardAlertsConfigurationPage';
-import AdminPropertyHealthDashboardAlertsConfigurationPage from '@/pages/AdminPropertyHealthDashboardAlertsConfigurationPage';
-import AdminPropertyStatusDashboardAlertsConfigurationPage from '@/pages/AdminPropertyStatusDashboardAlertsConfigurationPage';
-import AdminPropertyMaintenanceDashboardAlertsConfigurationPage from '@/pages/AdminPropertyMaintenanceDashboardAlertsConfigurationPage';
-import AdminPropertyBackupDashboardAlertsConfigurationPage from '@/pages/AdminPropertyBackupDashboardAlertsConfigurationPage';
-import AdminPropertyRestoreDashboardAlertsConfigurationPage from '@/pages/AdminPropertyRestoreDashboardAlertsConfigurationPage';
-import AdminPropertyDeploymentsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyDeploymentsDashboardAlertsConfigurationPage';
-import AdminPropertyRollbacksDashboardAlertsConfigurationPage from '@/pages/AdminPropertyRollbacksDashboardAlertsConfigurationPage';
-import AdminPropertyVersionsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyVersionsDashboardAlertsConfigurationPage';
-import AdminPropertyUpdatesDashboardAlertsConfigurationPage from '@/pages/AdminPropertyUpdatesDashboardAlertsConfigurationPage';
-import AdminPropertyMigrationsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyMigrationsDashboardAlertsConfigurationPage';
-import AdminPropertySchemaDashboardAlertsConfigurationPage from '@/pages/AdminPropertySchemaDashboardAlertsConfigurationPage';
-import AdminPropertyDatabaseDashboardAlertsConfigurationPage from '@/pages/AdminPropertyDatabaseDashboardAlertsConfigurationPage';
-import AdminPropertyStorageDashboardAlertsConfigurationPage from '@/pages/AdminPropertyStorageDashboardAlertsConfigurationPage';
-import AdminPropertyFunctionsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyFunctionsDashboardAlertsConfigurationPage';
-import AdminPropertyAuthDashboardAlertsConfigurationPage from '@/pages/AdminPropertyAuthDashboardAlertsConfigurationPage';
-import AdminPropertyRealtimeDashboardAlertsConfigurationPage from '@/pages/AdminPropertyRealtimeDashboardAlertsConfigurationPage';
-import AdminPropertyEdgeFunctionsDashboardAlertsConfigurationPage from '@/pages/AdminPropertyEdgeFunctionsDashboardAlertsConfigurationPage';
-import AdminPropertySecretsDashboardAlertsConfigurationPage from '@/pages/AdminPropertySecretsDashboardAlertsConfigurationPage';
-import AdminPropertyBillingDashboardAlertsConfigurationPage from '@/pages/AdminPropertyBillingDashboardAlertsConfigurationPage';
-import AdminPropertyUsageDashboardAlertsConfigurationPage from '@/pages/AdminPropertyUsageDashboardAlertsConfigurationPage';
-import AdminPropertySettingsDashboardAlertsConfigurationPage from '@/pages/AdminPropertySettingsDashboardAlertsConfigurationPage';
-import AdminPropertyAccountDashboardAlertsConfigurationPage from '@/pages/AdminPropertyAccountDashboardAlertsConfigurationPage';
-import AdminPropertyProfileDashboardAlertsConfigurationPage from '@/pages/AdminPropertyProfileDashboardAlertsConfigurationPage';
-import AdminPropertySecurityDashboardAlertsConfigurationPage from '@/pages/AdminPropertySecurityDashboardAlertsConfigurationPage';
-import AdminPropertyNotificationsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyNotificationsOverviewAlertsConfigurationPage';
-import AdminPropertyEmailOverviewAlertsConfigurationPage from '@/pages/AdminPropertyEmailOverviewAlertsConfigurationPage';
-import AdminPropertySmsOverviewAlertsConfigurationPage from '@/pages/AdminPropertySmsOverviewAlertsConfigurationPage';
-import AdminPropertyPushOverviewAlertsConfigurationPage from '@/pages/AdminPropertyPushOverviewAlertsConfigurationPage';
-import AdminPropertyIntegrationsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyIntegrationsOverviewAlertsConfigurationPage';
-import AdminPropertyApiKeysOverviewAlertsConfigurationPage from '@/pages/AdminPropertyApiKeysOverviewAlertsConfigurationPage';
-import AdminPropertyWebhooksOverviewAlertsConfigurationPage from '@/pages/AdminPropertyWebhooksOverviewAlertsConfigurationPage';
-import AdminPropertyLogsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyLogsOverviewAlertsConfigurationPage';
-import AdminPropertyErrorsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyErrorsOverviewAlertsConfigurationPage';
-import AdminPropertyHealthOverviewAlertsConfigurationPage from '@/pages/AdminPropertyHealthOverviewAlertsConfigurationPage';
-import AdminPropertyStatusOverviewAlertsConfigurationPage from '@/pages/AdminPropertyStatusOverviewAlertsConfigurationPage';
-import AdminPropertyMaintenanceOverviewAlertsConfigurationPage from '@/pages/AdminPropertyMaintenanceOverviewAlertsConfigurationPage';
-import AdminPropertyBackupOverviewAlertsConfigurationPage from '@/pages/AdminPropertyBackupOverviewAlertsConfigurationPage';
-import AdminPropertyRestoreOverviewAlertsConfigurationPage from '@/pages/AdminPropertyRestoreOverviewAlertsConfigurationPage';
-import AdminPropertyDeploymentsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyDeploymentsOverviewAlertsConfigurationPage';
-import AdminPropertyRollbacksOverviewAlertsConfigurationPage from '@/pages/AdminPropertyRollbacksOverviewAlertsConfigurationPage';
-import AdminPropertyVersionsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyVersionsOverviewAlertsConfigurationPage';
-import AdminPropertyUpdatesOverviewAlertsConfigurationPage from '@/pages/AdminPropertyUpdatesOverviewAlertsConfigurationPage';
-import AdminPropertyMigrationsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyMigrationsOverviewAlertsConfigurationPage';
-import AdminPropertySchemaOverviewAlertsConfigurationPage from '@/pages/AdminPropertySchemaOverviewAlertsConfigurationPage';
-import AdminPropertyDatabaseOverviewAlertsConfigurationPage from '@/pages/AdminPropertyDatabaseOverviewAlertsConfigurationPage';
-import AdminPropertyStorageOverviewAlertsConfigurationPage from '@/pages/AdminPropertyStorageOverviewAlertsConfigurationPage';
-import AdminPropertyFunctionsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyFunctionsOverviewAlertsConfigurationPage';
-import AdminPropertyAuthOverviewAlertsConfigurationPage from '@/pages/AdminPropertyAuthOverviewAlertsConfigurationPage';
-import AdminPropertyRealtimeOverviewAlertsConfigurationPage from '@/pages/AdminPropertyRealtimeOverviewAlertsConfigurationPage';
-import AdminPropertyEdgeFunctionsOverviewAlertsConfigurationPage from '@/pages/AdminPropertyEdgeFunctionsOverviewAlertsConfigurationPage';
-import AdminPropertySecretsOverviewAlertsConfigurationPage from '@/pages/AdminPropertySecretsOverviewAlertsConfigurationPage';
-import AdminPropertyBillingOverviewAlertsConfigurationPage from '@/pages/AdminPropertyBillingOverviewAlertsConfigurationPage';
-import AdminPropertyUsageOverviewAlertsConfigurationPage from '@/pages/AdminPropertyUsageOverviewAlertsConfigurationPage';
-import AdminPropertySettingsOverviewAlertsConfigurationPage from '@/pages/AdminPropertySettingsOverviewAlertsConfigurationPage';
-import AdminPropertyAccountOverviewAlertsConfigurationPage from '@/pages/AdminPropertyAccountOverviewAlertsConfigurationPage';
-import AdminPropertyProfileOverviewAlertsConfigurationPage from '@/pages/AdminPropertyProfileOverviewAlertsConfigurationPage';
-import AdminPropertySecurityOverviewAlertsConfigurationPage from '@/pages/AdminPropertySecurityOverviewAlertsConfigurationPage';
 
 
 const queryClient = new QueryClient();
@@ -1181,39 +1016,6 @@ function App() {
                   <Route path="/admin/property-account-dashboard-configuration" element={<AdminPropertyAccountDashboardConfigurationPage />} />
                   <Route path="/admin/property-profile-dashboard-configuration" element={<AdminPropertyProfileDashboardConfigurationPage />} />
                   <Route path="/admin/property-security-dashboard-configuration" element={<AdminPropertySecurityDashboardConfigurationPage />} />
-                  <Route path="/admin/property-notifications-overview-configuration" element={<AdminPropertyNotificationsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-email-overview-configuration" element={<AdminPropertyEmailOverviewConfigurationPage />} />
-                  <Route path="/admin/property-sms-overview-configuration" element={<AdminPropertySmsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-push-overview-configuration" element={<AdminPropertyPushOverviewConfigurationPage />} />
-                  <Route path="/admin/property-integrations-overview-configuration" element={<AdminPropertyIntegrationsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-api-keys-overview-configuration" element={<AdminPropertyApiKeysOverviewConfigurationPage />} />
-                  <Route path="/admin/property-webhooks-overview-configuration" element={<AdminPropertyWebhooksOverviewConfigurationPage />} />
-                  <Route path="/admin/property-logs-overview-configuration" element={<AdminPropertyLogsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-errors-overview-configuration" element={<AdminPropertyErrorsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-health-overview-configuration" element={<AdminPropertyHealthOverviewConfigurationPage />} />
-                  <Route path="/admin/property-status-overview-configuration" element={<AdminPropertyStatusOverviewConfigurationPage />} />
-                  <Route path="/admin/property-maintenance-overview-configuration" element={<AdminPropertyMaintenanceOverviewConfigurationPage />} />
-                  <Route path="/admin/property-backup-overview-configuration" element={<AdminPropertyBackupOverviewConfigurationPage />} />
-                  <Route path="/admin/property-restore-overview-configuration" element={<AdminPropertyRestoreOverviewConfigurationPage />} />
-                  <Route path="/admin/property-deployments-overview-configuration" element={<AdminPropertyDeploymentsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-rollbacks-overview-configuration" element={<AdminPropertyRollbacksOverviewConfigurationPage />} />
-                  <Route path="/admin/property-versions-overview-configuration" element={<AdminPropertyVersionsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-updates-overview-configuration" element={<AdminPropertyUpdatesOverviewConfigurationPage />} />
-                  <Route path="/admin/property-migrations-overview-configuration" element={<AdminPropertyMigrationsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-schema-overview-configuration" element={<AdminPropertySchemaOverviewConfigurationPage />} />
-                  <Route path="/admin/property-database-overview-configuration" element={<AdminPropertyDatabaseOverviewConfigurationPage />} />
-                  <Route path="/admin/property-storage-overview-configuration" element={<AdminPropertyStorageOverviewConfigurationPage />} />
-                  <Route path="/admin/property-functions-overview-configuration" element={<AdminPropertyFunctionsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-auth-overview-configuration" element={<AdminPropertyAuthOverviewConfigurationPage />} />
-                  <Route path="/admin/property-realtime-overview-configuration" element={<AdminPropertyRealtimeOverviewConfigurationPage />} />
-                  <Route path="/admin/property-edge-functions-overview-configuration" element={<AdminPropertyEdgeFunctionsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-secrets-overview-configuration" element={<AdminPropertySecretsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-billing-overview-configuration" element={<AdminPropertyBillingOverviewConfigurationPage />} />
-                  <Route path="/admin/property-usage-overview-configuration" element={<AdminPropertyUsageOverviewConfigurationPage />} />
-                  <Route path="/admin/property-settings-overview-configuration" element={<AdminPropertySettingsOverviewConfigurationPage />} />
-                  <Route path="/admin/property-account-overview-configuration" element={<AdminPropertyAccountOverviewConfigurationPage />} />
-                  <Route path="/admin/property-profile-overview-configuration" element={<AdminPropertyProfileOverviewConfigurationPage />} />
-                  <Route path="/admin/property-security-overview-configuration" element={<AdminPropertySecurityOverviewConfigurationPage />} />
                 </Routes>
               </main>
               <Footer />
