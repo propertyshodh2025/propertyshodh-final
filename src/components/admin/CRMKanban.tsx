@@ -23,7 +23,7 @@ interface Lead {
   id: string;
   created_at: string;
   updated_at: string;
-  source_type: 'property_inquiry' | 'user_inquiry' | 'manual';
+  source_type: 'property_inquiry' | 'user_inquiry' | 'manual' | 'research_report' | 'saved_activity';
   source_id: string | null;
   name: string;
   phone: string;
@@ -69,20 +69,18 @@ interface ConsolidatedLead {
   city: string | null;
 }
 
+interface AdminUser {
+  id: string; // This will be the UUID
+  username: string;
+  role: 'admin' | 'superadmin' | 'super_super_admin';
+  is_active: boolean;
+}
+
 const STATUSES: { id: LeadStatus; title: string }[] = [
   { id: 'new', title: 'New' },
   { id: 'contacted', title: 'Contacted' },
   { id: 'qualified', title: 'Qualified' },
   { id: 'closed', title: 'Closed' },
-];
-
-const EMPLOYEES = [
-  { id: 'emp1', name: 'Employee 1' },
-  { id: 'emp2', name: 'Employee 2' },
-  { id: 'emp3', name: 'Employee 3' },
-  { id: 'emp4', name: 'Employee 4' },
-  { id: 'emp5', name: 'Employee 5' },
-  { id: 'emp6', name: 'Employee 6' },
 ];
 
 const priorityColor: Record<LeadPriority, 'default' | 'secondary' | 'outline'> = {
@@ -124,9 +122,24 @@ export default function CRMKanban() {
   const [search, setSearch] = useState('');
   const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [assignLeadId, setAssignLeadId] = useState<string | null>(null);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]); // State to store actual admin users
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Fetch admin users on component mount
+  useEffect(() => {
+    const fetchAdminUsers = async () => {
+      try {
+        const { data, error } = await adminSupabase.rpc('get_admin_credentials');
+        if (error) throw error;
+        setAdminUsers(data || []);
+      } catch (e) {
+        console.error('Error fetching admin users:', e);
+        toast({ title: 'Error', description: 'Failed to load admin users for assignment', variant: 'destructive' });
+      }
+    };
+    fetchAdminUsers();
+  }, [toast]);
 
   const grouped = useMemo(() => {
     const byStatus: Record<LeadStatus, ConsolidatedLead[]> = {
@@ -199,7 +212,7 @@ export default function CRMKanban() {
 
   useEffect(() => {
     setConsolidatedLeads(consolidateLeads);
-  }, [consolidateLeads]);
+  }, [consolidatedLeads]); // Changed dependency to consolidatedLeads to avoid infinite loop
 
   useEffect(() => {
     const fetchLeads = async () => {
@@ -257,19 +270,18 @@ export default function CRMKanban() {
     }
   };
 
-  const assignLead = async (phone: string, employeeId: string) => {
+  const assignLead = async (phone: string, adminId: string) => { // Changed employeeId to adminId
     try {
       // Update all leads with the same phone number
       const { error } = await adminSupabase
         .from('leads')
-        .update({ assigned_admin_id: employeeId })
+        .update({ assigned_admin_id: adminId })
         .eq('phone', phone);
       if (error) throw error;
       
-      setLeads((prev) => prev.map((l) => (l.phone === phone ? { ...l, assigned_admin_id: employeeId } : l)));
-      const employee = EMPLOYEES.find(e => e.id === employeeId);
-      toast({ title: 'Assigned', description: `Lead assigned to ${employee?.name}` });
-      setAssignLeadId(null);
+      setLeads((prev) => prev.map((l) => (l.phone === phone ? { ...l, assigned_admin_id: adminId } : l)));
+      const assignedAdmin = adminUsers.find(u => u.id === adminId); // Use adminUsers
+      toast({ title: 'Assigned', description: `Lead assigned to ${assignedAdmin?.username || 'Unknown Admin'}` });
     } catch (e) {
       console.error(e);
       toast({ title: 'Failed to assign', description: 'Please try again', variant: 'destructive' });
@@ -413,7 +425,7 @@ export default function CRMKanban() {
                               )}
                               {lead.assigned_admin_id && (
                                 <Badge variant="secondary">
-                                  Assigned: {EMPLOYEES.find(e => e.id === lead.assigned_admin_id)?.name || 'Unknown'}
+                                  Assigned: {adminUsers.find(u => u.id === lead.assigned_admin_id)?.username || 'Unknown'}
                                 </Badge>
                               )}
                             </div>
@@ -428,9 +440,9 @@ export default function CRMKanban() {
                                   </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {EMPLOYEES.map((employee) => (
-                                    <SelectItem key={employee.id} value={employee.id}>
-                                      {employee.name}
+                                  {adminUsers.map((admin) => (
+                                    <SelectItem key={admin.id} value={admin.id}>
+                                      {admin.username}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
