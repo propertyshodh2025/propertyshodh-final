@@ -7,13 +7,13 @@ import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { GridBasedAurangabadMap } from '@/components/GridBasedAurangabadMap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel'; // Re-added
+import { MiniFeaturedCarousel } from '@/components/MiniFeaturedCarousel';
 import { MiniLatestCarousel } from '@/components/MiniLatestCarousel';
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
-import { Combobox } from '@/components/ui/combobox'; // New import for Combobox
-import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { Combobox } from '@/components/ui/combobox';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ModernHeroSectionProps {
   totalProperties: number;
@@ -31,10 +31,14 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
   const [propertySubtype, setPropertySubtype] = useState('all');
   const [bhkType, setBhkType] = useState('all');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const { toast } = useToast(); // Initialize useToast
+  const { toast } = useToast();
 
   const ensureProfileExists = useCallback(async () => {
-    if (!user) return;
+    console.log('ensureProfileExists called. User:', user?.id);
+    if (!user) {
+      console.log('No user, skipping profile check.');
+      return;
+    }
 
     try {
       const { data: profile, error } = await supabase
@@ -44,12 +48,12 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Error fetching profile in ensureProfileExists:', error);
         // Do not throw, try to create profile via edge function
       }
 
       if (!profile) {
-        console.log('Profile not found for user, attempting to create via Edge Function.');
+        console.log(`Profile not found for user ${user.id}. Attempting to create via Edge Function.`);
         const { data: edgeFunctionData, error: edgeFunctionError } = await supabase.functions.invoke('create-missing-profile', {
           body: {
             user_id: user.id,
@@ -73,9 +77,16 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
             variant: "success",
           });
         }
+      } else {
+        console.log(`Profile found for user ${user.id}. Profile ID: ${profile.id}`);
       }
     } catch (err) {
       console.error('Unexpected error in ensureProfileExists:', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred during profile check.",
+        variant: "destructive",
+      });
     }
   }, [user, toast]);
 
@@ -94,7 +105,6 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
     if (propertySubtype !== 'all') searchParams.set('subtype', propertySubtype);
     if (bhkType !== 'all') searchParams.set('bedrooms', bhkType);
 
-    // Construct search query string for storage
     const searchQueryText = [
       selectedLocation !== 'all' ? selectedLocation : '',
       selectedAreas.length > 0 ? selectedAreas.join(', ') : '',
@@ -104,9 +114,8 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       bhkType !== 'all' ? bhkType : '',
     ].filter(Boolean).join(', ');
 
-    // Store search activity in Supabase
     if (user) {
-      console.log('Attempting to store search activity for user:', user.id); // Added diagnostic log
+      console.log('Attempting to store search activity for user:', user.id);
       try {
         const { error } = await supabase.from('user_activities').insert({
           user_id: user.id,
@@ -125,14 +134,34 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
         });
         if (error) {
           console.error('Error storing search activity:', error);
+          toast({
+            title: "Search History Error",
+            description: `Failed to save search: ${error.message}`,
+            variant: "destructive",
+          });
         } else {
-          console.log('Search activity stored successfully!'); // Added success log
+          console.log('Search activity stored successfully!');
+          toast({
+            title: "Search Saved",
+            description: "Your search has been added to history.",
+            variant: "success",
+          });
         }
       } catch (error) {
         console.error('Exception storing search activity:', error);
+        toast({
+          title: "Search History Error",
+          description: "An unexpected error occurred while saving search.",
+          variant: "destructive",
+        });
       }
     } else {
-      console.log('User not logged in, skipping search activity storage.'); // Added diagnostic log
+      console.log('User not logged in, skipping search activity storage.');
+      toast({
+        title: "Login Required",
+        description: "Log in to save your search history.",
+        variant: "info",
+      });
     }
 
     navigate(`/search?${searchParams.toString()}`);
@@ -151,14 +180,13 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
     if (value !== 'all' && !selectedAreas.includes(value)) {
       setSelectedAreas(prev => [...prev, value]);
     } else if (value === 'all') {
-      setSelectedAreas([]); // Clear selected areas if 'all locations' is chosen
+      setSelectedAreas([]);
     }
   };
 
   const handleAreaSelection = (areas: string[]) => {
     setSelectedAreas(areas);
     if (areas.length > 0) {
-      // If areas are selected from map, update selectedLocation to the first one
       setSelectedLocation(areas[0]);
     } else {
       setSelectedLocation('all');
