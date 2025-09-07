@@ -2,17 +2,10 @@ import React from 'react';
 import { useNavigate, Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings, Users, Activity, MessageSquare, Search, Bookmark, Star, BarChart3, Columns3, TrendingUp } from 'lucide-react';
+import { LogOut, Settings, Users, Activity } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AdminManagementContent } from '@/components/admin/AdminManagementContent'; // Import the new content component
-import SuperAdminCRMKanban from '@/components/superadmin/SuperAdminCRMKanban'; // New CRM for Superadmin
-import SuperAdminSavedProperties from '@/components/superadmin/SuperAdminSavedProperties'; // Moved
-import FeaturePropertiesManager from '@/components/superadmin/FeaturePropertiesManager'; // Moved
-import MarketIntelligenceManager from '@/components/superadmin/MarketIntelligenceManager'; // Moved
-import SuperAdminSearchHistory from '@/components/superadmin/SuperAdminSearchHistory'; // New
-import SuperAdminPropertyInterest from '@/components/superadmin/SuperAdminPropertyInterest'; // New
-import SuperAdminUserInquiries from '@/components/superadmin/SuperAdminUserInquiries'; // New
 
 const SuperAdminDashboard: React.FC = () => {
   const { signOutAdmin } = useAuth();
@@ -47,97 +40,6 @@ const SuperAdminDashboard: React.FC = () => {
           >
             <Users size={16} />
             <TranslatableText text="Manage Admins" />
-          </NavLink>
-          <NavLink
-            to="/superadmin/crm"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:bg-muted/50'
-              }`
-            }
-          >
-            <Columns3 size={16} />
-            <TranslatableText text="CRM" />
-          </NavLink>
-          <NavLink
-            to="/superadmin/inquiries"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:bg-muted/50'
-              }`
-            }
-          >
-            <MessageSquare size={16} />
-            <TranslatableText text="General Inquiries" />
-          </NavLink>
-          <NavLink
-            to="/superadmin/property-interest"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:bg-muted/50'
-              }`
-            }
-          >
-            <TrendingUp size={16} />
-            <TranslatableText text="Property Interest" />
-          </NavLink>
-          <NavLink
-            to="/superadmin/search-history"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:bg-muted/50'
-              }`
-            }
-          >
-            <Search size={16} />
-            <TranslatableText text="Search History" />
-          </NavLink>
-          <NavLink
-            to="/superadmin/saved"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:bg-muted/50'
-              }`
-            }
-          >
-            <Bookmark size={16} />
-            <TranslatableText text="Saved Properties" />
-          </NavLink>
-          <NavLink
-            to="/superadmin/featured"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:bg-muted/50'
-              }`
-            }
-          >
-            <Star size={16} />
-            <TranslatableText text="Featured Properties" />
-          </NavLink>
-          <NavLink
-            to="/superadmin/market-intelligence"
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:bg-muted/50'
-              }`
-            }
-          >
-            <BarChart3 size={16} />
-            <TranslatableText text="Market Intelligence" />
           </NavLink>
           <NavLink
             to="/superadmin/settings"
