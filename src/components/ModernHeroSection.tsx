@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Search, MapPin, Home, TrendingUp, ChevronDown, Map } from 'lucide-react';
@@ -13,6 +13,7 @@ import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 import { translateEnum } from '@/lib/staticTranslations';
 import { Combobox } from '@/components/ui/combobox'; // New import for Combobox
 import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 interface ModernHeroSectionProps {
   totalProperties: number;
@@ -30,6 +31,59 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
   const [propertySubtype, setPropertySubtype] = useState('all');
   const [bhkType, setBhkType] = useState('all');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const { toast } = useToast(); // Initialize useToast
+
+  const ensureProfileExists = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        // Do not throw, try to create profile via edge function
+      }
+
+      if (!profile) {
+        console.log('Profile not found for user, attempting to create via Edge Function.');
+        const { data: edgeFunctionData, error: edgeFunctionError } = await supabase.functions.invoke('create-missing-profile', {
+          body: {
+            user_id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name,
+          },
+        });
+
+        if (edgeFunctionError) {
+          console.error('Error calling create-missing-profile Edge Function:', edgeFunctionError);
+          toast({
+            title: "Profile Creation Failed",
+            description: "Could not create user profile. Please try logging in again.",
+            variant: "destructive",
+          });
+        } else {
+          console.log('Profile creation Edge Function response:', edgeFunctionData);
+          toast({
+            title: "Welcome!",
+            description: "Your profile has been set up.",
+            variant: "success",
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error in ensureProfileExists:', err);
+    }
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      ensureProfileExists();
+    }
+  }, [user, ensureProfileExists]);
 
   const handleSearch = async () => {
     const searchParams = new URLSearchParams();
