@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Eye, EyeOff, LogOut, Users, MessageSquare, ExternalLink, BarChart3, TrendingUp, Shield, Star, Check, X, Columns3, Home, Bookmark, Copy, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, EyeOff, LogOut, Users, MessageSquare, ExternalLink, BarChart3, TrendingUp, Shield, Star, Check, X, Columns3, Home, Bookmark, Copy, Search, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,13 +45,29 @@ interface UserInquiry {
   created_at: string;
 }
 
+// New interface for search history items with profile details
+interface UserActivityWithProfile {
+  id: string;
+  user_id: string;
+  activity_type: string;
+  property_id: string | null;
+  search_query: string | null;
+  metadata: any; // Assuming metadata can be any JSONB structure
+  created_at: string;
+  profiles: {
+    full_name: string | null;
+    email: string | null;
+    phone_number: string | null; // Added phone_number
+  } | null;
+}
+
 const AdminDashboard = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [userProperties, setUserProperties] = useState<Property[]>([]);
   const [inquiries, setInquiries] = useState<UserInquiry[]>([]);
   const [propertyInquiries, setPropertyInquiries] = useState<any[]>([]);
   const [featureRequests, setFeatureRequests] = useState<any[]>([]);
-  const [searchHistory, setSearchHistory] = useState<any[]>([]);
+  const [searchHistory, setSearchHistory] = useState<UserActivityWithProfile[]>([]); // Use the new interface
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -242,7 +258,8 @@ const AdminDashboard = () => {
           *,
           profiles!fk_user_id_profiles (
             full_name,
-            email
+            email,
+            phone_number // <-- Added phone_number here
           )
         `)
         .eq('activity_type', 'search')
@@ -250,7 +267,7 @@ const AdminDashboard = () => {
         .limit(100);
 
       if (error) throw error;
-      setSearchHistory(data || []);
+      setSearchHistory(data as UserActivityWithProfile[] || []); // Cast to the new interface
     } catch (error) {
       console.error('Error fetching search history:', error);
       toast({
@@ -1677,10 +1694,37 @@ const AdminDashboard = () => {
                               <p className="text-sm text-muted-foreground">
                                 Email: {search.profiles?.email || 'N/A'}
                               </p>
+                              {search.profiles?.phone_number && (
+                                <p className="text-sm text-muted-foreground">
+                                  Phone: {search.profiles.phone_number}
+                                </p>
+                              )}
                               {search.search_query && (
                                 <p className="text-sm text-muted-foreground">
                                   Search Query: <span className="font-medium">{search.search_query}</span>
                                 </p>
+                              )}
+                              {search.profiles?.phone_number && (
+                                <div className="flex gap-2 mt-4">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                  >
+                                    <a href={`tel:${search.profiles.phone_number}`} className="flex items-center gap-1">
+                                      <Phone className="h-4 w-4" /> Call
+                                    </a>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                  >
+                                    <a href={`https://wa.me/${search.profiles.phone_number}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                                      <MessageSquare className="h-4 w-4" /> WhatsApp
+                                    </a>
+                                  </Button>
+                                </div>
                               )}
                             </div>
                             <div>
