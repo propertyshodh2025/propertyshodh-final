@@ -259,7 +259,7 @@ const AdminDashboard = () => {
           profiles!fk_user_id_profiles (
             full_name,
             email,
-            phone_number // <-- Added phone_number here
+            phone_number
           )
         `)
         .eq('activity_type', 'search')
@@ -1503,10 +1503,10 @@ const AdminDashboard = () => {
                                     size="sm"
                                     onClick={() => handleStatusChange(property.id, 'Inactive')}
                                     className="text-xs flex-1 sm:flex-none min-w-[70px]"
-                                  >
-                                    Hidden
-                                  </Button>
-                                </div>
+                                >
+                                  Hidden
+                                </Button>
+                              </div>
                               )}
                               
                               <div className="flex gap-2">
