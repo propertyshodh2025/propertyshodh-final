@@ -23,34 +23,44 @@ export default function SuperAdminSearchHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('SuperAdminSearchHistory: useEffect triggered');
     const load = async () => {
+      console.log('SuperAdminSearchHistory: load function started');
       try {
         // Superadmin can view all user activities
-        const { data: activities, error } = await adminSupabase
+        const { data: activities, error: activitiesError } = await adminSupabase
           .from('user_activities')
           .select('id, created_at, user_id, search_query, metadata')
           .eq('activity_type', 'search_query')
           .not('search_query', 'is', null)
           .order('created_at', { ascending: false });
-        if (error) throw error;
+        
+        console.log('SuperAdminSearchHistory: Fetched user_activities. Data:', activities, 'Error:', activitiesError);
+        if (activitiesError) throw activitiesError;
 
         const uniqueUserIds = Array.from(new Set((activities || []).map(a => a.user_id)));
+        console.log('SuperAdminSearchHistory: Unique User IDs:', uniqueUserIds);
 
         if (uniqueUserIds.length) {
-          const { data: profs } = await adminSupabase
+          const { data: profs, error: profsError } = await adminSupabase
             .from('profiles')
             .select('user_id, full_name, email')
             .in('user_id', uniqueUserIds as string[]);
+          console.log('SuperAdminSearchHistory: Fetched profiles. Data:', profs, 'Error:', profsError);
+          if (profsError) console.error('Error fetching profiles:', profsError);
+
           const map: ProfileMap = {};
           (profs || []).forEach(p => { map[p.user_id] = { full_name: (p as any).full_name, email: (p as any).email }; });
           setProfiles(map);
         }
 
         setSearchActivities((activities as any) || []);
+        console.log('SuperAdminSearchHistory: Search activities set:', (activities || []).length);
       } catch (e) {
-        console.error(e);
+        console.error('SuperAdminSearchHistory: Error in load function:', e);
       } finally {
         setLoading(false);
+        console.log('SuperAdminSearchHistory: Loading set to false');
       }
     };
     load();

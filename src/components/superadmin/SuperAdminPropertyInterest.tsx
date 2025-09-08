@@ -26,32 +26,42 @@ export default function SuperAdminPropertyInterest() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('SuperAdminPropertyInterest: useEffect triggered');
     const load = async () => {
+      console.log('SuperAdminPropertyInterest: load function started');
       try {
         // Superadmin can view all property inquiries
-        const { data: inquiriesData, error } = await adminSupabase
+        const { data: inquiriesData, error: inquiriesError } = await adminSupabase
           .from('property_inquiries')
           .select('*')
           .order('created_at', { ascending: false });
-        if (error) throw error;
+        
+        console.log('SuperAdminPropertyInterest: Fetched property_inquiries. Data:', inquiriesData, 'Error:', inquiriesError);
+        if (inquiriesError) throw inquiriesError;
 
         const uniquePropertyIds = Array.from(new Set((inquiriesData || []).map(i => i.property_id)));
+        console.log('SuperAdminPropertyInterest: Unique Property IDs:', uniquePropertyIds);
 
         if (uniquePropertyIds.length) {
-          const { data: props } = await adminSupabase
+          const { data: props, error: propsError } = await adminSupabase
             .from('properties')
             .select('id, title, location, city')
             .in('id', uniquePropertyIds as string[]);
+          console.log('SuperAdminPropertyInterest: Fetched properties. Data:', props, 'Error:', propsError);
+          if (propsError) console.error('Error fetching properties:', propsError);
+
           const map: PropertyMap = {};
           (props || []).forEach(p => { map[p.id] = { title: (p as any).title, location: (p as any).location, city: (p as any).city }; });
           setProperties(map);
         }
 
         setInquiries((inquiriesData as any) || []);
+        console.log('SuperAdminPropertyInterest: Inquiries set:', (inquiriesData || []).length);
       } catch (e) {
-        console.error(e);
+        console.error('SuperAdminPropertyInterest: Error in load function:', e);
       } finally {
         setLoading(false);
+        console.log('SuperAdminPropertyInterest: Loading set to false');
       }
     };
     load();

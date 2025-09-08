@@ -28,45 +28,59 @@ export default function SuperAdminSavedProperties() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('SuperAdminSavedProperties: useEffect triggered');
     const load = async () => {
+      console.log('SuperAdminSavedProperties: load function started');
       try {
         // Superadmin can view all user activities
-        const { data: acts, error } = await adminSupabase
+        const { data: acts, error: actsError } = await adminSupabase
           .from('user_activities')
           .select('id, created_at, user_id, property_id')
           .eq('activity_type', 'property_saved')
           .not('property_id', 'is', null)
           .order('created_at', { ascending: false });
-        if (error) throw error;
+        
+        console.log('SuperAdminSavedProperties: Fetched user_activities. Data:', acts, 'Error:', actsError);
+        if (actsError) throw actsError;
 
         const uniqueUserIds = Array.from(new Set((acts || []).map(a => a.user_id)));
         const uniquePropIds = Array.from(new Set((acts || []).map(a => a.property_id).filter(Boolean)));
+        console.log('SuperAdminSavedProperties: Unique User IDs:', uniqueUserIds);
+        console.log('SuperAdminSavedProperties: Unique Property IDs:', uniquePropIds);
 
         if (uniqueUserIds.length) {
-          const { data: profs } = await adminSupabase
+          const { data: profs, error: profsError } = await adminSupabase
             .from('profiles')
             .select('user_id, full_name, phone_number')
             .in('user_id', uniqueUserIds as string[]);
+          console.log('SuperAdminSavedProperties: Fetched profiles. Data:', profs, 'Error:', profsError);
+          if (profsError) console.error('Error fetching profiles:', profsError);
+
           const map: ProfileMap = {};
           (profs || []).forEach(p => { map[p.user_id] = { full_name: (p as any).full_name, phone_number: (p as any).phone_number }; });
           setProfiles(map);
         }
 
         if (uniquePropIds.length) {
-          const { data: props } = await adminSupabase
+          const { data: props, error: propsError } = await adminSupabase
             .from('properties')
             .select('id, title, location, city')
             .in('id', uniquePropIds as string[]);
+          console.log('SuperAdminSavedProperties: Fetched properties. Data:', props, 'Error:', propsError);
+          if (propsError) console.error('Error fetching properties:', propsError);
+
           const map: PropertyMap = {};
           (props || []).forEach(p => { map[p.id] = { id: p.id, title: (p as any).title, location: (p as any).location, city: (p as any).city }; });
           setProperties(map);
         }
 
         setItems((acts as any) || []);
+        console.log('SuperAdminSavedProperties: Items set:', (acts || []).length);
       } catch (e) {
-        console.error(e);
+        console.error('SuperAdminSavedProperties: Error in load function:', e);
       } finally {
         setLoading(false);
+        console.log('SuperAdminSavedProperties: Loading set to false');
       }
     };
     load();
