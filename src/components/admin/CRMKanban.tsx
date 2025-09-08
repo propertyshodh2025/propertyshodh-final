@@ -23,7 +23,7 @@ interface Lead {
   id: string;
   created_at: string;
   updated_at: string;
-  source_type: 'property_inquiry' | 'user_inquiry' | 'manual';
+  source_type: 'property_inquiry' | 'user_inquiry' | 'manual' | 'research_report' | 'saved_activity';
   source_id: string | null;
   name: string;
   phone: string;
@@ -69,20 +69,18 @@ interface ConsolidatedLead {
   city: string | null;
 }
 
+interface AdminUser {
+  id: string; // This will be the UUID
+  username: string;
+  role: 'admin' | 'superadmin' | 'super_super_admin';
+  is_active: boolean;
+}
+
 const STATUSES: { id: LeadStatus; title: string }[] = [
   { id: 'new', title: 'New' },
   { id: 'contacted', title: 'Contacted' },
   { id: 'qualified', title: 'Qualified' },
   { id: 'closed', title: 'Closed' },
-];
-
-const EMPLOYEES = [
-  { id: 'emp1', name: 'Employee 1' },
-  { id: 'emp2', name: 'Employee 2' },
-  { id: 'emp3', name: 'Employee 3' },
-  { id: 'emp4', name: 'Employee 4' },
-  { id: 'emp5', name: 'Employee 5' },
-  { id: 'emp6', name: 'Employee 6' },
 ];
 
 const priorityColor: Record<LeadPriority, 'default' | 'secondary' | 'outline'> = {
@@ -124,9 +122,25 @@ export default function CRMKanban() {
   const [search, setSearch] = useState('');
   const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [assignLeadId, setAssignLeadId] = useState<string | null>(null);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]); // State to store actual admin users
+  const currentAdminSession = getCurrentAdminSession(); // Get current admin session
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Fetch admin users on component mount (only for display, assignment is restricted by RLS)
+  useEffect(() => {
+    const fetchAdminUsers = async () => {
+      try {
+        const { data, error } = await adminSupabase.rpc('get_admin_credentials');
+        if (error) throw error;
+        setAdminUsers(data || []);
+      } catch (e) {
+        console.error('Error fetching admin users:', e);
+        toast({ title: 'Error', description: 'Failed to load admin users for assignment', variant: 'destructive' });
+      }
+    };
+    fetchAdminUsers();
+  }, [toast]);
 
   const grouped = useMemo(() => {
     const byStatus: Record<LeadStatus, ConsolidatedLead[]> = {
@@ -143,7 +157,7 @@ export default function CRMKanban() {
   }, [consolidatedLeads, search]);
 
   // Consolidate leads by phone number
-  const consolidateLeads = useMemo(() => {
+  const consolidateLeadsData = useMemo(() => {
     const phoneGroups: Record<string, Lead[]> = {};
     
     leads.forEach(lead => {
@@ -198,12 +212,13 @@ export default function CRMKanban() {
   }, [leads]);
 
   useEffect(() => {
-    setConsolidatedLeads(consolidateLeads);
-  }, [consolidateLeads]);
+    setConsolidatedLeads(consolidateLeadsData);
+  }, [leads, consolidatedLeadsData]); // Changed dependency to consolidatedLeadsData to avoid infinite loop
 
   useEffect(() => {
     const fetchLeads = async () => {
       try {
+        // RLS will automatically filter leads to only those assigned to the current admin
         const { data, error } = await adminSupabase
           .from('leads')
           .select('*')
@@ -220,21 +235,30 @@ export default function CRMKanban() {
     fetchLeads();
 
     const channel = adminSupabase
-      .channel('crm-leads')
+      .channel('crm-leads-admin') // Use a different channel name for normal admin
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (payload) => {
-        setLeads((prev) => {
-          if (payload.eventType === 'INSERT') return [payload.new as Lead, ...prev];
-          if (payload.eventType === 'UPDATE')
-            return prev.map((l) => (l.id === (payload.new as any).id ? (payload.new as Lead) : l));
-          if (payload.eventType === 'DELETE') return prev.filter((l) => l.id !== (payload.old as any).id);
-          return prev;
-        });
+        // Only update if the change is relevant to the current admin's assigned leads
+        const newLead = payload.new as Lead;
+        const oldLead = payload.old as Lead;
+
+        if (payload.eventType === 'INSERT' && newLead.assigned_admin_id === currentAdminSession?.id) {
+          setLeads((prev) => [newLead, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
+          if (newLead.assigned_admin_id === currentAdminSession?.id) {
+            setLeads((prev) => prev.map((l) => (l.id === newLead.id ? newLead : l)));
+          } else if (oldLead?.assigned_admin_id === currentAdminSession?.id && newLead.assigned_admin_id !== currentAdminSession?.id) {
+            // Lead was assigned to this admin, but now it's not, so remove it
+            setLeads((prev) => prev.filter((l) => l.id !== oldLead.id));
+          }
+        } else if (payload.eventType === 'DELETE' && oldLead?.assigned_admin_id === currentAdminSession?.id) {
+          setLeads((prev) => prev.filter((l) => l.id !== oldLead.id));
+        }
       })
       .subscribe();
     return () => {
       adminSupabase.removeChannel(channel);
     };
-  }, [toast]);
+  }, [toast, currentAdminSession?.id]);
 
   const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -243,11 +267,12 @@ export default function CRMKanban() {
     const leadPhone = active.id as string;
     
     try {
-      // Update all leads with the same phone number
+      // RLS will ensure only leads assigned to the current admin can be updated
       const { error } = await adminSupabase
         .from('leads')
         .update({ status: newStatus })
-        .eq('phone', leadPhone);
+        .eq('phone', leadPhone)
+        .eq('assigned_admin_id', currentAdminSession?.id); // Explicitly filter by assigned_admin_id
       if (error) throw error;
       
       setLeads((prev) => prev.map((l) => (l.phone === leadPhone ? { ...l, status: newStatus } : l)));
@@ -257,19 +282,29 @@ export default function CRMKanban() {
     }
   };
 
-  const assignLead = async (phone: string, employeeId: string) => {
+  const assignLead = async (phone: string, adminId: string) => {
+    // For normal admins, this action should only allow assigning to themselves or unassigning
+    // RLS will prevent assigning to other admins.
+    const session = getCurrentAdminSession();
+    if (!session) {
+      toast({ title: 'No admin session', description: 'Please log in again', variant: 'destructive' });
+      return;
+    }
+
+    // If the admin tries to assign to someone else, or unassign, it will be blocked by RLS.
+    // The UI here for normal admins should ideally only show "Assign to Me" or "Unassign".
+    // For now, we'll let RLS handle the restriction.
     try {
-      // Update all leads with the same phone number
       const { error } = await adminSupabase
         .from('leads')
-        .update({ assigned_admin_id: employeeId })
-        .eq('phone', phone);
+        .update({ assigned_admin_id: adminId === 'unassigned' ? null : adminId })
+        .eq('phone', phone)
+        .eq('assigned_admin_id', session.id); // Only allow updating leads currently assigned to them
       if (error) throw error;
       
-      setLeads((prev) => prev.map((l) => (l.phone === phone ? { ...l, assigned_admin_id: employeeId } : l)));
-      const employee = EMPLOYEES.find(e => e.id === employeeId);
-      toast({ title: 'Assigned', description: `Lead assigned to ${employee?.name}` });
-      setAssignLeadId(null);
+      setLeads((prev) => prev.map((l) => (l.phone === phone ? { ...l, assigned_admin_id: adminId === 'unassigned' ? null : adminId } : l)));
+      const assignedAdmin = adminUsers.find(u => u.id === adminId);
+      toast({ title: 'Assigned', description: `Lead assigned to ${assignedAdmin?.username || 'Unassigned'}` });
     } catch (e) {
       console.error(e);
       toast({ title: 'Failed to assign', description: 'Please try again', variant: 'destructive' });
@@ -284,6 +319,7 @@ export default function CRMKanban() {
       return;
     }
     try {
+      // RLS will ensure notes can only be added to leads assigned to the current admin
       const { error } = await adminSupabase.from('lead_notes').insert({
         lead_id: noteLeadId,
         admin_id: session.id,
@@ -413,12 +449,13 @@ export default function CRMKanban() {
                               )}
                               {lead.assigned_admin_id && (
                                 <Badge variant="secondary">
-                                  Assigned: {EMPLOYEES.find(e => e.id === lead.assigned_admin_id)?.name || 'Unknown'}
+                                  Assigned: {adminUsers.find(u => u.id === lead.assigned_admin_id)?.username || 'Unknown'}
                                 </Badge>
                               )}
                             </div>
 
                             <div className="mt-3 flex items-center gap-2 flex-wrap">
+                              {/* For normal admins, this dropdown should ideally only allow "Unassign" or "Assign to Me" */}
                               <Select onValueChange={(value) => assignLead(lead.phone, value)}>
                                 <SelectTrigger className="w-auto h-8">
                                   <div className="flex items-center gap-1">
@@ -428,11 +465,9 @@ export default function CRMKanban() {
                                   </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {EMPLOYEES.map((employee) => (
-                                    <SelectItem key={employee.id} value={employee.id}>
-                                      {employee.name}
-                                    </SelectItem>
-                                  ))}
+                                  <SelectItem value={currentAdminSession?.id || ''}>Assign to Me</SelectItem>
+                                  <SelectItem value="unassigned">Unassign</SelectItem>
+                                  {/* Removed other admin options for normal admin view */}
                                 </SelectContent>
                               </Select>
                               <Button 

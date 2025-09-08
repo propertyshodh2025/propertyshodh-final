@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Eye, EyeOff, LogOut, Users, MessageSquare, ExternalLink, BarChart3, TrendingUp, Shield, Star, Check, X, Columns3, Home, Bookmark, Copy, Search, Phone } from 'lucide-react';
+import { Plus, Edit, Trash2, ExternalLink, BarChart3, Home, Star, Check, X, Columns3, Users, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,49 +25,16 @@ import { AdminPropertyFormDialog } from '@/components/admin/AdminPropertyFormDia
 import { PropertyInterestDropdown } from '@/components/PropertyInterestDropdown';
 import VerificationManagement from '@/components/admin/VerificationManagement';
 import CRMKanban from '@/components/admin/CRMKanban';
-import AdminSavedProperties from '@/components/admin/AdminSavedProperties';
-import FeaturePropertiesManager from '@/components/admin/FeaturePropertiesManager';
-import MarketIntelligenceManager from '@/components/admin/MarketIntelligenceManager';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatINRShort } from '@/lib/locale';
 
-interface UserInquiry {
-  id: string;
-  name: string;
-  phone: string;
-  purpose: string | null;
-  property_type: string | null;
-  budget_range: string | null;
-  location: string | null;
-  bedrooms: string | null;
-  created_at: string;
-}
-
-// New interface for search history items with profile details
-interface UserActivityWithProfile {
-  id: string;
-  user_id: string;
-  activity_type: string;
-  property_id: string | null;
-  search_query: string | null;
-  metadata: any; // Assuming metadata can be any JSONB structure
-  created_at: string;
-  profiles: {
-    full_name: string | null;
-    email: string | null;
-    phone_number: string | null; // Added phone_number
-  } | null;
-}
+// No longer need UserInquiry or UserActivityWithProfile interfaces here as those tabs are moved.
 
 const AdminDashboard = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [userProperties, setUserProperties] = useState<Property[]>([]);
-  const [inquiries, setInquiries] = useState<UserInquiry[]>([]);
-  const [propertyInquiries, setPropertyInquiries] = useState<any[]>([]);
-  const [featureRequests, setFeatureRequests] = useState<any[]>([]);
-  const [searchHistory, setSearchHistory] = useState<UserActivityWithProfile[]>([]); // Use the new interface
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -91,10 +58,6 @@ const AdminDashboard = () => {
       console.log('AdminDashboard: Authenticated, fetching data');
       fetchProperties();
       fetchUserProperties();
-      fetchInquiries();
-      fetchPropertyInquiries();
-      fetchFeatureRequests();
-      fetchSearchHistory();
     }
   }, [navigate, isAdminAuthenticated, authLoading]);
 
@@ -160,127 +123,13 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchInquiries = async () => {
-    try {
-      const { data, error } = await adminSupabase
-        .from('user_inquiries')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setInquiries(data || []);
-    } catch (error) {
-      console.error('Error fetching inquiries:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch inquiries",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchPropertyInquiries = async () => {
-    try {
-      const { data, error } = await adminSupabase
-        .from('property_inquiries')
-        .select(`
-          *,
-          properties!property_inquiries_property_id_fkey (
-            title,
-            price,
-            location
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setPropertyInquiries(data || []);
-    } catch (error) {
-      console.error('Error fetching property inquiries:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch property inquiries",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchFeatureRequests = async () => {
-    try {
-      const { data, error } = await adminSupabase
-        .from('property_feature_requests')
-        .select('*')
-        .order('requested_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch related data separately to avoid join issues
-      const requestsWithDetails = await Promise.all(
-        (data || []).map(async (request) => {
-          // Get property details
-          const { data: property } = await adminSupabase
-            .from('properties')
-            .select('title, location, price')
-            .eq('id', request.property_id)
-            .maybeSingle();
-
-          // Get user profile
-          const { data: profile } = await adminSupabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', request.user_id)
-            .maybeSingle();
-
-          return {
-            ...request,
-            property,
-            profile
-          };
-        })
-      );
-
-      setFeatureRequests(requestsWithDetails);
-    } catch (error) {
-      console.error('Error fetching feature requests:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch feature requests",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchSearchHistory = async () => {
-    try {
-      const { data, error } = await adminSupabase
-        .from('user_activities')
-        .select(`
-          *,
-          profiles!fk_user_id_profiles (
-            full_name,
-            email,
-            phone_number
-          )
-        `)
-        .eq('activity_type', 'search')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      setSearchHistory(data as UserActivityWithProfile[] || []); // Cast to the new interface
-    } catch (error) {
-      console.error('Error fetching search history:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch search history",
-        variant: "destructive",
-      });
-    }
-  };
+  // Removed fetchInquiries, fetchPropertyInquiries, fetchFeatureRequests, fetchSearchHistory as these tabs are moved.
 
   const handleFeatureRequestAction = async (requestId: string, action: 'approved' | 'rejected', propertyId?: string) => {
+    // This function is now only relevant if feature requests are still managed here,
+    // but the tab is moved. For now, I'll keep it but it won't be called from this dashboard.
+    // If feature requests are to be managed by normal admins, this logic would need to be re-evaluated.
     try {
-      // Get current admin session to get the actual admin ID
       const session = getCurrentAdminSession();
       if (!session) {
         toast({
@@ -291,7 +140,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Update the feature request status
       const { error: requestError } = await adminSupabase
         .from('property_feature_requests')
         .update({
@@ -303,7 +151,6 @@ const AdminDashboard = () => {
 
       if (requestError) throw requestError;
 
-      // If approved, mark the property as featured
       if (action === 'approved' && propertyId) {
         const { error: propertyError } = await adminSupabase
           .from('properties')
@@ -316,8 +163,6 @@ const AdminDashboard = () => {
         if (propertyError) throw propertyError;
       }
 
-      // Refresh the data
-      fetchFeatureRequests();
       fetchProperties();
       fetchUserProperties();
 
@@ -336,9 +181,7 @@ const AdminDashboard = () => {
   };
 
   const handleLogout = () => {
-    // Clear admin authentication
     adminLogout();
-    // Also clear any regular user authentication to prevent confusion
     localStorage.clear();
     sessionStorage.clear();
     navigate('/admin-login');
@@ -353,7 +196,6 @@ const AdminDashboard = () => {
 
       if (error) throw error;
 
-      // Update both properties and userProperties states
       setProperties(prev => 
         prev.map(property => 
           property.id === id 
@@ -411,6 +253,8 @@ const AdminDashboard = () => {
   };
 
   const handleFeatureProperty = async (id: string, currentFeaturedStatus: boolean = false) => {
+    // This function is now only relevant if featuring is still managed here,
+    // but the tab is moved. For now, I'll keep it but it won't be called from this dashboard.
     try {
       const now = new Date().toISOString();
       const oneWeekLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -421,14 +265,13 @@ const AdminDashboard = () => {
           is_featured: !currentFeaturedStatus,
           featured_at: !currentFeaturedStatus ? now : null,
           featured_until: !currentFeaturedStatus ? oneWeekLater : null,
-          approval_status: 'approved', // Auto-approve when featuring
-          listing_status: 'active'      // Ensure it's active when featured
+          approval_status: 'approved',
+          listing_status: 'active'
         })
         .eq('id', id);
 
       if (error) throw error;
 
-      // Update both properties and userProperties states
       setProperties(prev => 
         prev.map(property => 
           property.id === id 
@@ -494,7 +337,6 @@ const AdminDashboard = () => {
           continue;
         }
 
-        // Download the original image
         const { data: imageData, error: downloadError } = await adminSupabase.storage
           .from('property-images')
           .download(originalKey);
@@ -504,13 +346,11 @@ const AdminDashboard = () => {
           continue;
         }
 
-        // Generate a new filename for the copy
         const fileExtension = originalKey.split('.').pop() || 'jpg';
         const timestamp = Date.now();
         const randomId = Math.random().toString(36).substring(2);
         const newFileName = `duplicated/${timestamp}-${randomId}.${fileExtension}`;
 
-        // Upload the image copy
         const { error: uploadError } = await adminSupabase.storage
           .from('property-images')
           .upload(newFileName, imageData);
@@ -520,7 +360,6 @@ const AdminDashboard = () => {
           continue;
         }
 
-        // Get the public URL for the new image
         const { data: urlData } = adminSupabase.storage
           .from('property-images')
           .getPublicUrl(newFileName);
@@ -541,10 +380,8 @@ const AdminDashboard = () => {
         description: "Copying property and images, please wait...",
       });
 
-      // Duplicate images first
       const duplicatedImages = await duplicateImages(originalProperty.images || []);
 
-      // Create a new property object with core essential fields
       const duplicatedProperty = {
         title: `${originalProperty.title} - Copy`,
         description: originalProperty.description,
@@ -561,7 +398,7 @@ const AdminDashboard = () => {
         total_floors: originalProperty.total_floors,
         age_of_property: originalProperty.age_of_property,
         facing_direction: originalProperty.facing_direction,
-        images: duplicatedImages, // Use the duplicated images
+        images: duplicatedImages,
         submitted_by_user: false,
         approval_status: 'pending',
         listing_status: 'Inactive',
@@ -584,7 +421,6 @@ const AdminDashboard = () => {
 
       if (error) throw error;
 
-      // Refresh the properties lists
       fetchProperties();
       fetchUserProperties();
 
@@ -617,7 +453,6 @@ const AdminDashboard = () => {
 
       if (error) throw error;
       
-      // Update the userProperties state to reflect the change
       setUserProperties(prev => 
         prev.map(property => 
           property.id === id 
@@ -644,7 +479,6 @@ const AdminDashboard = () => {
     window.open(`/property/${propertyId}`, '_blank');
   };
 
-  // Filter functions
   const filteredProperties = properties.filter(property => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -663,7 +497,6 @@ const AdminDashboard = () => {
     );
   });
 
-  // Calculate statistics
   const stats = {
     total: properties.length,
     active: properties.filter(p => p.listing_status === 'Active').length,
@@ -678,7 +511,6 @@ const AdminDashboard = () => {
     rejected: userProperties.filter(p => p.approval_status === 'rejected').length,
   };
 
-  // Chart data
   const statusData = [
     { name: 'Active', value: stats.active },
     { name: 'Inactive', value: stats.inactive },
@@ -717,7 +549,6 @@ const AdminDashboard = () => {
     setShowForm(false);
     fetchProperties();
     fetchUserProperties();
-    fetchFeatureRequests();
   }}
 />
 <AdminPropertyFormDialog
@@ -732,7 +563,6 @@ const AdminDashboard = () => {
     setEditingProperty(null);
     fetchProperties();
     fetchUserProperties();
-    fetchFeatureRequests();
   }}
 />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -740,7 +570,7 @@ const AdminDashboard = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">PropertyShodh - Manage your listings and inquiries</p>
+            <p className="text-sm sm:text-base text-muted-foreground">PropertyShodh - Manage your listings and assigned leads</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Button 
@@ -786,7 +616,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <Card className="hover-scale transition-all duration-200 border-0 shadow-md bg-gradient-to-br from-card to-card/80">
             <CardHeader className="pb-2 px-3 sm:px-4">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Admin Properties</CardTitle>
@@ -827,27 +657,12 @@ const AdminDashboard = () => {
               <div className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{userStats.approved}</div>
             </CardContent>
           </Card>
-          <Card className="hover-scale transition-all duration-200 border-0 shadow-md bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20">
-            <CardHeader className="pb-2 px-3 sm:px-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Search Inquiries</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4">
-              <div className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{inquiries.length}</div>
-            </CardContent>
-          </Card>
-          <Card className="hover-scale transition-all duration-200 border-0 shadow-md bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/20 dark:to-pink-900/20">
-            <CardHeader className="pb-2 px-3 sm:px-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-pink-700 dark:text-pink-300">Property Interest</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4">
-              <div className="text-xl sm:text-2xl font-bold text-pink-600 dark:text-pink-400">{propertyInquiries.length}</div>
-            </CardContent>
-          </Card>
+          {/* Removed Search Inquiries and Property Interest cards */}
         </div>
 
         {/* Tabs for Properties and Inquiries */}
         <Tabs defaultValue="analytics" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-11 h-auto gap-1 bg-muted/50 p-1">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 h-auto gap-1 bg-muted/50 p-1">
             <TabsTrigger 
               value="analytics" 
               className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
@@ -875,41 +690,6 @@ const AdminDashboard = () => {
               <span className="text-xs opacity-70">({userProperties.length})</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="inquiries" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Inquiries</span>
-              <span className="sm:hidden">Inquiries</span>
-              <span className="text-xs opacity-70">({inquiries.length})</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="search-history" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Search className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Searches</span>
-              <span className="sm:hidden">Search</span>
-              <span className="text-xs opacity-70">({searchHistory.length})</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="property-interest" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Interest</span>
-              <span className="sm:hidden">Interest</span>
-              <span className="text-xs opacity-70">({propertyInquiries.length})</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="saved" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Bookmark className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Saved</span>
-              <span className="sm:hidden">Saved</span>
-            </TabsTrigger>
-            <TabsTrigger 
               value="crm" 
               className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
@@ -925,25 +705,7 @@ const AdminDashboard = () => {
               <span className="hidden sm:inline">Verification</span>
               <span className="sm:hidden">Verify</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="featured" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Star className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Featured</span>
-              <span className="sm:hidden">Featured</span>
-              <span className="text-xs opacity-70">({featureRequests.length})</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="market-intelligence" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              onClick={() => console.log('🚨 MARKET INTEL TAB CLICKED!')}
-            >
-              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Market Intel</span>
-              <span className="sm:hidden">Market</span>
-              <span className="text-red-500">🔴</span>
-            </TabsTrigger>
+            {/* Removed Inquiries, Search History, Property Interest, Saved, Featured, Market Intel tabs */}
           </TabsList>
 
           {/* Analytics Tab */}
@@ -1059,9 +821,6 @@ const AdminDashboard = () => {
 
           <TabsContent value="crm" className="mt-4 sm:mt-6">
             <CRMKanban />
-          </TabsContent>
-          <TabsContent value="saved" className="mt-4 sm:mt-6">
-            <AdminSavedProperties />
           </TabsContent>
 
           <TabsContent value="properties" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
@@ -1562,624 +1321,8 @@ const AdminDashboard = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="user-properties" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-            {/* Search */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
-              <Input
-                placeholder="Search user properties by title, location, or city..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:max-w-md"
-              />
-            </div>
-
-            {/* User Properties List */}
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-pulse text-muted-foreground">Loading...</div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredUserProperties.map((property) => (
-                  <Card key={property.id} className="border border-border/80 shadow-sm hover:shadow-md transition-all duration-200 bg-card/50 backdrop-blur-sm">
-                    <CardContent className="p-3 sm:p-6">
-                      <div className="flex gap-4">
-                        {/* Property Image Thumbnail */}
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-                          {property.images && property.images.length > 0 ? (
-                            <img 
-                              src={property.images[0]} 
-                              alt={property.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-muted text-muted-foreground text-xs">No Image</div>';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground text-xs">
-                              No Image
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Property Details */}
-                        <div className="flex-1 min-w-0 space-y-4">
-                          {/* Header - Mobile Friendly */}
-                          <div className="flex flex-col space-y-3">
-                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex flex-col sm:flex-row sm:items-start gap-2 mb-2">
-                                  <h3 className="text-lg sm:text-xl font-semibold line-clamp-2">{property.title}</h3>
-                                  <div className="flex gap-2 flex-wrap">
-                                    <Badge variant={
-                                      property.approval_status === 'approved' ? 'default' :
-                                      property.approval_status === 'pending' ? 'secondary' : 'destructive'
-                                    } className="text-xs whitespace-nowrap">
-                                      {property.approval_status === 'pending' ? 'Pending Review' : 
-                                       property.approval_status === 'approved' ? 'Approved' : 'Rejected'}
-                                    </Badge>
-                                    <Badge variant="outline" className="text-xs whitespace-nowrap">
-                                      User Submitted
-                                    </Badge>
-                                  </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm text-muted-foreground">
-                                  <div>
-                                    <span className="font-medium">Price:</span> {formatINRShort(property.price, language)}
-                                  </div>
-                                  <div className="break-words">
-                                    <span className="font-medium">Location:</span> {property.location}
-                                  </div>
-                                </div>
-
-                                <div className="mt-2 text-sm text-muted-foreground">
-                                  <span className="font-medium">Listed by:</span> {(property as any).profiles?.full_name || 'User'}
-                                </div>
-
-                                <div className="mt-2 text-sm text-muted-foreground">
-                                  <span className="font-medium">Submitted:</span> {new Date(property.created_at).toLocaleDateString()}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Actions - Mobile Optimized */}
-                            <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-border/50">
-                              <div className="flex flex-wrap gap-2">
-                                <PropertyInterestDropdown 
-                                  propertyId={property.id}
-                                  propertyTitle={property.title}
-                                />
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openPropertyInNewTab(property.id)}
-                                  title="Open in new tab"
-                                  className="flex-shrink-0"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                   <span className="sr-only">Open</span>
-                                 </Button>
-                                 <AlertDialog>
-                                   <AlertDialogTrigger asChild>
-                                     <Button
-                                       variant={property.is_featured ? "default" : "outline"}
-                                       size="sm"
-                                       title={property.is_featured ? "Remove from featured" : "Feature property"}
-                                       className={property.is_featured ? "bg-yellow-600 hover:bg-yellow-700 text-white" : ""}
-                                     >
-                                       <Star className={`h-4 w-4 ${property.is_featured ? "fill-current" : ""}`} />
-                                       <span className="sr-only">{property.is_featured ? "Unfeature" : "Feature"}</span>
-                                     </Button>
-                                   </AlertDialogTrigger>
-                                   <AlertDialogContent className="bg-yellow-50/90 border-yellow-200">
-                                     <AlertDialogHeader>
-                                       <AlertDialogTitle className="text-yellow-800">
-                                         {property.is_featured ? "Remove Featured Status" : "Feature Property"}
-                                       </AlertDialogTitle>
-                                       <AlertDialogDescription className="text-yellow-700">
-                                         {property.is_featured 
-                                           ? "This will remove the property from featured listings."
-                                           : "This will feature the property for 1 week and automatically approve it. Featured properties appear at the top of search results."
-                                         }
-                                       </AlertDialogDescription>
-                                     </AlertDialogHeader>
-                                     <AlertDialogFooter>
-                                       <AlertDialogCancel className="border-yellow-200 text-yellow-800 hover:bg-yellow-100">
-                                         Cancel
-                                       </AlertDialogCancel>
-                                       <AlertDialogAction
-                                         onClick={() => handleFeatureProperty(property.id, property.is_featured)}
-                                         className="bg-yellow-600 hover:bg-yellow-700"
-                                       >
-                                         {property.is_featured ? "Remove Feature" : "Feature Property"}
-                                       </AlertDialogAction>
-                                     </AlertDialogFooter>
-                                   </AlertDialogContent>
-                                 </AlertDialog>
-                               </div>
-                              
-                              {property.approval_status === 'pending' && (
-                                <div className="flex flex-wrap gap-2">
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="default"
-                                        size="sm"
-                                        className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
-                                      >
-                                        Approve
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-green-50/90 border-green-200">
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle className="text-green-800">Approve Property</AlertDialogTitle>
-                                        <AlertDialogDescription className="text-green-700">
-                                          This will approve the property and make it active. This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel className="border-green-200 text-green-800 hover:bg-green-100">
-                                          Cancel
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => handleApproveProperty(property.id, true)}
-                                          className="bg-green-600 hover:bg-green-700"
-                                        >
-                                          Approve Property
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        className="flex-1 sm:flex-none"
-                                      >
-                                        Reject
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-red-50/90 border-red-200">
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle className="text-red-800">Reject Property</AlertDialogTitle>
-                                        <AlertDialogDescription className="text-red-700">
-                                          This will reject the property and hide it from listings. This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel className="border-red-200 text-red-800 hover:bg-red-100">
-                                          Cancel
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => handleApproveProperty(property.id, false)}
-                                          className="bg-red-600 hover:bg-red-700"
-                                        >
-                                          Reject Property
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              )}
-                              
-                              {property.approval_status === 'approved' && (
-                                <div className="flex flex-wrap gap-1 sm:gap-2">
-                                  <Button
-                                    variant={property.listing_status === 'Active' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => handleStatusChange(property.id, 'Active')}
-                                    className="text-xs flex-1 sm:flex-none min-w-[70px]"
-                                  >
-                                    Active
-                                  </Button>
-                                  <Button
-                                    variant={property.listing_status === 'Sold' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => handleStatusChange(property.id, 'Sold')}
-                                    className="text-xs flex-1 sm:flex-none min-w-[70px]"
-                                  >
-                                    Sold
-                                  </Button>
-                                  <Button
-                                    variant={property.listing_status === 'Inactive' ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => handleStatusChange(property.id, 'Inactive')}
-                                    className="text-xs flex-1 sm:flex-none min-w-[70px]"
-                                  >
-                                    Hidden
-                                  </Button>
-                                </div>
-                              )}
-                              
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDuplicate(property)}
-                                  className="flex-1 sm:flex-none"
-                                  title="Duplicate this property"
-                                >
-                                  <Copy className="h-4 w-4 sm:mr-1" />
-                                  <span className="hidden sm:inline">Duplicate</span>
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingProperty(property);
-                                    setShowForm(true);
-                                  }}
-                                  className="flex-1 sm:flex-none"
-                                >
-                                  <Edit className="h-4 w-4 sm:mr-1" />
-                                  <span className="hidden sm:inline">Edit</span>
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDelete(property.id)}
-                                  className="flex-1 sm:flex-none text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 sm:mr-1" />
-                                  <span className="hidden sm:inline">Delete</span>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            {filteredProperties.length === 0 && !loading && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                  <Plus className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="text-muted-foreground">No properties found</p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="inquiries" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">General Inquiries</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {inquiries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No inquiries found</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {inquiries.map((inquiry) => (
-                      <Card key={inquiry.id}>
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <h3 className="font-semibold">{inquiry.name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Phone: {inquiry.phone}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Purpose: {inquiry.purpose}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Property Type: {inquiry.property_type}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Budget: {inquiry.budget_range}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Location: {inquiry.location}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Bedrooms: {inquiry.bedrooms}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            Submitted: {new Date(inquiry.created_at).toLocaleString()}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="property-interest" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Property Interest Inquiries</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {propertyInquiries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No property inquiries found</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {propertyInquiries.map((inquiry) => (
-                      <Card key={inquiry.id}>
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <h3 className="font-semibold">{inquiry.user_name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Phone: {inquiry.user_phone}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Interest: {inquiry.inquiry_type}
-                              </p>
-                              {inquiry.message && (
-                                <p className="text-sm text-muted-foreground mt-2">
-                                  Message: {inquiry.message}
-                                </p>
-                              )}
-                              {inquiry.user_phone && ( // Conditionally render buttons if phone exists
-                                <div className="flex gap-2 mt-4">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                  >
-                                    <a href={`tel:${inquiry.user_phone}`} className="flex items-center gap-1">
-                                      <Phone className="h-4 w-4" /> Call
-                                    </a>
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                  >
-                                    <a href={`https://wa.me/${inquiry.user_phone}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                                      <MessageSquare className="h-4 w-4" /> WhatsApp
-                                    </a>
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                            <div>
-                              {inquiry.properties && (
-                                <>
-                                  <h4 className="font-medium">Property Details:</h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    {inquiry.properties.title}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Price: {formatINRShort(inquiry.properties.price, language)}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Location: {inquiry.properties.location}
-                                  </p>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            Submitted: {new Date(inquiry.created_at).toLocaleString()}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="search-history" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">User Search History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {searchHistory.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No search history found</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {searchHistory.map((search) => (
-                      <Card key={search.id}>
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <h3 className="font-semibold">{search.profiles?.full_name || 'Unknown User'}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Email: {search.profiles?.email || 'N/A'}
-                              </p>
-                              {search.profiles?.phone_number && (
-                                <p className="text-sm text-muted-foreground">
-                                  Phone: {search.profiles.phone_number}
-                                </p>
-                              )}
-                              {search.search_query && (
-                                <p className="text-sm text-muted-foreground">
-                                  Search Query: <span className="font-medium">{search.search_query}</span>
-                                </p>
-                              )}
-                              {search.profiles?.phone_number && (
-                                <div className="flex gap-2 mt-4">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                  >
-                                    <a href={`tel:${search.profiles.phone_number}`} className="flex items-center gap-1">
-                                      <Phone className="h-4 w-4" /> Call
-                                    </a>
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                  >
-                                    <a href={`https://wa.me/${search.profiles.phone_number}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                                      <MessageSquare className="h-4 w-4" /> WhatsApp
-                                    </a>
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                            <div>
-                              <h4 className="font-medium">Search Filters:</h4>
-                              {search.metadata?.filters && (
-                                <div className="text-sm text-muted-foreground space-y-1">
-                                  {search.metadata.filters.transactionType && search.metadata.filters.transactionType !== 'all' && (
-                                    <p>Type: {search.metadata.filters.transactionType}</p>
-                                  )}
-                                  {search.metadata.filters.propertyCategory && search.metadata.filters.propertyCategory !== 'all' && (
-                                    <p>Category: {search.metadata.filters.propertyCategory}</p>
-                                  )}
-                                  {search.metadata.filters.city && search.metadata.filters.city !== 'all' && (
-                                    <p>City: {search.metadata.filters.city}</p>
-                                  )}
-                                  {search.metadata.filters.location && search.metadata.filters.location !== 'all' && (
-                                    <p>Location: {search.metadata.filters.location}</p>
-                                  )}
-                                  {search.metadata.filters.bhkType && search.metadata.filters.bhkType !== 'all' && (
-                                    <p>BHK: {search.metadata.filters.bhkType}</p>
-                                  )}
-                                  {search.metadata.filters.priceRange && (
-                                    <p>Price Range: {search.metadata.filters.priceRange}</p>
-                                  )}
-                                  {search.metadata.filters.selectedAreas && search.metadata.filters.selectedAreas.length > 0 && (
-                                    <p>Areas: {search.metadata.filters.selectedAreas.join(', ')}</p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            Searched: {new Date(search.created_at).toLocaleString()}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="verification" className="mt-4 sm:mt-6">
             <VerificationManagement />
-          </TabsContent>
-
-          <TabsContent value="featured" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-            <Tabs defaultValue="requests" className="w-full">
-              <TabsList>
-                <TabsTrigger value="requests">Feature Requests</TabsTrigger>
-                <TabsTrigger value="manager">Feature Manager</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="requests" className="mt-4 sm:mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-xl">Property Feature Requests</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {featureRequests.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">No feature requests found</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {featureRequests.map((request) => (
-                          <Card key={request.id}>
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="space-y-2 flex-1">
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                      <h4 className="font-medium">User Details</h4>
-                                      <p className="text-sm text-muted-foreground">
-                                        {request.profile?.full_name || 'User'}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <h4 className="font-medium">Property</h4>
-                                      <p className="text-sm text-muted-foreground">
-                                        {request.property?.title || 'Unknown Property'}
-                                      </p>
-                                      <p className="text-sm text-muted-foreground">
-                                        {request.property?.location}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <h4 className="font-medium">Request Details</h4>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium">Requested:</span>
-                                        <span>{new Date(request.requested_at).toLocaleDateString()}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2 ml-4">
-                                  <Badge 
-                                    variant={
-                                      request.status === 'pending' ? 'secondary' :
-                                      request.status === 'approved' ? 'default' : 'destructive'
-                                    }
-                                  >
-                                    {request.status}
-                                  </Badge>
-                                  {request.status === 'pending' && (
-                                    <div className="flex gap-2">
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleFeatureRequestAction(request.id, 'approved', request.property_id)}
-                                        className="bg-green-600 hover:bg-green-700"
-                                      >
-                                        <Check className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={() => handleFeatureRequestAction(request.id, 'rejected')}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="manager" className="space-y-6 mt-6">
-                <FeaturePropertiesManager />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          <TabsContent value="market-intelligence" className="space-y-6 mt-4 sm:mt-6">
-            <div className="p-4 bg-green-100 border border-green-500 rounded-lg mb-4">
-              <h3 className="text-lg font-bold text-green-800">✅ Market Intelligence Tab is Loading</h3>
-              <p className="text-sm text-green-700">Current time: {new Date().toLocaleTimeString()}</p>
-            </div>
-            <MarketIntelligenceManager />
           </TabsContent>
         </Tabs>
       </div>

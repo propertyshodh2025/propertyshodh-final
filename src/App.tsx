@@ -67,20 +67,13 @@ const AppContent = () => {
             </MobileVerificationGuard>
           </AdminRouteProtection>
         } />
-        <Route path="/superadmin" element={
+        <Route path="/superadmin/*" element={ {/* Use /* for nested routes */}
           <AdminRouteProtection requiredRole="superadmin">
             <MobileVerificationGuard>
               <SuperAdminDashboard />
             </MobileVerificationGuard>
           </AdminRouteProtection>
-        }>
-          {/* Nested route for site settings */}
-          <Route path="settings" element={<AdminSiteSettings />} />
-          {/* Nested route for admin activities */}
-          <Route path="activities" element={<AdminActivities />} />
-          {/* Default child route for admin management content */}
-          <Route index element={<AdminManagementContent />} />
-        </Route>
+        } />
         <Route path="/omega-admin" element={
           <AdminRouteProtection requiredRole="super_super_admin">
             <MobileVerificationGuard>
