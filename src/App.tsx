@@ -15,7 +15,6 @@ import SearchResults from "./pages/SearchResults";
 import EnhancedPropertyDetailsWrapper from "./pages/EnhancedPropertyDetailsWrapper";
 import Properties from "./pages/Properties";
 import AdminDashboard from "./pages/AdminDashboard";
-// Removed: import AdminUsersManagement from "./pages/AdminUsersManagement";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import { SuperSuperAdminDashboard } from "./pages/SuperSuperAdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
@@ -29,7 +28,7 @@ import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
 import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
 import AdminActivities from "./pages/AdminActivities";
-import { AdminManagementContent } from "@/components/admin/AdminManagementContent"; // Now this import points to the renamed file
+import { AdminManagementContent } from "@/components/admin/AdminManagementContent";
 
 const queryClient = new QueryClient();
 
@@ -63,7 +62,7 @@ const AppContent = () => {
         <Route path="/admin/users" element={
           <AdminRouteProtection requiredRole="admin">
             <MobileVerificationGuard>
-              <AdminManagementContent /> {/* Changed to AdminManagementContent */}
+              <AdminManagementContent /> {/* Correctly placed AdminManagementContent */}
             </MobileVerificationGuard>
           </AdminRouteProtection>
         } />
