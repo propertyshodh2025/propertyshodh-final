@@ -1,23 +1,32 @@
 import React from 'react';
-import { useNavigate, Outlet, NavLink } from 'react-router-dom';
+import { useNavigate, Outlet, NavLink, Routes, Route } from 'react-router-dom'; // Added Routes and Route
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, Settings, Users, Activity, MessageSquare, Search, Bookmark, Star, BarChart3, Columns3, TrendingUp } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { AdminManagementContent } from '@/components/admin/AdminManagementContent'; // Import the new content component
-import SuperAdminCRMKanban from '@/components/superadmin/SuperAdminCRMKanban'; // New CRM for Superadmin
-import SuperAdminSavedProperties from '@/components/superadmin/SuperAdminSavedProperties'; // Moved
-import FeaturePropertiesManager from '@/components/superadmin/FeaturePropertiesManager'; // Moved
-import MarketIntelligenceManager from '@/components/superadmin/MarketIntelligenceManager'; // Moved
-import SuperAdminSearchHistory from '@/components/superadmin/SuperAdminSearchHistory'; // New
-import SuperAdminPropertyInterest from '@/components/superadmin/SuperAdminPropertyInterest'; // New
-import SuperAdminUserInquiries from '@/components/superadmin/SuperAdminUserInquiries'; // New
+import { AdminManagementContent } from '@/components/admin/AdminManagementContent';
+import SuperAdminCRMKanban from '@/components/superadmin/SuperAdminCRMKanban';
+import SuperAdminSavedProperties from '@/components/superadmin/SuperAdminSavedProperties';
+import FeaturePropertiesManager from '@/components/superadmin/FeaturePropertiesManager';
+import MarketIntelligenceManager from '@/components/superadmin/MarketIntelligenceManager';
+import SuperAdminSearchHistory from '@/components/superadmin/SuperAdminSearchHistory';
+import SuperAdminPropertyInterest from '@/components/superadmin/SuperAdminPropertyInterest';
+import SuperAdminUserInquiries from '@/components/superadmin/SuperAdminUserInquiries';
+import { AdminSiteSettings } from '@/components/admin/AdminSiteSettings'; // Assuming this is an existing component
+import AdminActivities from './AdminActivities'; // Assuming this is an existing component
 
 const SuperAdminDashboard: React.FC = () => {
-  const { signOutAdmin } = useAuth();
+  const { signOut } = useAuth(); // Changed signOutAdmin to signOut as per AuthContext
   const navigate = useNavigate();
   const { t } = useLanguage();
+
+  const handleSignOut = async () => {
+    await signOut();
+    localStorage.clear(); // Clear local storage on sign out
+    sessionStorage.clear(); // Clear session storage on sign out
+    navigate('/admin-login'); // Redirect to admin login page
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 p-4 md:p-8">
@@ -26,7 +35,7 @@ const SuperAdminDashboard: React.FC = () => {
           <h1 className="text-3xl font-bold text-foreground">
             <TranslatableText text="Super Admin Dashboard" />
           </h1>
-          <Button onClick={signOutAdmin} variant="outline" className="flex items-center gap-2">
+          <Button onClick={handleSignOut} variant="outline" className="flex items-center gap-2">
             <LogOut size={16} />
             <TranslatableText text="Sign Out" />
           </Button>

@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Phone, MessageSquare, Home, User, Trash2 } from 'lucide-react';
+import { Phone, MessageCircle, Home, User, Trash2 } from 'lucide-react';
 import { formatINRShort } from '@/lib/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
 
