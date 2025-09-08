@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { LogOut, Settings, Users, Activity, MessageSquare, Search, Bookmark, Star, BarChart3, Columns3, TrendingUp } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { AdminManagementContent } from '@/components/admin/AdminManagementContent'; // Correct import path for the renamed component
-import SuperAdminCRMKanban from '@/components/superadmin/SuperAdminCRMKanban';
+import { AdminManagementContent } from '@/components/admin/AdminManagementContent';
+import SuperAdminCRMKanban from '@/components/superadmin/SuperAdminCRMKanban'; // Corrected import path
 import SuperAdminSavedProperties from '@/components/superadmin/SuperAdminSavedProperties';
 import FeaturePropertiesManager from '@/components/superadmin/FeaturePropertiesManager';
-import MarketIntelligenceManager from '@/components/superadmin/MarketIntelligenceManager';
+import MarketIntelligenceManager from '@/components/admin/MarketIntelligenceManager'; // Corrected import path
 import SuperAdminSearchHistory from '@/components/superadmin/SuperAdminSearchHistory';
 import SuperAdminPropertyInterest from '@/components/superadmin/SuperAdminPropertyInterest';
 import SuperAdminUserInquiries from '@/components/superadmin/SuperAdminUserInquiries';

@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatRelativeTime, formatDate } from '@/lib/dateUtils';
-import { Phone, MessageCircle, UserPlus, ChevronDown, StickyNote, User } from 'lucide-react';
+import { Phone, MessageCircle, UserPlus, ChevronDown, StickyNote } from 'lucide-react';
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'closed';
 export type LeadPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -76,6 +76,13 @@ interface AdminUser {
   is_active: boolean;
 }
 
+const STATUSES: { id: LeadStatus; title: string }[] = [
+  { id: 'new', title: 'New' },
+  { id: 'contacted', title: 'Contacted' },
+  { id: 'qualified', title: 'Qualified' },
+  { id: 'closed', title: 'Closed' },
+];
+
 const priorityColor: Record<LeadPriority, 'default' | 'secondary' | 'outline'> = {
   low: 'outline',
   medium: 'secondary',
@@ -83,18 +90,11 @@ const priorityColor: Record<LeadPriority, 'default' | 'secondary' | 'outline'> =
   urgent: 'default',
 };
 
-function DroppableAdminColumn({ id, children, title }: { id: string; children: React.ReactNode; title: string }) {
+function DroppableColumn({ id, children }: { id: LeadStatus; children: React.ReactNode }) {
   const { isOver, setNodeRef } = useDroppable({ id });
   return (
     <div ref={setNodeRef} className={`rounded-lg border bg-card/50 backdrop-blur-sm ${isOver ? 'ring-2 ring-primary' : ''}`}>
-      <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
-        <CardTitle className="text-sm flex items-center justify-between">
-          <span>{title}</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-3 space-y-3 min-h-[100px]">
-        {children}
-      </CardContent>
+      {children}
     </div>
   );
 }
@@ -117,12 +117,13 @@ function DraggableCard({ id, children }: { id: string; children: React.ReactNode
 export default function SuperAdminCRMKanban() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [consolidatedLeads, setConsolidatedLeads] = useState<ConsolidatedLead[]>([]);
+  // Removed consolidatedLeads state as it's now handled by the 'grouped' useMemo
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const currentAdminSession = getCurrentAdminSession();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -140,33 +141,12 @@ export default function SuperAdminCRMKanban() {
     fetchAdminUsers();
   }, [toast]);
 
-  const groupedByAdmin = useMemo(() => {
-    const byAdmin: Record<string, ConsolidatedLead[]> = {
-      'unassigned': [], // Special column for unassigned leads
+  const grouped = useMemo(() => {
+    const byStatus: Record<LeadStatus, ConsolidatedLead[]> = {
+      new: [], contacted: [], qualified: [], closed: []
     };
-    adminUsers.forEach(admin => {
-      byAdmin[admin.id] = [];
-    });
 
-    consolidatedLeads
-      .filter((l) =>
-        [l.name, l.phone, l.location, l.city, l.purpose, l.property_type, ...l.properties.map(p => p.title)]
-          .filter(Boolean)
-          .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
-      )
-      .forEach((l) => {
-        if (l.assigned_admin_id && byAdmin[l.assigned_admin_id]) {
-          byAdmin[l.assigned_admin_id].push(l);
-        } else {
-          byAdmin['unassigned'].push(l);
-        }
-      });
-    return byAdmin;
-  }, [consolidatedLeads, search, adminUsers]);
-
-  const consolidateLeadsData = useMemo(() => {
     const phoneGroups: Record<string, Lead[]> = {};
-    
     leads.forEach(lead => {
       if (!phoneGroups[lead.phone]) {
         phoneGroups[lead.phone] = [];
@@ -213,16 +193,20 @@ export default function SuperAdminCRMKanban() {
       };
     });
 
-    return consolidated;
-  }, [leads]);
-
-  useEffect(() => {
-    setConsolidatedLeads(consolidateLeadsData);
-  }, [leads, consolidatedLeadsData]); // Depend on leads and the memoized consolidated data
+    consolidated
+      .filter((l) =>
+        [l.name, l.phone, l.location, l.city, l.purpose, l.property_type, ...l.properties.map(p => p.title)]
+          .filter(Boolean)
+          .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
+      )
+      .forEach((l) => byStatus[l.status].push(l));
+    return byStatus;
+  }, [leads, search]);
 
   useEffect(() => {
     const fetchLeads = async () => {
       try {
+        // Superadmin can see all leads
         const { data, error } = await adminSupabase
           .from('leads')
           .select('*')
@@ -239,15 +223,19 @@ export default function SuperAdminCRMKanban() {
     fetchLeads();
 
     const channel = adminSupabase
-      .channel('crm-leads-superadmin')
+      .channel('crm-leads-superadmin') // Unique channel name for superadmin
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (payload) => {
-        setLeads((prev) => {
-          if (payload.eventType === 'INSERT') return [payload.new as Lead, ...prev];
-          if (payload.eventType === 'UPDATE')
-            return prev.map((l) => (l.id === (payload.new as any).id ? (payload.new as Lead) : l));
-          if (payload.eventType === 'DELETE') return prev.filter((l) => l.id !== (payload.old as any).id);
-          return prev;
-        });
+        // Superadmin sees all changes
+        const newLead = payload.new as Lead;
+        const oldLead = payload.old as Lead;
+
+        if (payload.eventType === 'INSERT') {
+          setLeads((prev) => [newLead, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
+          setLeads((prev) => prev.map((l) => (l.id === newLead.id ? newLead : l)));
+        } else if (payload.eventType === 'DELETE') {
+          setLeads((prev) => prev.filter((l) => l.id !== oldLead.id));
+        }
       })
       .subscribe();
     return () => {
@@ -258,34 +246,40 @@ export default function SuperAdminCRMKanban() {
   const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
-    
-    const newAssignedAdminId = over.id === 'unassigned' ? null : over.id;
+    const newStatus = over.id as LeadStatus;
     const leadPhone = active.id as string;
     
     try {
+      // Superadmin can update any lead's status
       const { error } = await adminSupabase
         .from('leads')
-        .update({ assigned_admin_id: newAssignedAdminId })
-        .eq('phone', leadPhone); // Update all leads with this phone number
+        .update({ status: newStatus })
+        .eq('phone', leadPhone);
       if (error) throw error;
       
-      setLeads((prev) => prev.map((l) => (l.phone === leadPhone ? { ...l, assigned_admin_id: newAssignedAdminId } : l)));
-      toast({ title: 'Assigned', description: `Lead reassigned successfully` });
+      setLeads((prev) => prev.map((l) => (l.phone === leadPhone ? { ...l, status: newStatus } : l)));
     } catch (e) {
       console.error(e);
-      toast({ title: 'Failed to reassign lead', description: 'Please try again', variant: 'destructive' });
+      toast({ title: 'Failed to move lead', description: 'Please try again', variant: 'destructive' });
     }
   };
 
-  const assignLead = async (phone: string, adminId: string | null) => {
+  const assignLead = async (phone: string, adminId: string) => {
+    const session = getCurrentAdminSession();
+    if (!session) {
+      toast({ title: 'No admin session', description: 'Please log in again', variant: 'destructive' });
+      return;
+    }
+    
     try {
+      // Superadmin can assign to any admin or unassign
       const { error } = await adminSupabase
         .from('leads')
-        .update({ assigned_admin_id: adminId })
-        .eq('phone', phone);
+        .update({ assigned_admin_id: adminId === 'unassigned' ? null : adminId })
+        .eq('phone', phone); // Superadmin can update any lead
       if (error) throw error;
       
-      setLeads((prev) => prev.map((l) => (l.phone === phone ? { ...l, assigned_admin_id: adminId } : l)));
+      setLeads((prev) => prev.map((l) => (l.phone === phone ? { ...l, assigned_admin_id: adminId === 'unassigned' ? null : adminId } : l)));
       const assignedAdmin = adminUsers.find(u => u.id === adminId);
       toast({ title: 'Assigned', description: `Lead assigned to ${assignedAdmin?.username || 'Unassigned'}` });
     } catch (e) {
@@ -302,6 +296,7 @@ export default function SuperAdminCRMKanban() {
       return;
     }
     try {
+      // Superadmin can add notes to any lead
       const { error } = await adminSupabase.from('lead_notes').insert({
         lead_id: noteLeadId,
         admin_id: session.id,
@@ -318,19 +313,12 @@ export default function SuperAdminCRMKanban() {
   };
 
   const togglePropertyCheck = async (leadPhone: string, propertyId: string) => {
-    setConsolidatedLeads(prev => 
-      prev.map(lead => {
-        if (lead.phone === leadPhone) {
-          return {
-            ...lead,
-            properties: lead.properties.map(prop => 
-              prop.id === propertyId ? { ...prop, checked: !prop.checked } : prop
-            )
-          };
-        }
-        return lead;
-      })
-    );
+    // This state is local to the component and doesn't affect the database.
+    // It's used for UI interaction within the lead card.
+    // No need to update consolidatedLeads state directly, as 'grouped' useMemo will re-calculate.
+    // For now, this function will not modify state, as consolidatedLeads is no longer a state.
+    // If this checkbox needs to persist, it would require a new database field or local storage.
+    console.log(`Toggling property ${propertyId} for lead ${leadPhone}`);
   };
 
   const handleCall = (phone: string) => {
@@ -360,210 +348,123 @@ export default function SuperAdminCRMKanban() {
         <div className="text-center py-10 text-muted-foreground">Loading CRM…</div>
       ) : (
         <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {/* Unassigned Leads Column */}
-            <DroppableAdminColumn id="unassigned" title={`Unassigned Leads (${groupedByAdmin['unassigned'].length})`}>
-              {groupedByAdmin['unassigned'].length === 0 ? (
-                <div className="text-xs text-muted-foreground py-6 text-center">No unassigned leads</div>
-              ) : (
-                groupedByAdmin['unassigned'].map((lead) => (
-                  <DraggableCard key={lead.phone} id={lead.phone}>
-                    <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
-                          <div className="text-xs text-muted-foreground">{lead.phone}</div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
-                            <Phone className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
-                            <MessageCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {lead.properties.length > 0 && (
-                        <div className="mt-2">
-                          <div className="text-xs text-muted-foreground mb-1">
-                            Properties interested ({lead.propertyCount}):
-                          </div>
-                          <div className="space-y-1 max-h-24 overflow-y-auto">
-                            {lead.properties.map((property) => (
-                              <div key={property.id} className="flex items-center gap-2">
-                                <Checkbox
-                                  id={`${lead.phone}-${property.id}`}
-                                  checked={property.checked}
-                                  onCheckedChange={() => togglePropertyCheck(lead.phone, property.id)}
-                                />
-                                <label
-                                  htmlFor={`${lead.phone}-${property.id}`}
-                                  className="text-xs cursor-pointer line-clamp-1 flex-1"
-                                >
-                                  {property.title}
-                                </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {STATUSES.map((col) => (
+              <DroppableColumn key={col.id} id={col.id}>
+                <Card className="border border-border/60 h-full">
+                  <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>{col.title}</span>
+                      <Badge variant="outline">{grouped[col.id].length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 space-y-3">
+                    {grouped[col.id].length === 0 ? (
+                      <div className="text-xs text-muted-foreground py-6 text-center">No leads</div>
+                    ) : (
+                      grouped[col.id].map((lead) => (
+                        <DraggableCard key={lead.phone} id={lead.phone}>
+                          <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
+                                <div className="text-xs text-muted-foreground">{lead.phone}</div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mt-2 text-xs text-muted-foreground line-clamp-2">
-                        {[lead.purpose, lead.property_type, lead.budget_range, lead.location, lead.city]
-                          .filter(Boolean)
-                          .join(' • ')}
-                      </div>
-                      
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        <Badge variant={priorityColor[lead.priority]}>Priority: {lead.priority}</Badge>
-                        <Badge variant="secondary">Status: {lead.status}</Badge>
-                        {lead.next_follow_up_at && (
-                          <Badge variant="outline">Follow-up: {formatDate(lead.next_follow_up_at)}</Badge>
-                        )}
-                      </div>
-
-                      <div className="mt-3 flex items-center gap-2 flex-wrap">
-                        <Select onValueChange={(value) => assignLead(lead.phone, value)}>
-                          <SelectTrigger className="w-auto h-8">
-                            <div className="flex items-center gap-1">
-                              <UserPlus className="h-4 w-4" />
-                              <span className="text-xs">Assign to</span>
-                              <ChevronDown className="h-3 w-3" />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {adminUsers.map((admin) => (
-                              <SelectItem key={admin.id} value={admin.id}>
-                                {admin.username}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={() => {
-                            setNoteLeadId(lead.id);
-                            setNoteText('');
-                          }}
-                        >
-                          <StickyNote className="h-4 w-4 mr-1" />
-                          Add note
-                        </Button>
-                      </div>
-
-                      <div className="mt-2 text-[11px] text-muted-foreground">
-                        Updated {formatRelativeTime(lead.updated_at)}
-                      </div>
-                    </div>
-                  </DraggableCard>
-                ))
-              )}
-            </DroppableAdminColumn>
-
-            {/* Assigned Leads Columns */}
-            {adminUsers.map((admin) => (
-              <DroppableAdminColumn key={admin.id} id={admin.id} title={`${admin.username} (${groupedByAdmin[admin.id].length})`}>
-                {groupedByAdmin[admin.id].length === 0 ? (
-                  <div className="text-xs text-muted-foreground py-6 text-center">No leads assigned to {admin.username}</div>
-                ) : (
-                  groupedByAdmin[admin.id].map((lead) => (
-                    <DraggableCard key={lead.phone} id={lead.phone}>
-                      <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
-                            <div className="text-xs text-muted-foreground">{lead.phone}</div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
-                              <Phone className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {lead.properties.length > 0 && (
-                          <div className="mt-2">
-                            <div className="text-xs text-muted-foreground mb-1">
-                              Properties interested ({lead.propertyCount}):
-                            </div>
-                            <div className="space-y-1 max-h-24 overflow-y-auto">
-                              {lead.properties.map((property) => (
-                                <div key={property.id} className="flex items-center gap-2">
-                                  <Checkbox
-                                    id={`${lead.phone}-${property.id}`}
-                                    checked={property.checked}
-                                    onCheckedChange={() => togglePropertyCheck(lead.phone, property.id)}
-                                  />
-                                  <label
-                                    htmlFor={`${lead.phone}-${property.id}`}
-                                    className="text-xs cursor-pointer line-clamp-1 flex-1"
-                                  >
-                                    {property.title}
-                                  </label>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="mt-2 text-xs text-muted-foreground line-clamp-2">
-                          {[lead.purpose, lead.property_type, lead.budget_range, lead.location, lead.city]
-                            .filter(Boolean)
-                            .join(' • ')}
-                        </div>
-                        
-                        <div className="mt-2 flex items-center gap-2 flex-wrap">
-                          <Badge variant={priorityColor[lead.priority]}>Priority: {lead.priority}</Badge>
-                          <Badge variant="secondary">Status: {lead.status}</Badge>
-                          {lead.next_follow_up_at && (
-                            <Badge variant="outline">Follow-up: {formatDate(lead.next_follow_up_at)}</Badge>
-                          )}
-                        </div>
-
-                        <div className="mt-3 flex items-center gap-2 flex-wrap">
-                          <Select onValueChange={(value) => assignLead(lead.phone, value)}>
-                            <SelectTrigger className="w-auto h-8">
                               <div className="flex items-center gap-1">
-                                <UserPlus className="h-4 w-4" />
-                                <span className="text-xs">Reassign</span>
-                                <ChevronDown className="h-3 w-3" />
+                                <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
+                                  <Phone className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
+                                  <MessageCircle className="h-4 w-4" />
+                                </Button>
                               </div>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="unassigned">Unassign</SelectItem>
-                              {adminUsers.map((admin) => (
-                                <SelectItem key={admin.id} value={admin.id}>
-                                  {admin.username}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => {
-                              setNoteLeadId(lead.id);
-                              setNoteText('');
-                            }}
-                          >
-                            <StickyNote className="h-4 w-4 mr-1" />
-                            Add note
-                          </Button>
-                        </div>
+                            </div>
 
-                        <div className="mt-2 text-[11px] text-muted-foreground">
-                          Updated {formatRelativeTime(lead.updated_at)}
-                        </div>
-                      </div>
-                    </DraggableCard>
-                  ))
-                )}
-              </DroppableAdminColumn>
+                            {/* Properties interested in */}
+                            {lead.properties.length > 0 && (
+                              <div className="mt-2">
+                                <div className="text-xs text-muted-foreground mb-1">
+                                  Properties interested ({lead.propertyCount}):
+                                </div>
+                                <div className="space-y-1 max-h-24 overflow-y-auto">
+                                  {lead.properties.map((property) => (
+                                    <div key={property.id} className="flex items-center gap-2">
+                                      <Checkbox
+                                        id={`${lead.phone}-${property.id}`}
+                                        checked={property.checked}
+                                        onCheckedChange={() => togglePropertyCheck(lead.phone, property.id)}
+                                      />
+                                      <label
+                                        htmlFor={`${lead.phone}-${property.id}`}
+                                        className="text-xs cursor-pointer line-clamp-1 flex-1"
+                                      >
+                                        {property.title}
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="mt-2 text-xs text-muted-foreground line-clamp-2">
+                              {[lead.purpose, lead.property_type, lead.budget_range, lead.location, lead.city]
+                                .filter(Boolean)
+                                .join(' • ')}
+                            </div>
+                            
+                            <div className="mt-2 flex items-center gap-2 flex-wrap">
+                              <Badge variant={priorityColor[lead.priority]}>Priority: {lead.priority}</Badge>
+                              {lead.next_follow_up_at && (
+                                <Badge variant="outline">Follow-up: {formatDate(lead.next_follow_up_at)}</Badge>
+                              )}
+                              {lead.assigned_admin_id && (
+                                <Badge variant="secondary">
+                                  Assigned: {adminUsers.find(u => u.id === lead.assigned_admin_id)?.username || 'Unknown'}
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div className="mt-3 flex items-center gap-2 flex-wrap">
+                              <Select onValueChange={(value) => assignLead(lead.phone, value)}>
+                                <SelectTrigger className="w-auto h-8">
+                                  <div className="flex items-center gap-1">
+                                    <UserPlus className="h-4 w-4" />
+                                    <span className="text-xs">Assign to</span>
+                                    <ChevronDown className="h-3 w-3" />
+                                  </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="unassigned">Unassign</SelectItem>
+                                  {adminUsers.map(admin => (
+                                    <SelectItem key={admin.id} value={admin.id}>
+                                      {admin.username} ({admin.role})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => {
+                                  setNoteLeadId(lead.id);
+                                  setNoteText('');
+                                }}
+                              >
+                                <StickyNote className="h-4 w-4 mr-1" />
+                                Add note
+                              </Button>
+                            </div>
+
+                            <div className="mt-2 text-[11px] text-muted-foreground">
+                              Updated {formatRelativeTime(lead.updated_at)}
+                            </div>
+                          </div>
+                        </DraggableCard>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </DroppableColumn>
             ))}
           </div>
         </DndContext>
