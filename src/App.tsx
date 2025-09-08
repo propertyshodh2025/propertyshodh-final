@@ -26,8 +26,6 @@ import LanguageSEO from "@/components/LanguageSEO";
 
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
 import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
-import { AdminSiteSettings } from "@/components/admin/AdminSiteSettings";
-import AdminActivities from "./pages/AdminActivities";
 import { AdminManagementContent } from "@/components/admin/AdminManagementContent";
 
 const queryClient = new QueryClient();
@@ -62,11 +60,11 @@ const AppContent = () => {
         <Route path="/admin/users" element={
           <AdminRouteProtection requiredRole="admin">
             <MobileVerificationGuard>
-              <AdminManagementContent /> {/* Correctly placed AdminManagementContent */}
+              <AdminManagementContent />
             </MobileVerificationGuard>
           </AdminRouteProtection>
         } />
-        <Route path="/superadmin/*" element={ {/* Use /* for nested routes */}
+        <Route path="/superadmin/*" element={
           <AdminRouteProtection requiredRole="superadmin">
             <MobileVerificationGuard>
               <SuperAdminDashboard />
