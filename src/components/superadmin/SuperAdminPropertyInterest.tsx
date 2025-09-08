@@ -30,6 +30,11 @@ export default function SuperAdminPropertyInterest() {
     const load = async () => {
       console.log('SuperAdminPropertyInterest: load function started');
       try {
+        // --- DIAGNOSTIC STEP: Check is_admin_request() directly ---
+        const { data: isAdminReq, error: isAdminReqError } = await adminSupabase.rpc('is_admin_request');
+        console.log('SuperAdminPropertyInterest: is_admin_request() result:', isAdminReq, 'Error:', isAdminReqError);
+        // --- END DIAGNOSTIC STEP ---
+
         // Superadmin can view all property inquiries
         const { data: inquiriesData, error: inquiriesError } = await adminSupabase
           .from('property_inquiries')
