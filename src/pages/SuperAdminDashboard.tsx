@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, Settings, Users, Activity, MessageSquare, Search, Bookmark, Star, BarChart3, Columns3, TrendingUp } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { AdminManagementContent } from '@/components/admin/AdminManagementContent';
+import { AdminManagementContent } from '@/components/admin/AdminManagementContent'; // Correct import path for the renamed component
 import SuperAdminCRMKanban from '@/components/superadmin/SuperAdminCRMKanban';
 import SuperAdminSavedProperties from '@/components/superadmin/SuperAdminSavedProperties';
 import FeaturePropertiesManager from '@/components/superadmin/FeaturePropertiesManager';
@@ -13,19 +13,19 @@ import SuperAdminSearchHistory from '@/components/superadmin/SuperAdminSearchHis
 import SuperAdminPropertyInterest from '@/components/superadmin/SuperAdminPropertyInterest';
 import SuperAdminUserInquiries from '@/components/superadmin/SuperAdminUserInquiries';
 import { AdminSiteSettings } from '@/components/admin/AdminSiteSettings';
-import AdminActivities from '@/pages/AdminActivities'; // Corrected import path
-import { useAdminAuth } from '@/hooks/useAdminAuth'; // Import useAdminAuth
+import AdminActivities from '@/pages/AdminActivities';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 const SuperAdminDashboard: React.FC = () => {
-  const { adminLogout } = useAdminAuth(); // Use adminLogout from useAdminAuth
+  const { adminLogout } = useAdminAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   const handleSignOut = async () => {
-    await adminLogout(); // Call adminLogout
-    localStorage.clear(); // Clear local storage on sign out
-    sessionStorage.clear(); // Clear session storage on sign out
-    navigate('/admin-login'); // Redirect to admin login page
+    await adminLogout();
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/admin-login');
   };
 
   return (
