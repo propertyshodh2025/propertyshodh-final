@@ -1,430 +1,354 @@
-import React, { useState, useEffect } from "react";
-import { adminSupabase } from "@/lib/adminSupabase";
-import { formatDateTime } from "@/lib/dateUtils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Search, Users, Activity, Phone, Mail, User, MessageCircle, ExternalLink } from "lucide-react";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Plus, Edit, Trash2, User, Shield, Check, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { adminSupabase, getCurrentAdminSession } from '@/lib/adminSupabase';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from 'react';
 
-interface UserData {
+interface AdminCredential {
   id: string;
-  full_name: string;
-  email: string;
-  phone_number: string;
-  mobile_verified: boolean;
+  username: string;
+  role: 'admin' | 'superadmin' | 'super_super_admin';
+  is_active: boolean;
   created_at: string;
-  activities: UserActivity[];
-  secondary_contacts: SecondaryContact[];
+  last_login: string | null;
 }
 
-interface UserActivity {
-  id: string;
-  inquiry_type?: string;
-  activity_type?: string;
-  property_id: string;
-  user_name: string;
-  user_phone: string;
-  message: string | null;
-  created_at: string;
-  property_title?: string;
-}
-
-interface SecondaryContact {
-  id: string;
-  contact_number: string;
-  contact_type: string;
-}
-
-export default function AdminUsersManagement() {
-  const [users, setUsers] = useState<UserData[]>([]);
+export function AdminManagementContent() {
+  const { toast } = useToast();
+  const [admins, setAdmins] = useState<AdminCredential[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
+  const [newAdminUsername, setNewAdminUsername] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState<'admin' | 'superadmin' | 'super_super_admin'>('admin');
+  const [editingAdmin, setEditingAdmin] = useState<AdminCredential | null>(null);
+  const [editUsername, setEditUsername] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editRole, setEditRole] = useState<'admin' | 'superadmin' | 'super_super_admin'>('admin');
+
+  const currentAdminSession = getCurrentAdminSession();
+  const isSuperAdminOrHigher = currentAdminSession?.role === 'superadmin' || currentAdminSession?.role === 'super_super_admin';
+  const isSuperSuperAdmin = currentAdminSession?.role === 'super_super_admin';
 
   useEffect(() => {
-    fetchUsers();
+    fetchAdmins();
   }, []);
 
-  useEffect(() => {
-    const filtered = users.filter(user =>
-      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone_number?.includes(searchTerm)
-    );
-    setFilteredUsers(filtered);
-  }, [users, searchTerm]);
-
-  const fetchUsers = async () => {
+  const fetchAdmins = async () => {
+    setLoading(true);
     try {
-      // Fetch all user profiles
-      const { data: profiles } = await adminSupabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (!profiles) return;
-
-      // Fetch activities (property inquiries) for all users
-      const { data: inquiries } = await adminSupabase
-        .from("property_inquiries")
-        .select(`
-          *,
-          properties(title)
-        `);
-
-      // Fetch user listed properties
-      const { data: listedProperties } = await adminSupabase
-        .from("properties")
-        .select("id, title, created_at, contact_number, user_id");
-
-      // Fetch actual user activities from user_activities table
-      const { data: userActivities } = await adminSupabase
-        .from("user_activities")
-        .select(`
-          *,
-          properties(title)
-        `);
-
-      // Fetch secondary contacts
-      const { data: secondaryContacts } = await adminSupabase
-        .from("user_secondary_contacts")
-        .select("*");
-
-      // Combine data - match activities by phone number and user_id
-      const usersWithData = profiles.map(profile => {
-        const userInquiries = inquiries?.filter(activity => 
-          activity.user_phone === profile.phone_number
-        ).map(activity => ({
-          ...activity,
-          property_title: activity.properties?.title,
-          activity_type: 'inquiry'
-        })) || [];
-
-        const userListedProperties = listedProperties?.filter(property => 
-          property.contact_number === profile.phone_number || property.user_id === profile.user_id
-        ).map(property => ({
-          id: property.id,
-          property_id: property.id,
-          user_name: profile.full_name || profile.email || 'Unknown',
-          user_phone: profile.phone_number,
-          message: null,
-          created_at: property.created_at,
-          property_title: property.title,
-          activity_type: 'listed_property'
-        })) || [];
-
-        // Get actual user activities from user_activities table
-        const actualUserActivities = userActivities?.filter(activity => 
-          activity.user_id === profile.user_id
-        ).map(activity => ({
-          id: activity.id,
-          property_id: activity.property_id,
-          user_name: profile.full_name || profile.email || 'Unknown',
-          user_phone: profile.phone_number,
-          message: activity.search_query || JSON.stringify(activity.metadata) || null,
-          created_at: activity.created_at,
-          property_title: activity.properties?.title || activity.metadata?.property_title || 'N/A',
-          activity_type: activity.activity_type,
-          search_query: activity.search_query,
-          metadata: activity.metadata
-        })) || [];
-
-        return {
-          ...profile,
-          activities: [...userInquiries, ...userListedProperties, ...actualUserActivities].sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          ),
-          secondary_contacts: secondaryContacts?.filter(contact => contact.user_id === profile.user_id) || []
-        };
-      });
-
-      setUsers(usersWithData);
+      const { data, error } = await adminSupabase.rpc('get_admin_credentials');
+      if (error) throw error;
+      setAdmins(data || []);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error('Error fetching admin credentials:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch admin users. You might not have the necessary permissions.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const getActivityTypeLabel = (activity: UserActivity) => {
-    if (activity.activity_type === 'listed_property') return 'Listed Property';
-    if (activity.activity_type === 'property_listed') return 'Property Listed';
-    if (activity.activity_type === 'property_inquiry') return 'Property Inquiry';
-    if (activity.activity_type === 'verification_submitted') return 'Verification Submitted';
-    if (activity.activity_type === 'search') return 'Property Search';
-    
-    switch (activity.inquiry_type) {
-      case 'interest':
-        return 'Showed Interest';
-      case 'inquiry':
-        return 'Made Inquiry';
-      default:
-        return activity.activity_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || activity.inquiry_type || 'Activity';
+  const handleCreateAdmin = async () => {
+    if (!newAdminUsername || !newAdminPassword) {
+      toast({ title: "Error", description: "Username and password are required.", variant: "destructive" });
+      return;
+    }
+    try {
+      const { data, error } = await adminSupabase.rpc('create_admin_credential', {
+        _username: newAdminUsername,
+        _password: newAdminPassword,
+        _role: newAdminRole,
+      });
+      if (error) throw error;
+      toast({ title: "Success", description: "Admin user created successfully." });
+      setNewAdminUsername('');
+      setNewAdminPassword('');
+      setNewAdminRole('admin');
+      fetchAdmins();
+    } catch (error: any) {
+      console.error('Error creating admin:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create admin user.",
+        variant: "destructive",
+      });
     }
   };
 
-  const getActivityTypeBadge = (activity: UserActivity) => {
-    if (activity.activity_type === 'listed_property' || activity.activity_type === 'property_listed') return 'outline';
-    if (activity.activity_type === 'verification_submitted') return 'secondary';
-    if (activity.activity_type === 'search') return 'outline';
-    
-    switch (activity.inquiry_type) {
-      case 'interest':
-        return 'default';
-      case 'inquiry':
-        return 'secondary';
-      default:
-        return 'secondary';
+  const handleUpdateAdmin = async (adminId: string) => {
+    if (!editingAdmin) return;
+
+    try {
+      let updated = false;
+      if (editUsername !== editingAdmin.username) {
+        const { error } = await adminSupabase.rpc('update_admin_username', {
+          _admin_id: adminId,
+          _new_username: editUsername,
+        });
+        if (error) throw error;
+        updated = true;
+      }
+      if (editPassword) {
+        const { error } = await adminSupabase.rpc('update_admin_password', {
+          _admin_id: adminId,
+          _new_password: editPassword,
+        });
+        if (error) throw error;
+        updated = true;
+      }
+      // Role update logic would go here if allowed, but currently not implemented in RPC
+      // if (editRole !== editingAdmin.role) { ... }
+
+      if (updated) {
+        toast({ title: "Success", description: "Admin user updated successfully." });
+        setEditingAdmin(null);
+        setEditPassword('');
+        fetchAdmins();
+      } else {
+        toast({ title: "Info", description: "No changes detected." });
+      }
+    } catch (error: any) {
+      console.error('Error updating admin:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update admin user.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleCall = (phoneNumber: string) => {
-    window.open(`tel:${phoneNumber}`, '_self');
+  const handleDeleteAdmin = async (adminId: string) => {
+    try {
+      const { error } = await adminSupabase.rpc('delete_admin_credential', {
+        _admin_id: adminId,
+      });
+      if (error) throw error;
+      toast({ title: "Success", description: "Admin user deleted successfully." });
+      fetchAdmins();
+    } catch (error: any) {
+      console.error('Error deleting admin:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete admin user.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleWhatsApp = (phoneNumber: string) => {
-    window.open(`https://wa.me/${phoneNumber.replace(/\D/g, '')}`, '_blank');
+  const handleToggleAdminStatus = async (adminId: string) => {
+    try {
+      const { error } = await adminSupabase.rpc('toggle_admin_status', {
+        _admin_id: adminId,
+      });
+      if (error) throw error;
+      toast({ title: "Success", description: "Admin status toggled successfully." });
+      fetchAdmins();
+    } catch (error: any) {
+      console.error('Error toggling admin status:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle admin status.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handlePropertyRedirect = (propertyId: string) => {
-    window.open(`/property/${propertyId}`, '_blank');
+  const openEditDialog = (admin: AdminCredential) => {
+    setEditingAdmin(admin);
+    setEditUsername(admin.username);
+    setEditRole(admin.role);
+    setEditPassword(''); // Clear password field for security
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg text-muted-foreground">Loading admin users...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Users Management</h1>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-64"
-            />
-          </div>
-          <Badge variant="outline" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            {users.length} Total Users
-          </Badge>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" /> Manage Admin Users
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {isSuperAdminOrHigher && (
+            <div className="border p-4 rounded-lg space-y-4 bg-muted/20">
+              <h3 className="text-lg font-semibold">Create New Admin</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  placeholder="Username"
+                  value={newAdminUsername}
+                  onChange={(e) => setNewAdminUsername(e.target.value)}
+                />
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={newAdminPassword}
+                  onChange={(e) => setNewAdminPassword(e.target.value)}
+                />
+                <Select value={newAdminRole} onValueChange={(value: 'admin' | 'superadmin' | 'super_super_admin') => setNewAdminRole(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    {isSuperSuperAdmin && <SelectItem value="superadmin">Super Admin</SelectItem>}
+                    {isSuperSuperAdmin && <SelectItem value="super_super_admin">Super Super Admin</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleCreateAdmin} disabled={!newAdminUsername || !newAdminPassword}>
+                <Plus className="mr-2 h-4 w-4" /> Create Admin
+              </Button>
+            </div>
+          )}
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="activities">User Activities</TabsTrigger>
-          <TabsTrigger value="contacts">Contact Details</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Users</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Mobile Status</TableHead>
-                    <TableHead>Activities</TableHead>
-                    <TableHead>Joined</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          {user.full_name || "Not set"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          {user.email}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          {user.phone_number || "Not set"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {user.mobile_verified ? (
-                          <Badge className="bg-green-100 text-green-800">Verified</Badge>
-                        ) : (
-                          <Badge variant="secondary">Not Verified</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {user.activities.length} activities
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {formatDateTime(user.created_at)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="activities">
-          <div className="space-y-4">
-            {filteredUsers.map((user) => (
-              user.activities.length > 0 && (
-                <Card key={user.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Existing Admins</h3>
+          <div className="space-y-3">
+            {admins.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No admin users found.</p>
+            ) : (
+              admins.map((admin) => (
+                <Card key={admin.id} className="border-border/70 bg-background">
+                  <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span>{user.full_name || user.email} - Activities</span>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          <span>{user.email}</span>
-                        </div>
+                        <span className="font-medium text-lg">{admin.username}</span>
+                        <Badge variant="secondary">{admin.role}</Badge>
+                        <Badge variant={admin.is_active ? "default" : "destructive"}>
+                          {admin.is_active ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
-                      <div className="flex gap-2">
-                        {user.phone_number && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleCall(user.phone_number)}
-                              className="flex items-center gap-1"
-                            >
-                              <Phone className="h-3 w-3" />
-                              Call
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleWhatsApp(user.phone_number)}
-                              className="flex items-center gap-1"
-                            >
-                              <MessageCircle className="h-3 w-3" />
-                              WhatsApp
-                            </Button>
-                          </>
-                        )}
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Created: {new Date(admin.created_at).toLocaleString()}
+                        {admin.last_login && ` | Last Login: ${new Date(admin.last_login).toLocaleString()}`}
                       </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {user.activities.map((activity) => (
-                        <div key={activity.id} className="flex items-center justify-between p-3 border rounded">
-                          <div className="flex items-center gap-3">
-                            <Activity className="h-4 w-4" />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant={getActivityTypeBadge(activity) as any}>
-                                  {getActivityTypeLabel(activity)}
-                                </Badge>
-                                {activity.property_title && (
-                                  <span className="text-sm text-muted-foreground">
-                                    on "{activity.property_title}"
-                                  </span>
-                                )}
-                                {activity.message && (
-                                  <span className="text-sm text-muted-foreground">
-                                    - "{activity.message}"
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                           </div>
-                          <div className="flex items-center gap-2">
-                            {activity.activity_type === 'listed_property' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handlePropertyRedirect(activity.property_id)}
-                                className="flex items-center gap-1"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                View Property
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {isSuperAdminOrHigher && (
+                        <>
+                          <Button variant="outline" size="sm" onClick={() => openEditDialog(admin)}>
+                            <Edit className="h-4 w-4 mr-1" /> Edit
+                          </Button>
+                          <Button
+                            variant={admin.is_active ? "outline" : "default"}
+                            size="sm"
+                            onClick={() => handleToggleAdminStatus(admin.id)}
+                          >
+                            {admin.is_active ? <X className="h-4 w-4 mr-1" /> : <Check className="h-4 w-4 mr-1" />}
+                            {admin.is_active ? "Deactivate" : "Activate"}
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                <Trash2 className="h-4 w-4 mr-1" /> Delete
                               </Button>
-                            )}
-                            <span className="text-sm text-muted-foreground">
-                              {formatDateTime(activity.created_at)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the admin account
+                                  and remove their access.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteAdmin(admin.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
-              )
-            ))}
+              ))
+            )}
           </div>
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="contacts">
-          <div className="space-y-4">
-            {filteredUsers.map((user) => (
-              <Card key={user.id}>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    {user.full_name || user.email} - Contact Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Primary Contact</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          <span>{user.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          <span>{user.phone_number || "Not set"}</span>
-                          {user.mobile_verified && (
-                            <Badge className="bg-green-100 text-green-800">Verified</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {user.secondary_contacts.length > 0 && (
-                      <div>
-                        <h4 className="font-medium mb-2">Secondary Contacts</h4>
-                        <div className="space-y-2">
-                          {user.secondary_contacts.map((contact) => (
-                            <div key={contact.id} className="flex items-center gap-2">
-                              <Phone className="h-4 w-4" />
-                              <span>{contact.contact_number}</span>
-                              <Badge variant="outline">{contact.contact_type}</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+      {/* Edit Admin Dialog */}
+      <AlertDialog open={!!editingAdmin} onOpenChange={(open) => !open && setEditingAdmin(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Admin: {editingAdmin?.username}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Update the admin's details. Leave password blank to keep current.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label htmlFor="edit-username" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Username</label>
+              <Input
+                id="edit-username"
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label htmlFor="edit-password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">New Password (optional)</label>
+              <Input
+                id="edit-password"
+                type="password"
+                placeholder="Leave blank to keep current password"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            {/* Role editing is more complex due to permissions, keeping it simple for now */}
+            {/* <div>
+              <label htmlFor="edit-role" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Role</label>
+              <Select value={editRole} onValueChange={(value: 'admin' | 'superadmin' | 'super_super_admin') => setEditRole(value)}>
+                <SelectTrigger id="edit-role" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  {isSuperSuperAdmin && <SelectItem value="superadmin">Super Admin</SelectItem>}
+                  {isSuperSuperAdmin && <SelectItem value="super_super_admin">Super Super Admin</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div> */}
           </div>
-        </TabsContent>
-      </Tabs>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => editingAdmin && handleUpdateAdmin(editingAdmin.id)}>
+              Save Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
