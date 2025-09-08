@@ -1,6 +1,5 @@
 import React from 'react';
-import { useNavigate, Outlet, NavLink, Routes, Route } from 'react-router-dom'; // Added Routes and Route
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate, Outlet, NavLink, Routes, Route } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LogOut, Settings, Users, Activity, MessageSquare, Search, Bookmark, Star, BarChart3, Columns3, TrendingUp } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
@@ -13,16 +12,17 @@ import MarketIntelligenceManager from '@/components/superadmin/MarketIntelligenc
 import SuperAdminSearchHistory from '@/components/superadmin/SuperAdminSearchHistory';
 import SuperAdminPropertyInterest from '@/components/superadmin/SuperAdminPropertyInterest';
 import SuperAdminUserInquiries from '@/components/superadmin/SuperAdminUserInquiries';
-import { AdminSiteSettings } from '@/components/admin/AdminSiteSettings'; // Assuming this is an existing component
-import AdminActivities from './AdminActivities'; // Assuming this is an existing component
+import { AdminSiteSettings } from '@/components/admin/AdminSiteSettings';
+import AdminActivities from '@/pages/AdminActivities'; // Corrected import path
+import { useAdminAuth } from '@/hooks/useAdminAuth'; // Import useAdminAuth
 
 const SuperAdminDashboard: React.FC = () => {
-  const { signOut } = useAuth(); // Changed signOutAdmin to signOut as per AuthContext
+  const { adminLogout } = useAdminAuth(); // Use adminLogout from useAdminAuth
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   const handleSignOut = async () => {
-    await signOut();
+    await adminLogout(); // Call adminLogout
     localStorage.clear(); // Clear local storage on sign out
     sessionStorage.clear(); // Clear session storage on sign out
     navigate('/admin-login'); // Redirect to admin login page
