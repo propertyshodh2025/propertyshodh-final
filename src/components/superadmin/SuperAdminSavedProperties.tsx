@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { adminSupabase } from '@/lib/adminSupabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
-import { formatRelativeTime } from '@/lib/dateUtils';
 
 interface SavedItem {
   id: string;
@@ -32,16 +31,15 @@ export default function SuperAdminSavedProperties() {
     const load = async () => {
       console.log('SuperAdminSavedProperties: load function started');
       try {
-        // Superadmin can view all user activities
-        const { data: acts, error: actsError } = await adminSupabase
+        const { data: acts, error: activitiesError } = await adminSupabase
           .from('user_activities')
           .select('id, created_at, user_id, property_id')
           .eq('activity_type', 'property_saved')
           .not('property_id', 'is', null)
           .order('created_at', { ascending: false });
         
-        console.log('SuperAdminSavedProperties: Fetched user_activities. Data:', acts, 'Error:', actsError);
-        if (actsError) throw actsError;
+        console.log('SuperAdminSavedProperties: Fetched user_activities (property_saved). Data:', acts, 'Error:', activitiesError);
+        if (activitiesError) throw activitiesError;
 
         const uniqueUserIds = Array.from(new Set((acts || []).map(a => a.user_id)));
         const uniquePropIds = Array.from(new Set((acts || []).map(a => a.property_id).filter(Boolean)));
@@ -49,33 +47,31 @@ export default function SuperAdminSavedProperties() {
         console.log('SuperAdminSavedProperties: Unique Property IDs:', uniquePropIds);
 
         if (uniqueUserIds.length) {
-          const { data: profs, error: profsError } = await adminSupabase
+          const { data: profs, error: profilesError } = await adminSupabase
             .from('profiles')
             .select('user_id, full_name, phone_number')
             .in('user_id', uniqueUserIds as string[]);
-          console.log('SuperAdminSavedProperties: Fetched profiles. Data:', profs, 'Error:', profsError);
-          if (profsError) console.error('Error fetching profiles:', profsError);
-
+          console.log('SuperAdminSavedProperties: Fetched profiles. Data:', profs, 'Error:', profilesError);
+          if (profilesError) console.error('Error fetching profiles:', profilesError);
           const map: ProfileMap = {};
           (profs || []).forEach(p => { map[p.user_id] = { full_name: (p as any).full_name, phone_number: (p as any).phone_number }; });
           setProfiles(map);
         }
 
         if (uniquePropIds.length) {
-          const { data: props, error: propsError } = await adminSupabase
+          const { data: props, error: propertiesError } = await adminSupabase
             .from('properties')
             .select('id, title, location, city')
             .in('id', uniquePropIds as string[]);
-          console.log('SuperAdminSavedProperties: Fetched properties. Data:', props, 'Error:', propsError);
-          if (propsError) console.error('Error fetching properties:', propsError);
-
+          console.log('SuperAdminSavedProperties: Fetched properties. Data:', props, 'Error:', propertiesError);
+          if (propertiesError) console.error('Error fetching properties:', propertiesError);
           const map: PropertyMap = {};
           (props || []).forEach(p => { map[p.id] = { id: p.id, title: (p as any).title, location: (p as any).location, city: (p as any).city }; });
           setProperties(map);
         }
 
         setItems((acts as any) || []);
-        console.log('SuperAdminSavedProperties: Items set:', (acts || []).length);
+        console.log('SuperAdminSavedProperties: Saved items set:', (acts || []).length);
       } catch (e) {
         console.error('SuperAdminSavedProperties: Error in load function:', e);
       } finally {
@@ -114,7 +110,7 @@ export default function SuperAdminSavedProperties() {
                     {prof.phone_number ? <span> • {prof.phone_number}</span> : null}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{formatRelativeTime(it.created_at)}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(it.created_at).toLocaleString()}</span>
                     <Button variant="outline" size="sm" onClick={() => window.open(`/property/${it.property_id}`, '_blank')}>
                       <ExternalLink className="h-4 w-4" />
                     </Button>
