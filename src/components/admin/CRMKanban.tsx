@@ -142,24 +142,13 @@ export default function CRMKanban() {
     fetchAdminUsers();
   }, [toast]);
 
+  // Consolidate leads by phone number and filter by search term
   const grouped = useMemo(() => {
     const byStatus: Record<LeadStatus, ConsolidatedLead[]> = {
       new: [], contacted: [], qualified: [], closed: []
     };
-    consolidatedLeads
-      .filter((l) =>
-        [l.name, l.phone, l.location, l.city, l.purpose, l.property_type, ...l.properties.map(p => p.title)]
-          .filter(Boolean)
-          .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
-      )
-      .forEach((l) => byStatus[l.status].push(l));
-    return byStatus;
-  }, [consolidatedLeads, search]);
 
-  // Consolidate leads by phone number
-  const consolidateLeadsData = useMemo(() => {
     const phoneGroups: Record<string, Lead[]> = {};
-    
     leads.forEach(lead => {
       if (!phoneGroups[lead.phone]) {
         phoneGroups[lead.phone] = [];
@@ -168,11 +157,9 @@ export default function CRMKanban() {
     });
 
     const consolidated: ConsolidatedLead[] = Object.values(phoneGroups).map(group => {
-      // Sort by updated_at to get the most recent lead as primary
       const sortedGroup = group.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
       const primary = sortedGroup[0];
       
-      // Extract unique properties
       const properties = group
         .filter(lead => lead.property_id && lead.property_title)
         .reduce((acc, lead) => {
@@ -208,12 +195,17 @@ export default function CRMKanban() {
       };
     });
 
-    return consolidated;
-  }, [leads]);
+    consolidated
+      .filter((l) =>
+        [l.name, l.phone, l.location, l.city, l.purpose, l.property_type, ...l.properties.map(p => p.title)]
+          .filter(Boolean)
+          .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
+      )
+      .forEach((l) => byStatus[l.status].push(l));
+    return byStatus;
+  }, [leads, search]); // Now depends only on leads and search
 
-  useEffect(() => {
-    setConsolidatedLeads(consolidateLeadsData);
-  }, [leads, consolidatedLeadsData]); // Changed dependency to consolidatedLeadsData to avoid infinite loop
+  // Removed the separate useEffect for setConsolidatedLeads as it's now handled within useMemo for grouped.
 
   useEffect(() => {
     const fetchLeads = async () => {
