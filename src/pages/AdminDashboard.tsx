@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, ExternalLink, BarChart3, Home, Star, Check, X, Columns3, Users, LogOut, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, ExternalLink, BarChart3, Home, Star, Check, X, Columns3, Users, LogOut, Copy, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
