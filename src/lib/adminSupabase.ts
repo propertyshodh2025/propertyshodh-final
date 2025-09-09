@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = "https://bujpqglebnkdwlbguekm.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1anBxZ2xlYm5rZHdsYmd1ZWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0ODE2MjEsImV4cCI6MjA2ODA1NzYyMX0.Db4ysTZ2uNEAy59uXjMx8fllwoAUlgyqAxZftZ1WKI8";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1anBxZ2xlYm5rZHdsYmd1ZWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0ODE2MjEsImV4cCI6MjA2ODA1NzYyMX0.Db4ysTZ2uNEAy59uXjMx8fllwoAUggyqAxZftZ1WKI8";
 
 // Create a special admin client that doesn't use auth context
 // Initialize with a base header, we'll update 'x-admin-id' dynamically
@@ -20,18 +20,25 @@ export const adminSupabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE
 
 // Function to dynamically set the admin ID in the client's global headers
 export const setAdminIdHeader = (adminId: string | null) => {
-  const currentHeaders = adminSupabase['options']['global']['headers'];
+  // Ensure the path exists before attempting to modify
+  if (!adminSupabase.options.global) {
+    adminSupabase.options.global = {};
+  }
+  if (!adminSupabase.options.global.headers) {
+    adminSupabase.options.global.headers = {};
+  }
+
+  const currentHeaders = adminSupabase.options.global.headers;
   if (adminId) {
-    adminSupabase['options']['global']['headers'] = {
+    adminSupabase.options.global.headers = {
       ...currentHeaders,
       'x-admin-id': adminId,
     };
   } else {
     // Remove the header if adminId is null (e.g., on logout)
     const { 'x-admin-id': _, ...restHeaders } = currentHeaders;
-    adminSupabase['options']['global']['headers'] = restHeaders;
+    adminSupabase.options.global.headers = restHeaders;
   }
-  // console.log('Admin Supabase headers updated:', adminSupabase['options']['global']['headers']); // For debugging
 };
 
 // Types for admin session management
