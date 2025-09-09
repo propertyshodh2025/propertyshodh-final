@@ -17,4 +17,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    // Replace 'global' with 'window' for browser compatibility
+    global: 'window',
+  },
 }));
