@@ -13,6 +13,7 @@ export const adminSupabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE
   global: {
     headers: {
       'x-admin-bypass': 'true',
+      'apikey': SUPABASE_PUBLISHABLE_KEY, // Explicitly add apikey for robust authentication
       // 'x-admin-id' will be set dynamically after login/validation
     }
   }
