@@ -9,8 +9,12 @@ export const adminSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
     persistSession: false,
     autoRefreshToken: false,
   },
-  // Removed global headers to prevent potential authorization conflicts.
-  // The RPC functions are SECURITY DEFINER and should handle permissions internally.
+  global: { // Explicitly setting headers as a diagnostic step
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    },
+  },
 });
 
 // Types for admin session management
