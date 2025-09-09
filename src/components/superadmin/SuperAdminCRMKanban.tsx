@@ -14,7 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatRelativeTime, formatDate } from '@/lib/dateUtils';
-import { Phone, MessageCircle, UserPlus, ChevronDown, StickyNote } from 'lucide-react';
+import { Phone, MessageCircle, UserPlus, ChevronDown, StickyNote, Users, LayoutDashboard, ChevronRight, ChevronDown as ChevronDownIcon } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'closed';
 export type LeadPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -44,33 +45,8 @@ interface Lead {
   notes: string | null;
 }
 
-interface ConsolidatedLead {
-  id: string;
-  name: string;
-  phone: string;
-  email: string | null;
-  status: LeadStatus;
-  priority: LeadPriority;
-  assigned_admin_id: string | null;
-  properties: {
-    id: string;
-    title: string;
-    checked?: boolean;
-  }[];
-  propertyCount: number;
-  created_at: string;
-  updated_at: string;
-  last_contacted_at: string | null;
-  next_follow_up_at: string | null;
-  purpose: string | null;
-  property_type: string | null;
-  budget_range: string | null;
-  location: string | null;
-  city: string | null;
-}
-
 interface AdminUser {
-  id: string; // This will be the UUID
+  id: string;
   username: string;
   role: 'admin' | 'superadmin' | 'super_super_admin';
   is_active: boolean;
@@ -90,7 +66,7 @@ const priorityColor: Record<LeadPriority, 'default' | 'secondary' | 'outline'> =
   urgent: 'default',
 };
 
-function DroppableColumn({ id, children }: { id: LeadStatus; children: React.ReactNode }) {
+function DroppableColumn({ id, children }: { id: LeadStatus | 'unassigned'; children: React.ReactNode }) {
   const { isOver, setNodeRef } = useDroppable({ id });
   return (
     <div ref={setNodeRef} className={`rounded-lg border bg-card/50 backdrop-blur-sm ${isOver ? 'ring-2 ring-primary' : ''}`}>
@@ -116,125 +92,49 @@ function DraggableCard({ id, children }: { id: string; children: React.ReactNode
 
 export default function SuperAdminCRMKanban() {
   const { toast } = useToast();
-  const [leads, setLeads] = useState<Lead[]>([]);
-  // Removed consolidatedLeads state as it's now handled by the 'grouped' useMemo
+  const [allLeads, setAllLeads] = useState<Lead[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
-  const currentAdminSession = getCurrentAdminSession();
+  const [expandedAdminLeads, setExpandedAdminLeads] = useState<Record<string, boolean>>({});
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
-    const fetchAdminUsers = async () => {
+    const fetchAllData = async () => {
+      setLoading(true);
       try {
-        const { data, error } = await adminSupabase.rpc('get_admin_credentials');
-        if (error) throw error;
-        setAdminUsers(data || []);
+        const [leadsResult, adminUsersResult] = await Promise.all([
+          adminSupabase.from('leads').select('*').order('created_at', { ascending: false }),
+          adminSupabase.rpc('get_admin_credentials').select('*')
+        ]);
+
+        if (leadsResult.error) throw leadsResult.error;
+        setAllLeads(leadsResult.data || []);
+
+        if (adminUsersResult.error) throw adminUsersResult.error;
+        setAdminUsers(adminUsersResult.data || []);
+
       } catch (e) {
-        console.error('Error fetching admin users:', e);
-        toast({ title: 'Error', description: 'Failed to load admin users for assignment', variant: 'destructive' });
-      }
-    };
-    fetchAdminUsers();
-  }, [toast]);
-
-  const grouped = useMemo(() => {
-    const byStatus: Record<LeadStatus, ConsolidatedLead[]> = {
-      new: [], contacted: [], qualified: [], closed: []
-    };
-
-    const phoneGroups: Record<string, Lead[]> = {};
-    leads.forEach(lead => {
-      if (!phoneGroups[lead.phone]) {
-        phoneGroups[lead.phone] = [];
-      }
-      phoneGroups[lead.phone].push(lead);
-    });
-
-    const consolidated: ConsolidatedLead[] = Object.values(phoneGroups).map(group => {
-      const sortedGroup = group.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-      const primary = sortedGroup[0];
-      
-      const properties = group
-        .filter(lead => lead.property_id && lead.property_title)
-        .reduce((acc, lead) => {
-          if (!acc.find(p => p.id === lead.property_id)) {
-            acc.push({
-              id: lead.property_id!,
-              title: lead.property_title!,
-              checked: false
-            });
-          }
-          return acc;
-        }, [] as { id: string; title: string; checked: boolean }[]);
-
-      return {
-        id: primary.id,
-        name: primary.name,
-        phone: primary.phone,
-        email: primary.email,
-        status: primary.status,
-        priority: primary.priority,
-        assigned_admin_id: primary.assigned_admin_id,
-        properties,
-        propertyCount: properties.length,
-        created_at: primary.created_at,
-        updated_at: primary.updated_at,
-        last_contacted_at: primary.last_contacted_at,
-        next_follow_up_at: primary.next_follow_up_at,
-        purpose: primary.purpose,
-        property_type: primary.property_type,
-        budget_range: primary.budget_range,
-        location: primary.location,
-        city: primary.city,
-      };
-    });
-
-    consolidated
-      .filter((l) =>
-        [l.name, l.phone, l.location, l.city, l.purpose, l.property_type, ...l.properties.map(p => p.title)]
-          .filter(Boolean)
-          .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
-      )
-      .forEach((l) => byStatus[l.status].push(l));
-    return byStatus;
-  }, [leads, search]);
-
-  useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        // Superadmin can see all leads
-        const { data, error } = await adminSupabase
-          .from('leads')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        setLeads(data as unknown as Lead[]);
-      } catch (e) {
-        console.error(e);
-        toast({ title: 'Error', description: 'Failed to load leads', variant: 'destructive' });
+        console.error('Error fetching CRM data:', e);
+        toast({ title: 'Error', description: 'Failed to load CRM data', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
     };
-    fetchLeads();
+    fetchAllData();
 
     const channel = adminSupabase
-      .channel('crm-leads-superadmin') // Unique channel name for superadmin
+      .channel('superadmin-crm-leads')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (payload) => {
-        // Superadmin sees all changes
-        const newLead = payload.new as Lead;
-        const oldLead = payload.old as Lead;
-
         if (payload.eventType === 'INSERT') {
-          setLeads((prev) => [newLead, ...prev]);
+          setAllLeads((prev) => [payload.new as Lead, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
-          setLeads((prev) => prev.map((l) => (l.id === newLead.id ? newLead : l)));
+          setAllLeads((prev) => prev.map((l) => (l.id === payload.new.id ? (payload.new as Lead) : l)));
         } else if (payload.eventType === 'DELETE') {
-          setLeads((prev) => prev.filter((l) => l.id !== oldLead.id));
+          setAllLeads((prev) => prev.filter((l) => l.id !== payload.old.id));
         }
       })
       .subscribe();
@@ -243,48 +143,86 @@ export default function SuperAdminCRMKanban() {
     };
   }, [toast]);
 
-  const onDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-    const newStatus = over.id as LeadStatus;
-    const leadPhone = active.id as string;
-    
-    try {
-      // Superadmin can update any lead's status
-      const { error } = await adminSupabase
-        .from('leads')
-        .update({ status: newStatus })
-        .eq('phone', leadPhone);
-      if (error) throw error;
-      
-      setLeads((prev) => prev.map((l) => (l.phone === leadPhone ? { ...l, status: newStatus } : l)));
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Failed to move lead', description: 'Please try again', variant: 'destructive' });
-    }
-  };
+  const { unassignedLeads, assignedLeadsByAdmin } = useMemo(() => {
+    const filteredLeads = allLeads.filter((l) =>
+      [l.name, l.phone, l.email, l.location, l.city, l.purpose, l.property_type, l.property_title, ...l.tags]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
+    );
 
-  const assignLead = async (phone: string, adminId: string) => {
-    const session = getCurrentAdminSession();
-    if (!session) {
-      toast({ title: 'No admin session', description: 'Please log in again', variant: 'destructive' });
-      return;
-    }
-    
+    const unassigned = filteredLeads.filter(lead => lead.assigned_admin_id === null);
+    const assigned: Record<string, Record<LeadStatus, Lead[]>> = {};
+
+    adminUsers.forEach(admin => {
+      assigned[admin.id] = { new: [], contacted: [], qualified: [], closed: [] };
+    });
+
+    filteredLeads.forEach(lead => {
+      if (lead.assigned_admin_id && assigned[lead.assigned_admin_id]) {
+        assigned[lead.assigned_admin_id][lead.status].push(lead);
+      }
+    });
+
+    return { unassignedLeads: unassigned, assignedLeadsByAdmin: assigned };
+  }, [allLeads, adminUsers, search]);
+
+  const assignLead = async (leadId: string, adminId: string | null) => {
     try {
-      // Superadmin can assign to any admin or unassign
       const { error } = await adminSupabase
         .from('leads')
-        .update({ assigned_admin_id: adminId === 'unassigned' ? null : adminId })
-        .eq('phone', phone); // Superadmin can update any lead
+        .update({ assigned_admin_id: adminId })
+        .eq('id', leadId);
       if (error) throw error;
-      
-      setLeads((prev) => prev.map((l) => (l.phone === phone ? { ...l, assigned_admin_id: adminId === 'unassigned' ? null : adminId } : l)));
+
+      setAllLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, assigned_admin_id: adminId } : l)));
       const assignedAdmin = adminUsers.find(u => u.id === adminId);
       toast({ title: 'Assigned', description: `Lead assigned to ${assignedAdmin?.username || 'Unassigned'}` });
     } catch (e) {
       console.error(e);
-      toast({ title: 'Failed to assign', description: 'Please try again', variant: 'destructive' });
+      toast({ title: 'Failed to assign lead', description: 'Please try again', variant: 'destructive' });
+    }
+  };
+
+  const updateLeadStatus = async (leadId: string, newStatus: LeadStatus) => {
+    try {
+      const { error } = await adminSupabase
+        .from('leads')
+        .update({ status: newStatus })
+        .eq('id', leadId);
+      if (error) throw error;
+
+      setAllLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)));
+      toast({ title: 'Status Updated', description: `Lead status changed to ${newStatus}` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Failed to update status', description: 'Please try again', variant: 'destructive' });
+    }
+  };
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const leadId = active.id as string;
+    const targetId = over.id as LeadStatus | 'unassigned';
+
+    if (targetId === 'unassigned') {
+      await assignLead(leadId, null);
+    } else if (STATUSES.some(s => s.id === targetId)) {
+      // If the lead is currently unassigned, assign it to the current superadmin
+      // This is a simplification; a more robust solution might prompt for admin assignment
+      const leadToMove = allLeads.find(l => l.id === leadId);
+      if (leadToMove && !leadToMove.assigned_admin_id) {
+        const currentAdmin = getCurrentAdminSession();
+        if (currentAdmin) {
+          await assignLead(leadId, currentAdmin.id);
+          await updateLeadStatus(leadId, targetId);
+        } else {
+          toast({ title: 'Error', description: 'Cannot assign unassigned lead without an active admin session.', variant: 'destructive' });
+        }
+      } else {
+        await updateLeadStatus(leadId, targetId);
+      }
     }
   };
 
@@ -296,7 +234,6 @@ export default function SuperAdminCRMKanban() {
       return;
     }
     try {
-      // Superadmin can add notes to any lead
       const { error } = await adminSupabase.from('lead_notes').insert({
         lead_id: noteLeadId,
         admin_id: session.id,
@@ -312,15 +249,6 @@ export default function SuperAdminCRMKanban() {
     }
   };
 
-  const togglePropertyCheck = async (leadPhone: string, propertyId: string) => {
-    // This state is local to the component and doesn't affect the database.
-    // It's used for UI interaction within the lead card.
-    // No need to update consolidatedLeads state directly, as 'grouped' useMemo will re-calculate.
-    // For now, this function will not modify state, as consolidatedLeads is no longer a state.
-    // If this checkbox needs to persist, it would require a new database field or local storage.
-    console.log(`Toggling property ${propertyId} for lead ${leadPhone}`);
-  };
-
   const handleCall = (phone: string) => {
     window.open(`tel:${phone}`, '_self');
   };
@@ -331,144 +259,243 @@ export default function SuperAdminCRMKanban() {
     window.open(`https://wa.me/${formatted}?text=${message}`, '_blank');
   };
 
+  const getLeadTypeBadge = (type: Lead['source_type']) => {
+    switch (type) {
+      case 'property_inquiry': return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">Property Inquiry</Badge>;
+      case 'user_inquiry': return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">User Inquiry</Badge>;
+      case 'research_report': return <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">Research Report</Badge>;
+      case 'saved_activity': return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Saved Property</Badge>;
+      case 'manual': return <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300">Manual Lead</Badge>;
+      default: return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">🔄 Loading CRM data...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">CRM Management (Super Admin)</h2>
+
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Input
-            placeholder="Search leads by name, phone, property, location..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-96"
-          />
-        </div>
+        <Input
+          placeholder="Search all leads by name, phone, property, location..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:w-96"
+        />
       </div>
 
-      {loading ? (
-        <div className="text-center py-10 text-muted-foreground">Loading CRM…</div>
-      ) : (
-        <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {STATUSES.map((col) => (
-              <DroppableColumn key={col.id} id={col.id}>
-                <Card className="border border-border/60 h-full">
-                  <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
-                    <CardTitle className="text-sm flex items-center justify-between">
-                      <span>{col.title}</span>
-                      <Badge variant="outline">{grouped[col.id].length}</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 space-y-3">
-                    {grouped[col.id].length === 0 ? (
-                      <div className="text-xs text-muted-foreground py-6 text-center">No leads</div>
-                    ) : (
-                      grouped[col.id].map((lead) => (
-                        <DraggableCard key={lead.phone} id={lead.phone}>
-                          <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
-                                <div className="text-xs text-muted-foreground">{lead.phone}</div>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
-                                  <Phone className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
-                                  <MessageCircle className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Properties interested in */}
-                            {lead.properties.length > 0 && (
-                              <div className="mt-2">
-                                <div className="text-xs text-muted-foreground mb-1">
-                                  Properties interested ({lead.propertyCount}):
-                                </div>
-                                <div className="space-y-1 max-h-24 overflow-y-auto">
-                                  {lead.properties.map((property) => (
-                                    <div key={property.id} className="flex items-center gap-2">
-                                      <Checkbox
-                                        id={`${lead.phone}-${property.id}`}
-                                        checked={property.checked}
-                                        onCheckedChange={() => togglePropertyCheck(lead.phone, property.id)}
-                                      />
-                                      <label
-                                        htmlFor={`${lead.phone}-${property.id}`}
-                                        className="text-xs cursor-pointer line-clamp-1 flex-1"
-                                      >
-                                        {property.title}
-                                      </label>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="mt-2 text-xs text-muted-foreground line-clamp-2">
-                              {[lead.purpose, lead.property_type, lead.budget_range, lead.location, lead.city]
-                                .filter(Boolean)
-                                .join(' • ')}
-                            </div>
-                            
-                            <div className="mt-2 flex items-center gap-2 flex-wrap">
-                              <Badge variant={priorityColor[lead.priority]}>Priority: {lead.priority}</Badge>
-                              {lead.next_follow_up_at && (
-                                <Badge variant="outline">Follow-up: {formatDate(lead.next_follow_up_at)}</Badge>
-                              )}
-                              {lead.assigned_admin_id && (
-                                <Badge variant="secondary">
-                                  Assigned: {adminUsers.find(u => u.id === lead.assigned_admin_id)?.username || 'Unknown'}
-                                </Badge>
-                              )}
-                            </div>
-
-                            <div className="mt-3 flex items-center gap-2 flex-wrap">
-                              <Select onValueChange={(value) => assignLead(lead.phone, value)}>
-                                <SelectTrigger className="w-auto h-8">
-                                  <div className="flex items-center gap-1">
-                                    <UserPlus className="h-4 w-4" />
-                                    <span className="text-xs">Assign to</span>
-                                    <ChevronDown className="h-3 w-3" />
-                                  </div>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="unassigned">Unassign</SelectItem>
-                                  {adminUsers.map(admin => (
-                                    <SelectItem key={admin.id} value={admin.id}>
-                                      {admin.username} ({admin.role})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={() => {
-                                  setNoteLeadId(lead.id);
-                                  setNoteText('');
-                                }}
-                              >
-                                <StickyNote className="h-4 w-4 mr-1" />
-                                Add note
-                              </Button>
-                            </div>
-
-                            <div className="mt-2 text-[11px] text-muted-foreground">
-                              Updated {formatRelativeTime(lead.updated_at)}
-                            </div>
+      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Unassigned Leads Column */}
+          <DroppableColumn id="unassigned">
+            <Card className="border border-border/60 h-full">
+              <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span>Unassigned Leads</span>
+                  <Badge variant="destructive">{unassignedLeads.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 space-y-3 min-h-[200px]">
+                {unassignedLeads.length === 0 ? (
+                  <div className="text-xs text-muted-foreground py-6 text-center">No unassigned leads</div>
+                ) : (
+                  unassignedLeads.map((lead) => (
+                    <DraggableCard key={lead.id} id={lead.id}>
+                      <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
+                            <div className="text-xs text-muted-foreground">{lead.phone}</div>
+                            {lead.email && <div className="text-xs text-muted-foreground line-clamp-1">{lead.email}</div>}
                           </div>
-                        </DraggableCard>
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
-              </DroppableColumn>
-            ))}
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
+                              <Phone className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {getLeadTypeBadge(lead.source_type)}
+                          {lead.property_title && <Badge variant="secondary">{lead.property_title}</Badge>}
+                          {lead.location && <Badge variant="secondary">{lead.location}</Badge>}
+                          {lead.city && <Badge variant="secondary">{lead.city}</Badge>}
+                        </div>
+                        
+                        <div className="mt-3 flex items-center gap-2 flex-wrap">
+                          <Select onValueChange={(value) => assignLead(lead.id, value === 'unassigned' ? null : value)}>
+                            <SelectTrigger className="w-auto h-8">
+                              <div className="flex items-center gap-1">
+                                <UserPlus className="h-4 w-4" />
+                                <span className="text-xs">Assign to</span>
+                                <ChevronDown className="h-3 w-3" />
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unassigned">Unassign</SelectItem>
+                              {adminUsers.map(admin => (
+                                <SelectItem key={admin.id} value={admin.id}>
+                                  {admin.username} ({admin.role})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => {
+                              setNoteLeadId(lead.id);
+                              setNoteText('');
+                            }}
+                          >
+                            <StickyNote className="h-4 w-4 mr-1" />
+                            Add note
+                          </Button>
+                        </div>
+
+                        <div className="mt-2 text-[11px] text-muted-foreground">
+                          Created {formatRelativeTime(lead.created_at)}
+                        </div>
+                      </div>
+                    </DraggableCard>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </DroppableColumn>
+
+          {/* Admin Leads Analytics Section */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <LayoutDashboard className="h-5 w-5" /> Admin Leads Analytics
+            </h3>
+            {adminUsers.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">No admin users found.</div>
+            ) : (
+              adminUsers.map(admin => {
+                const adminLeads = assignedLeadsByAdmin[admin.id] || { new: [], contacted: [], qualified: [], closed: [] };
+                const totalAdminLeads = Object.values(adminLeads).flat().length;
+
+                return (
+                  <Card key={admin.id} className="border border-border/60 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
+                      <CardTitle className="text-sm flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          <span>{admin.username} ({admin.role})</span>
+                        </div>
+                        <Badge variant="default">Total Leads: {totalAdminLeads}</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      <Accordion type="single" collapsible className="w-full">
+                        {STATUSES.map(statusCol => {
+                          const leadsInStatus = adminLeads[statusCol.id];
+                          return (
+                            <AccordionItem key={statusCol.id} value={statusCol.id}>
+                              <AccordionTrigger className="py-2 text-sm font-medium hover:no-underline">
+                                <div className="flex items-center justify-between w-full pr-4">
+                                  <span>{statusCol.title} ({leadsInStatus.length})</span>
+                                  <Badge variant="secondary">{leadsInStatus.length}</Badge>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="pt-2 pb-0">
+                                <div className="space-y-2">
+                                  {leadsInStatus.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground text-center py-2">No leads in this status.</p>
+                                  ) : (
+                                    leadsInStatus.map(lead => (
+                                      <DraggableCard key={lead.id} id={lead.id}>
+                                        <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                              <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
+                                              <div className="text-xs text-muted-foreground">{lead.phone}</div>
+                                              {lead.email && <div className="text-xs text-muted-foreground line-clamp-1">{lead.email}</div>}
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                              <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
+                                                <Phone className="h-4 w-4" />
+                                              </Button>
+                                              <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
+                                                <MessageCircle className="h-4 w-4" />
+                                              </Button>
+                                            </div>
+                                          </div>
+
+                                          <div className="mt-2 flex flex-wrap gap-1">
+                                            {getLeadTypeBadge(lead.source_type)}
+                                            {lead.property_title && <Badge variant="secondary">{lead.property_title}</Badge>}
+                                            {lead.location && <Badge variant="secondary">{lead.location}</Badge>}
+                                            {lead.city && <Badge variant="secondary">{lead.city}</Badge>}
+                                          </div>
+
+                                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                            <Badge variant={priorityColor[lead.priority]}>Priority: {lead.priority}</Badge>
+                                            {lead.next_follow_up_at && (
+                                              <Badge variant="outline">Follow-up: {formatDate(lead.next_follow_up_at)}</Badge>
+                                            )}
+                                          </div>
+
+                                          <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                            <Select onValueChange={(value) => updateLeadStatus(lead.id, value as LeadStatus)} value={lead.status}>
+                                              <SelectTrigger className="w-auto h-8">
+                                                <div className="flex items-center gap-1">
+                                                  <LayoutDashboard className="h-4 w-4" />
+                                                  <span className="text-xs">Status: {lead.status}</span>
+                                                  <ChevronDown className="h-3 w-3" />
+                                                </div>
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {STATUSES.map(s => (
+                                                  <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            <Button 
+                                              size="sm" 
+                                              variant="ghost" 
+                                              onClick={() => {
+                                                setNoteLeadId(lead.id);
+                                                setNoteText('');
+                                              }}
+                                            >
+                                              <StickyNote className="h-4 w-4 mr-1" />
+                                              Add note
+                                            </Button>
+                                          </div>
+
+                                          <div className="mt-2 text-[11px] text-muted-foreground">
+                                            Updated {formatRelativeTime(lead.updated_at)}
+                                          </div>
+                                        </div>
+                                      </DraggableCard>
+                                    ))
+                                  )}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
-        </DndContext>
-      )}
+        </div>
+      </DndContext>
 
       <Dialog open={!!noteLeadId} onOpenChange={(open) => !open && (setNoteLeadId(null), setNoteText(''))}>
         <DialogContent>

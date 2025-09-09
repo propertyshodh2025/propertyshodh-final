@@ -5,10 +5,10 @@ import { LogOut, Settings, Users, Activity, MessageSquare, Search, Bookmark, Sta
 import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AdminManagementContent } from '@/components/admin/AdminManagementContent';
-import SuperAdminCRMKanban from '@/components/superadmin/SuperAdminCRMKanban'; // Corrected import path
+import SuperAdminCRMKanban from '@/components/superadmin/SuperAdminCRMKanban'; // Updated import
 import SuperAdminSavedProperties from '@/components/superadmin/SuperAdminSavedProperties';
 import FeaturePropertiesManager from '@/components/superadmin/FeaturePropertiesManager';
-import MarketIntelligenceManager from '@/components/admin/MarketIntelligenceManager'; // Corrected import path
+import MarketIntelligenceManager from '@/components/admin/MarketIntelligenceManager';
 import SuperAdminSearchHistory from '@/components/superadmin/SuperAdminSearchHistory';
 import SuperAdminPropertyInterest from '@/components/superadmin/SuperAdminPropertyInterest';
 import SuperAdminUserInquiries from '@/components/superadmin/SuperAdminUserInquiries';
@@ -179,7 +179,7 @@ const SuperAdminDashboard: React.FC = () => {
         {/* Render nested routes content */}
         <Routes>
           <Route index element={<AdminManagementContent />} /> {/* Default for /superadmin */}
-          <Route path="crm" element={<SuperAdminCRMKanban />} />
+          <Route path="crm" element={<SuperAdminCRMKanban />} /> {/* Updated to new component */}
           <Route path="inquiries" element={<SuperAdminUserInquiries />} />
           <Route path="property-interest" element={<SuperAdminPropertyInterest />} />
           <Route path="search-history" element={<SuperAdminSearchHistory />} />
