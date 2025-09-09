@@ -1,9 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = "https://bujpqglebnkdwlbguekm.supabase.co";
-// IMPORTANT: Replace this with the actual 'anon' (public) key from your Supabase project dashboard.
-// Go to Project Settings -> API -> Project API keys -> anon (public)
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1anBxZ2xlYm5rZHdsYmd1ZWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0ODE2MjEsImV4cCI6MjA2ODA1NzYyMX0.Db4ysTZ2uNEAy59uXjMx8fllwoAUggyqAxZftZ1WKI8";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1anBxZ2xlYm5rZHdsYmd1ZWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0ODE2MjEsImV4cCI6MjA2ODA1NzYyMX0.Db4ysTZ2uNEAy59uXjMx8fllwoAUlgyqAxZftZ1WKI8";
 
 // Create a special admin client that doesn't use auth context
 export const adminSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -11,12 +9,12 @@ export const adminSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
     persistSession: false,
     autoRefreshToken: false,
   },
-  global: { // Explicitly setting headers as a diagnostic step
+  // Override default headers to ensure we get admin access
+  global: {
     headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-    },
-  },
+      'x-admin-bypass': 'true'
+    }
+  }
 });
 
 // Types for admin session management
@@ -77,7 +75,7 @@ export const authenticateAdmin = async (username: string, password: string): Pro
     localStorage.setItem('adminSession', JSON.stringify(adminSession));
     
     // Set PostgreSQL session variable
-    await setAdminSession(adminData.id, adminData.role); // Pass adminData.id here
+    await setAdminSession(adminData.role);
 
     return { success: true, admin: adminSession };
   } catch (error) {
@@ -123,7 +121,7 @@ export const validateAdminSession = async (): Promise<AdminAuthResult> => {
     localStorage.setItem('adminSession', JSON.stringify(updatedSession));
     
     // Set PostgreSQL session variable
-    await setAdminSession(adminData.admin_id, adminData.role); // Pass adminData.admin_id here
+    await setAdminSession(adminData.role);
 
     return { success: true, admin: updatedSession };
   } catch (error) {
@@ -179,10 +177,10 @@ export const isAdminAuthenticated = (): boolean => {
 };
 
 // Helper function to set admin session variables in PostgreSQL
-export const setAdminSession = async (adminId: string, role: string): Promise<void> => {
+export const setAdminSession = async (role: string): Promise<void> => {
   try {
-    await adminSupabase.rpc('set_admin_session_context', { _admin_id: adminId, _admin_role: role });
+    await adminSupabase.rpc('set_admin_session', { admin_role: role });
   } catch (error) {
-    console.error('Failed to set admin session context:', error);
+    console.error('Failed to set admin session:', error);
   }
 };

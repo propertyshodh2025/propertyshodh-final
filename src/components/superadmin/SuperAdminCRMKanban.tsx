@@ -115,14 +115,16 @@ export default function SuperAdminCRMKanban() {
     const fetchAllData = async () => {
       setLoading(true);
       try {
-        // Use the new RPC function to fetch all leads for superadmin
-        const { data: leadsData, error: leadsError } = await adminSupabase.rpc('get_all_leads_for_superadmin');
-        if (leadsError) throw leadsError;
-        setAllLeads(leadsData || []);
+        const [leadsResult, adminUsersResult] = await Promise.all([
+          adminSupabase.from('leads').select('*').order('created_at', { ascending: false }),
+          adminSupabase.rpc('get_admin_credentials').select('*')
+        ]);
 
-        const { data: adminUsersData, error: adminUsersError } = await adminSupabase.rpc('get_admin_credentials').select('*');
-        if (adminUsersError) throw adminUsersError;
-        setAdminUsers(adminUsersData || []);
+        if (leadsResult.error) throw leadsResult.error;
+        setAllLeads(leadsResult.data || []);
+
+        if (adminUsersResult.error) throw adminUsersResult.error;
+        setAdminUsers(adminUsersResult.data || []);
 
       } catch (e) {
         console.error('Error fetching CRM data:', e);
