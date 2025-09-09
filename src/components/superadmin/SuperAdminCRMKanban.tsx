@@ -122,7 +122,6 @@ export default function SuperAdminCRMKanban() {
 
         if (leadsResult.error) throw leadsResult.error;
         setAllLeads(leadsResult.data || []);
-        console.log('Fetched leads:', leadsResult.data); // Add this log
 
         if (adminUsersResult.error) throw adminUsersResult.error;
         setAdminUsers(adminUsersResult.data || []);
@@ -327,6 +326,9 @@ export default function SuperAdminCRMKanban() {
     );
   }
 
+  // Filter admin users to only show 'admin' roles for analytics
+  const filteredAdminUsersForAnalytics = adminUsers.filter(admin => admin.role === 'admin');
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">CRM Management (Super Admin)</h2>
@@ -446,10 +448,10 @@ export default function SuperAdminCRMKanban() {
             <h3 className="text-xl font-semibold flex items-center gap-2">
               <LayoutDashboard className="h-5 w-5" /> Admin Leads Analytics
             </h3>
-            {adminUsers.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">No admin users found.</div>
+            {filteredAdminUsersForAnalytics.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">No admin users found for analytics.</div>
             ) : (
-              adminUsers.map(admin => {
+              filteredAdminUsersForAnalytics.map(admin => {
                 const adminLeads = assignedLeadsByAdmin[admin.id] || { new: [], contacted: [], qualified: [], closed: [] };
                 const totalAdminLeads = Object.values(adminLeads).flat().length;
 
