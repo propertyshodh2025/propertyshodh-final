@@ -32,6 +32,15 @@ interface AdminAuthResult {
   error?: string;
 }
 
+// Helper function to set admin session variables in PostgreSQL
+export const setAdminSessionContext = async (adminId: string, role: string): Promise<void> => {
+  try {
+    await adminSupabase.rpc('set_admin_session_context', { _admin_id: adminId, _admin_role: role });
+  } catch (error) {
+    console.error('Failed to set admin session context:', error);
+  }
+};
+
 // Secure admin authentication with server-side session management
 export const authenticateAdmin = async (username: string, password: string): Promise<AdminAuthResult> => {
   try {
@@ -75,7 +84,7 @@ export const authenticateAdmin = async (username: string, password: string): Pro
     localStorage.setItem('adminSession', JSON.stringify(adminSession));
     
     // Set PostgreSQL session variable
-    await setAdminSession(adminData.role);
+    await setAdminSessionContext(adminData.id, adminData.role);
 
     return { success: true, admin: adminSession };
   } catch (error) {
@@ -121,7 +130,7 @@ export const validateAdminSession = async (): Promise<AdminAuthResult> => {
     localStorage.setItem('adminSession', JSON.stringify(updatedSession));
     
     // Set PostgreSQL session variable
-    await setAdminSession(adminData.role);
+    await setAdminSessionContext(adminData.id, adminData.role);
 
     return { success: true, admin: updatedSession };
   } catch (error) {
@@ -174,13 +183,4 @@ export const getCurrentAdminSession = (): AdminSession | null => {
 // Legacy helper function for backward compatibility
 export const isAdminAuthenticated = (): boolean => {
   return getCurrentAdminSession() !== null;
-};
-
-// Helper function to set admin session variables in PostgreSQL
-export const setAdminSession = async (role: string): Promise<void> => {
-  try {
-    await adminSupabase.rpc('set_admin_session', { admin_role: role });
-  } catch (error) {
-    console.error('Failed to set admin session:', error);
-  }
 };
