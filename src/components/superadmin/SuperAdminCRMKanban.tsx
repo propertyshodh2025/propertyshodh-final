@@ -52,6 +52,15 @@ interface AdminUser {
   is_active: boolean;
 }
 
+// New interface for grouped leads
+interface GroupedLead {
+  id: string; // A unique identifier for the group (e.g., phone, email, or a generated ID)
+  primaryContact: string; // The main contact info (phone or email)
+  leads: Lead[]; // All individual lead records associated with this contact
+  isFullyAssigned: boolean; // True if ALL leads in this group are assigned
+  commonAdminId: string | null; // The admin ID if all leads in the group are assigned to the same admin, otherwise null
+}
+
 const STATUSES: { id: LeadStatus; title: string }[] = [
   { id: 'new', title: 'New' },
   { id: 'contacted', title: 'Contacted' },
@@ -143,16 +152,41 @@ export default function SuperAdminCRMKanban() {
     };
   }, [toast]);
 
-  const { unassignedLeads, assignedLeadsByAdmin } = useMemo(() => {
+  const { groupedUnassignedLeads, assignedLeadsByAdmin } = useMemo(() => {
     const filteredLeads = allLeads.filter((l) =>
       [l.name, l.phone, l.email, l.location, l.city, l.purpose, l.property_type, l.property_title, ...l.tags]
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
     );
 
-    const unassigned = filteredLeads.filter(lead => lead.assigned_admin_id === null);
-    const assigned: Record<string, Record<LeadStatus, Lead[]>> = {};
+    const leadsByContact: Record<string, Lead[]> = {};
+    filteredLeads.forEach(lead => {
+      // Prioritize phone, then email, then a fallback for unique identification
+      const contactKey = lead.phone || lead.email || `${lead.name || 'Unknown'}-${lead.source_type}-${lead.id}`;
+      if (!leadsByContact[contactKey]) {
+        leadsByContact[contactKey] = [];
+      }
+      leadsByContact[contactKey].push(lead);
+    });
 
+    const groupedLeads: GroupedLead[] = Object.entries(leadsByContact).map(([contactKey, leads]) => {
+      const isFullyAssigned = leads.every(l => l.assigned_admin_id !== null);
+      const firstAdminId = leads[0]?.assigned_admin_id;
+      const commonAdminId = isFullyAssigned && leads.every(l => l.assigned_admin_id === firstAdminId) ? firstAdminId : null;
+
+      return {
+        id: contactKey, // Use contactKey as the draggable ID for grouped leads
+        primaryContact: contactKey, // Display this
+        leads: leads.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()), // Sort by most recent activity
+        isFullyAssigned,
+        commonAdminId,
+      };
+    });
+
+    // Only show grouped leads where at least one individual lead is unassigned
+    const unassigned = groupedLeads.filter(group => !group.isFullyAssigned);
+
+    const assigned: Record<string, Record<LeadStatus, Lead[]>> = {};
     adminUsers.forEach(admin => {
       assigned[admin.id] = { new: [], contacted: [], qualified: [], closed: [] };
     });
@@ -163,23 +197,24 @@ export default function SuperAdminCRMKanban() {
       }
     });
 
-    return { unassignedLeads: unassigned, assignedLeadsByAdmin: assigned };
+    return { groupedUnassignedLeads: unassigned, assignedLeadsByAdmin: assigned };
   }, [allLeads, adminUsers, search]);
 
-  const assignLead = async (leadId: string, adminId: string | null) => {
+  // Modify assignLead to accept an array of Lead IDs
+  const assignLead = async (leadIds: string[], adminId: string | null) => {
     try {
       const { error } = await adminSupabase
         .from('leads')
         .update({ assigned_admin_id: adminId })
-        .eq('id', leadId);
+        .in('id', leadIds); // Use .in() for multiple IDs
       if (error) throw error;
 
-      setAllLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, assigned_admin_id: adminId } : l)));
+      setAllLeads((prev) => prev.map((l) => (leadIds.includes(l.id) ? { ...l, assigned_admin_id: adminId } : l)));
       const assignedAdmin = adminUsers.find(u => u.id === adminId);
-      toast({ title: 'Assigned', description: `Lead assigned to ${assignedAdmin?.username || 'Unassigned'}` });
+      toast({ title: 'Assigned', description: `Leads assigned to ${assignedAdmin?.username || 'Unassigned'}` });
     } catch (e) {
       console.error(e);
-      toast({ title: 'Failed to assign lead', description: 'Please try again', variant: 'destructive' });
+      toast({ title: 'Failed to assign leads', description: 'Please try again', variant: 'destructive' });
     }
   };
 
@@ -203,24 +238,37 @@ export default function SuperAdminCRMKanban() {
     const { active, over } = event;
     if (!over) return;
 
-    const leadId = active.id as string;
+    const activeId = active.id as string; // This could be a GroupedLead ID or an individual Lead ID
     const targetId = over.id as LeadStatus | 'unassigned';
 
-    if (targetId === 'unassigned') {
-      await assignLead(leadId, null);
-    } else if (STATUSES.some(s => s.id === targetId)) {
-      // If the lead is currently unassigned, assign it to the current superadmin
-      // This is a simplification; a more robust solution might prompt for admin assignment
-      const leadToMove = allLeads.find(l => l.id === leadId);
-      if (leadToMove && !leadToMove.assigned_admin_id) {
+    // Determine if it's a grouped lead being dragged from unassigned
+    const draggedGroupedLead = groupedUnassignedLeads.find(g => g.id === activeId);
+
+    if (draggedGroupedLead) {
+      // Dragging a grouped lead from unassigned
+      const leadIdsToAssign = draggedGroupedLead.leads.map(l => l.id);
+      if (targetId === 'unassigned') {
+        // Dragged back to unassigned, unassign all
+        await assignLead(leadIdsToAssign, null);
+      } else if (STATUSES.some(s => s.id === targetId)) {
+        // Dragged to an admin's status column, assign all to current superadmin and set status
         const currentAdmin = getCurrentAdminSession();
         if (currentAdmin) {
-          await assignLead(leadId, currentAdmin.id);
-          await updateLeadStatus(leadId, targetId);
+          await assignLead(leadIdsToAssign, currentAdmin.id);
+          // Update status for all leads in the group
+          for (const leadId of leadIdsToAssign) {
+            await updateLeadStatus(leadId, targetId);
+          }
         } else {
           toast({ title: 'Error', description: 'Cannot assign unassigned lead without an active admin session.', variant: 'destructive' });
         }
-      } else {
+      }
+    } else {
+      // Dragging an individual lead (from an assigned admin's column)
+      const leadId = activeId; // It's an individual lead ID
+      if (targetId === 'unassigned') {
+        await assignLead([leadId], null);
+      } else if (STATUSES.some(s => s.id === targetId)) {
         await updateLeadStatus(leadId, targetId);
       }
     }
@@ -299,41 +347,58 @@ export default function SuperAdminCRMKanban() {
               <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
                 <CardTitle className="text-sm flex items-center justify-between">
                   <span>Unassigned Leads</span>
-                  <Badge variant="destructive">{unassignedLeads.length}</Badge>
+                  <Badge variant="destructive">{groupedUnassignedLeads.length}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 space-y-3 min-h-[200px]">
-                {unassignedLeads.length === 0 ? (
+                {groupedUnassignedLeads.length === 0 ? (
                   <div className="text-xs text-muted-foreground py-6 text-center">No unassigned leads</div>
                 ) : (
-                  unassignedLeads.map((lead) => (
-                    <DraggableCard key={lead.id} id={lead.id}>
+                  groupedUnassignedLeads.map((groupedLead) => (
+                    <DraggableCard key={groupedLead.id} id={groupedLead.id}>
                       <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
-                            <div className="text-xs text-muted-foreground">{lead.phone}</div>
-                            {lead.email && <div className="text-xs text-muted-foreground line-clamp-1">{lead.email}</div>}
+                            <div className="font-medium leading-tight line-clamp-1">{groupedLead.primaryContact}</div>
+                            {/* Display individual leads within the grouped lead */}
+                            <Accordion type="single" collapsible className="w-full mt-2">
+                              <AccordionItem value="activities">
+                                <AccordionTrigger className="py-1 text-xs font-medium hover:no-underline">
+                                  {groupedLead.leads.length} Activities <ChevronDownIcon className="h-3 w-3 ml-1" />
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-1 pb-0 space-y-1">
+                                  {groupedLead.leads.map((lead, index) => (
+                                    <div key={lead.id} className="border-l-2 border-muted-foreground/30 pl-2 py-1">
+                                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                        {getLeadTypeBadge(lead.source_type)}
+                                        <span className="ml-1">{lead.name || 'N/A'}</span>
+                                      </div>
+                                      {lead.property_title && <p className="text-xs text-muted-foreground line-clamp-1">Property: {lead.property_title}</p>}
+                                      {lead.location && <p className="text-xs text-muted-foreground line-clamp-1">Location: {lead.location}</p>}
+                                      <p className="text-xs text-muted-foreground">Created {formatRelativeTime(lead.created_at)}</p>
+                                    </div>
+                                  ))}
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
-                              <Phone className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
+                            {/* Use the phone from the first lead in the group for contact actions */}
+                            {groupedLead.leads[0]?.phone && (
+                              <>
+                                <Button variant="ghost" size="icon" onClick={() => handleCall(groupedLead.leads[0].phone)} aria-label="Call">
+                                  <Phone className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(groupedLead.leads[0].phone, groupedLead.leads[0].name || 'User')} aria-label="WhatsApp">
+                                  <MessageCircle className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
-                        </div>
-
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {getLeadTypeBadge(lead.source_type)}
-                          {lead.property_title && <Badge variant="secondary">{lead.property_title}</Badge>}
-                          {lead.location && <Badge variant="secondary">{lead.location}</Badge>}
-                          {lead.city && <Badge variant="secondary">{lead.city}</Badge>}
                         </div>
                         
                         <div className="mt-3 flex items-center gap-2 flex-wrap">
-                          <Select onValueChange={(value) => assignLead(lead.id, value === 'unassigned' ? null : value)}>
+                          <Select onValueChange={(value) => assignLead(groupedLead.leads.map(l => l.id), value === 'unassigned' ? null : value)}>
                             <SelectTrigger className="w-auto h-8">
                               <div className="flex items-center gap-1">
                                 <UserPlus className="h-4 w-4" />
@@ -350,11 +415,12 @@ export default function SuperAdminCRMKanban() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {/* Note button for the first lead in the group */}
                           <Button 
                             size="sm" 
                             variant="ghost" 
                             onClick={() => {
-                              setNoteLeadId(lead.id);
+                              setNoteLeadId(groupedLead.leads[0]?.id || null);
                               setNoteText('');
                             }}
                           >
@@ -364,7 +430,7 @@ export default function SuperAdminCRMKanban() {
                         </div>
 
                         <div className="mt-2 text-[11px] text-muted-foreground">
-                          Created {formatRelativeTime(lead.created_at)}
+                          Latest activity {formatRelativeTime(groupedLead.leads[0]?.created_at || new Date().toISOString())}
                         </div>
                       </div>
                     </DraggableCard>
