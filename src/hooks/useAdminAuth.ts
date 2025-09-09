@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { validateAdminSession, logoutAdmin, getCurrentAdminSession } from '@/lib/adminSupabase';
+import { validateAdminSession, logoutAdmin, getCurrentAdminSession, setAdminIdHeader } from '@/lib/adminSupabase';
 
 export const useAdminAuth = () => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
@@ -16,16 +16,19 @@ export const useAdminAuth = () => {
           setIsAdminAuthenticated(true);
           setAdminRole(result.admin.role);
           setAdminUsername(result.admin.username);
+          setAdminIdHeader(result.admin.id); // Set header on successful validation
         } else {
           setIsAdminAuthenticated(false);
           setAdminRole(null);
           setAdminUsername(null);
+          setAdminIdHeader(null); // Clear header on failed validation
         }
       } catch (error) {
         console.error('Session validation error:', error);
         setIsAdminAuthenticated(false);
         setAdminRole(null);
         setAdminUsername(null);
+        setAdminIdHeader(null); // Clear header on error
       } finally {
         setLoading(false);
       }
@@ -48,6 +51,7 @@ export const useAdminAuth = () => {
       setIsAdminAuthenticated(false);
       setAdminRole(null);
       setAdminUsername(null);
+      setAdminIdHeader(null); // Clear header on logout
     }
   };
 

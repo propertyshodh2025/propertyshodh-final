@@ -1,21 +1,38 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = "https://bujpqglebnkdwlbguekm.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1anBxZ2xlYm5rZHdsYmd1ZWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0ODE2MjEsImV4cCI6MjA2ODA1NzYyMX0.Db4ysTZ2uNEAy59uXjMx8fllwoAUlgyqAxZftZ1WKI8";
 
 // Create a special admin client that doesn't use auth context
-export const adminSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+// Initialize with a base header, we'll update 'x-admin-id' dynamically
+export const adminSupabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
   },
-  // Override default headers to ensure we get admin access
   global: {
     headers: {
-      'x-admin-bypass': 'true'
+      'x-admin-bypass': 'true',
+      // 'x-admin-id' will be set dynamically after login/validation
     }
   }
 });
+
+// Function to dynamically set the admin ID in the client's global headers
+export const setAdminIdHeader = (adminId: string | null) => {
+  const currentHeaders = adminSupabase['options']['global']['headers'];
+  if (adminId) {
+    adminSupabase['options']['global']['headers'] = {
+      ...currentHeaders,
+      'x-admin-id': adminId,
+    };
+  } else {
+    // Remove the header if adminId is null (e.g., on logout)
+    const { 'x-admin-id': _, ...restHeaders } = currentHeaders;
+    adminSupabase['options']['global']['headers'] = restHeaders;
+  }
+  // console.log('Admin Supabase headers updated:', adminSupabase['options']['global']['headers']); // For debugging
+};
 
 // Types for admin session management
 interface AdminSession {
@@ -33,6 +50,8 @@ interface AdminAuthResult {
 }
 
 // Helper function to set admin session variables in PostgreSQL
+// This is still useful for RPC functions that explicitly read app.current_admin_id,
+// but for RLS, we'll now rely on the 'x-admin-id' header.
 export const setAdminSessionContext = async (adminId: string, role: string): Promise<void> => {
   try {
     await adminSupabase.rpc('set_admin_session_context', { _admin_id: adminId, _admin_role: role });
@@ -83,8 +102,10 @@ export const authenticateAdmin = async (username: string, password: string): Pro
     // Store in localStorage (will be replaced with httpOnly cookies in production)
     localStorage.setItem('adminSession', JSON.stringify(adminSession));
     
-    // Set PostgreSQL session variable
+    // Set PostgreSQL session variable (for RPCs that use it)
     await setAdminSessionContext(adminData.id, adminData.role);
+    // Dynamically set the admin ID in the client's global headers for RLS
+    setAdminIdHeader(adminData.id);
 
     return { success: true, admin: adminSession };
   } catch (error) {
@@ -97,6 +118,7 @@ export const validateAdminSession = async (): Promise<AdminAuthResult> => {
   try {
     const sessionStr = localStorage.getItem('adminSession');
     if (!sessionStr) {
+      setAdminIdHeader(null); // Clear header if no session
       return { success: false, error: 'No session found' };
     }
 
@@ -105,6 +127,7 @@ export const validateAdminSession = async (): Promise<AdminAuthResult> => {
     // Check if session is expired locally first
     if (new Date(session.expiresAt) < new Date()) {
       localStorage.removeItem('adminSession');
+      setAdminIdHeader(null); // Clear header on expired session
       return { success: false, error: 'Session expired' };
     }
 
@@ -115,6 +138,7 @@ export const validateAdminSession = async (): Promise<AdminAuthResult> => {
 
     if (error || !data || data.length === 0) {
       localStorage.removeItem('adminSession');
+      setAdminIdHeader(null); // Clear header on invalid session
       return { success: false, error: 'Invalid session' };
     }
 
@@ -129,12 +153,15 @@ export const validateAdminSession = async (): Promise<AdminAuthResult> => {
 
     localStorage.setItem('adminSession', JSON.stringify(updatedSession));
     
-    // Set PostgreSQL session variable
+    // Set PostgreSQL session variable (for RPCs that use it)
     await setAdminSessionContext(adminData.id, adminData.role);
+    // Dynamically set the admin ID in the client's global headers for RLS
+    setAdminIdHeader(adminData.id);
 
     return { success: true, admin: updatedSession };
   } catch (error) {
     localStorage.removeItem('adminSession');
+    setAdminIdHeader(null); // Clear header on error
     return { success: false, error: error instanceof Error ? error.message : 'Session validation failed' };
   }
 };
@@ -156,6 +183,7 @@ export const logoutAdmin = async (): Promise<void> => {
   } finally {
     // Clear local storage
     localStorage.removeItem('adminSession');
+    setAdminIdHeader(null); // Clear header on logout
   }
 };
 
@@ -170,12 +198,17 @@ export const getCurrentAdminSession = (): AdminSession | null => {
     // Check if session is expired
     if (new Date(session.expiresAt) < new Date()) {
       localStorage.removeItem('adminSession');
+      setAdminIdHeader(null); // Clear header on expired session
       return null;
     }
+
+    // Ensure the header is set if session is valid (e.g., on app refresh)
+    setAdminIdHeader(session.id);
 
     return session;
   } catch (error) {
     localStorage.removeItem('adminSession');
+    setAdminIdHeader(null); // Clear header on error
     return null;
   }
 };
