@@ -4,12 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { adminSupabase } from '@/lib/adminSupabase';
-
-// Polyfill global if not defined (for browser environment)
-if (typeof window !== 'undefined' && !window.global) {
-  window.global = window;
-}
+import { authenticateAdmin } from '@/lib/adminSupabase';
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('');
@@ -23,13 +18,15 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const { success, error } = await adminSupabase.rpc('authenticate_admin', {
-        _username: username,
-        _password: password
-      });
+      const { success, admin, error } = await authenticateAdmin(username, password);
 
-      if (success) {
+      if (success && admin) {
+        localStorage.setItem('adminSession', JSON.stringify(admin));
         navigate('/admin');
+        toast({
+          title: 'Login Successful',
+          description: `Welcome back, ${admin.username}`,
+        });
       } else {
         toast({
           title: 'Login Failed',
@@ -65,6 +62,7 @@ export default function AdminLogin() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
             />
           </div>
           <div className="space-y-2">
@@ -75,6 +73,7 @@ export default function AdminLogin() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
