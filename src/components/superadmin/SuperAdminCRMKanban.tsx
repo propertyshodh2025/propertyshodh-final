@@ -122,6 +122,7 @@ export default function SuperAdminCRMKanban() {
 
         if (leadsResult.error) throw leadsResult.error;
         setAllLeads(leadsResult.data || []);
+        console.log('Fetched leads:', leadsResult.data); // Add this log
 
         if (adminUsersResult.error) throw adminUsersResult.error;
         setAdminUsers(adminUsersResult.data || []);
