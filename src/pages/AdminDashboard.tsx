@@ -12,6 +12,7 @@ import FeaturePropertiesManager from '@/components/admin/FeaturePropertiesManage
 import MarketIntelligenceManager from '@/components/admin/MarketIntelligenceManager';
 import { AdminSiteSettings } from '@/components/admin/AdminSiteSettings';
 import { AdminManagementContent } from '@/components/admin/AdminManagementContent'; // Assuming this is for user/admin management
+import { Badge } from '@/components/ui/badge'; // Added Badge import
 
 const AdminDashboard: React.FC = () => {
   const { adminLogout, admin, loading: authLoading } = useAdminAuth();
