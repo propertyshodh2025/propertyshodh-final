@@ -15,11 +15,14 @@ import SuperAdminUserInquiries from '@/components/superadmin/SuperAdminUserInqui
 import { AdminSiteSettings } from '@/components/admin/AdminSiteSettings';
 import AdminActivities from '@/pages/AdminActivities';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const SuperAdminDashboard: React.FC = () => {
-  const { adminLogout } = useAdminAuth();
+  const { adminLogout, admin, loading: authLoading } = useAdminAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
+
+  console.log('SuperAdminDashboard: Rendering. AuthLoading:', authLoading, 'Admin:', admin);
 
   const handleSignOut = async () => {
     await adminLogout();
@@ -27,6 +30,26 @@ const SuperAdminDashboard: React.FC = () => {
     sessionStorage.clear();
     navigate('/admin-login');
   };
+
+  if (authLoading) {
+    console.log('SuperAdminDashboard: Showing loading spinner.');
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // If authLoading is false but admin is null, it means authentication failed or session expired.
+  // AdminRouteProtection should have handled the redirect, but as a fallback/debug:
+  if (!admin) {
+    console.log('SuperAdminDashboard: Auth loading finished, but no admin found. This should have been redirected by AdminRouteProtection.');
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Access Denied. Please log in.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 p-4 md:p-8">

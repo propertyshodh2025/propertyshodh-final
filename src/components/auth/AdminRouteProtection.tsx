@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoadingSpinner } from '@/components/LoadingSpinner'; // Assuming you have a LoadingSpinner component
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface AdminRouteProtectionProps {
   children: React.ReactNode;
@@ -13,20 +13,23 @@ export const AdminRouteProtection: React.FC<AdminRouteProtectionProps> = ({ chil
   const { admin, loading: adminAuthLoading } = useAdminAuth();
   const { loading: userAuthLoading } = useAuth();
 
+  console.log('AdminRouteProtection: Rendering. AdminAuthLoading:', adminAuthLoading, 'UserAuthLoading:', userAuthLoading, 'Admin:', admin, 'Required Role:', requiredRole);
+
   if (adminAuthLoading || userAuthLoading) {
+    console.log('AdminRouteProtection: Showing loading spinner.');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner />
       </div>
     );
+  );
   }
 
   if (!admin) {
-    // If no admin session, redirect to admin login
+    console.log('AdminRouteProtection: No admin found, redirecting to /admin-login.');
     return <Navigate to="/admin-login" replace />;
   }
 
-  // Check if the admin's role meets the required role
   const roleHierarchy = {
     'admin': 1,
     'superadmin': 2,
@@ -36,10 +39,13 @@ export const AdminRouteProtection: React.FC<AdminRouteProtectionProps> = ({ chil
   const currentAdminRoleLevel = roleHierarchy[admin.role as keyof typeof roleHierarchy] || 0;
   const requiredRoleLevel = roleHierarchy[requiredRole] || 0;
 
+  console.log('AdminRouteProtection: Current Admin Role:', admin.role, 'Level:', currentAdminRoleLevel, 'Required Role:', requiredRole, 'Level:', requiredRoleLevel);
+
   if (currentAdminRoleLevel < requiredRoleLevel) {
-    // If the admin's role is insufficient, redirect to a forbidden page or admin dashboard
-    return <Navigate to="/admin" replace />; // Or a specific /forbidden page
+    console.log('AdminRouteProtection: Insufficient role, redirecting to /admin.');
+    return <Navigate to="/admin" replace />;
   }
 
+  console.log('AdminRouteProtection: Access granted.');
   return <>{children}</>;
 };
