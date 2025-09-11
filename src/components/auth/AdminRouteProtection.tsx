@@ -22,7 +22,6 @@ export const AdminRouteProtection: React.FC<AdminRouteProtectionProps> = ({ chil
         <LoadingSpinner />
       </div>
     );
-  );
   }
 
   if (!admin) {
