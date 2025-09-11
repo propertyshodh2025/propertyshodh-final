@@ -12,8 +12,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone, MessageCircle, StickyNote, LayoutDashboard, UserMinus } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { formatRelativeTime, formatDate } from '@/lib/dateUtils';
+import { Phone, MessageCircle, UserPlus, ChevronDown, StickyNote } from 'lucide-react';
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'closed';
 export type LeadPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -41,6 +42,38 @@ interface Lead {
   next_follow_up_at: string | null;
   last_contacted_at: string | null;
   notes: string | null;
+}
+
+interface ConsolidatedLead {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  status: LeadStatus;
+  priority: LeadPriority;
+  assigned_admin_id: string | null;
+  properties: {
+    id: string;
+    title: string;
+    checked?: boolean;
+  }[];
+  propertyCount: number;
+  created_at: string;
+  updated_at: string;
+  last_contacted_at: string | null;
+  next_follow_up_at: string | null;
+  purpose: string | null;
+  property_type: string | null;
+  budget_range: string | null;
+  location: string | null;
+  city: string | null;
+}
+
+interface AdminUser {
+  id: string; // This will be the UUID
+  username: string;
+  role: 'admin' | 'superadmin' | 'super_super_admin';
+  is_active: boolean;
 }
 
 const STATUSES: { id: LeadStatus; title: string }[] = [
@@ -81,141 +114,207 @@ function DraggableCard({ id, children }: { id: string; children: React.ReactNode
   );
 }
 
-export default function AdminCRMKanban() {
+export default function CRMKanban() {
   const { toast } = useToast();
-  const [myLeads, setMyLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [consolidatedLeads, setConsolidatedLeads] = useState<ConsolidatedLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [noteLeadId, setNoteLeadId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
-  const currentAdminSession = useMemo(() => getCurrentAdminSession(), []);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]); // State to store actual admin users
+  const currentAdminSession = getCurrentAdminSession(); // Get current admin session
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  // Fetch admin users on component mount (only for display, assignment is restricted by RLS)
   useEffect(() => {
-    if (!currentAdminSession) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchMyLeads = async () => {
-      setLoading(true);
+    const fetchAdminUsers = async () => {
       try {
-        // RLS will automatically filter to only leads assigned to this admin
+        const { data, error } = await adminSupabase.rpc('get_admin_credentials');
+        if (error) throw error;
+        setAdminUsers(data || []);
+      } catch (e) {
+        console.error('Error fetching admin users:', e);
+        toast({ title: 'Error', description: 'Failed to load admin users for assignment', variant: 'destructive' });
+      }
+    };
+    fetchAdminUsers();
+  }, [toast]);
+
+  // Consolidate leads by phone number and filter by search term
+  const grouped = useMemo(() => {
+    const byStatus: Record<LeadStatus, ConsolidatedLead[]> = {
+      new: [], contacted: [], qualified: [], closed: []
+    };
+
+    const phoneGroups: Record<string, Lead[]> = {};
+    leads.forEach(lead => {
+      if (!phoneGroups[lead.phone]) {
+        phoneGroups[lead.phone] = [];
+      }
+      phoneGroups[lead.phone].push(lead);
+    });
+
+    const consolidated: ConsolidatedLead[] = Object.values(phoneGroups).map(group => {
+      const sortedGroup = group.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+      const primary = sortedGroup[0];
+      
+      const properties = group
+        .filter(lead => lead.property_id && lead.property_title)
+        .reduce((acc, lead) => {
+          if (!acc.find(p => p.id === lead.property_id)) {
+            acc.push({
+              id: lead.property_id!,
+              title: lead.property_title!,
+              checked: false
+            });
+          }
+          return acc;
+        }, [] as { id: string; title: string; checked: boolean }[]);
+
+      return {
+        id: primary.id,
+        name: primary.name,
+        phone: primary.phone,
+        email: primary.email,
+        status: primary.status,
+        priority: primary.priority,
+        assigned_admin_id: primary.assigned_admin_id,
+        properties,
+        propertyCount: properties.length,
+        created_at: primary.created_at,
+        updated_at: primary.updated_at,
+        last_contacted_at: primary.last_contacted_at,
+        next_follow_up_at: primary.next_follow_up_at,
+        purpose: primary.purpose,
+        property_type: primary.property_type,
+        budget_range: primary.budget_range,
+        location: primary.location,
+        city: primary.city,
+      };
+    });
+
+    consolidated
+      .filter((l) =>
+        [l.name, l.phone, l.location, l.city, l.purpose, l.property_type, ...l.properties.map(p => p.title)]
+          .filter(Boolean)
+          .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
+      )
+      .forEach((l) => byStatus[l.status].push(l));
+    return byStatus;
+  }, [leads, search]); // Now depends only on leads and search
+
+  // Removed the separate useEffect for setConsolidatedLeads as it's now handled within useMemo for grouped.
+
+  useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        // RLS will automatically filter leads to only those assigned to the current admin
         const { data, error } = await adminSupabase
           .from('leads')
           .select('*')
           .order('created_at', { ascending: false });
-
         if (error) throw error;
-        setMyLeads(data || []);
+        setLeads(data as unknown as Lead[]);
       } catch (e) {
-        console.error('Error fetching my leads:', e);
-        toast({ title: 'Error', description: 'Failed to load your leads', variant: 'destructive' });
+        console.error(e);
+        toast({ title: 'Error', description: 'Failed to load leads', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
     };
-    fetchMyLeads();
+    fetchLeads();
 
     const channel = adminSupabase
-      .channel(`admin-crm-leads-${currentAdminSession.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `assigned_admin_id=eq.${currentAdminSession.id}` }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setMyLeads((prev) => [payload.new as Lead, ...prev]);
+      .channel('crm-leads-admin') // Use a different channel name for normal admin
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (payload) => {
+        // Only update if the change is relevant to the current admin's assigned leads
+        const newLead = payload.new as Lead;
+        const oldLead = payload.old as Lead;
+
+        if (payload.eventType === 'INSERT' && newLead.assigned_admin_id === currentAdminSession?.id) {
+          setLeads((prev) => [newLead, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
-          setMyLeads((prev) => prev.map((l) => (l.id === payload.new.id ? (payload.new as Lead) : l)));
-        } else if (payload.eventType === 'DELETE') {
-          setMyLeads((prev) => prev.filter((l) => l.id !== payload.old.id));
-        }
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leads', filter: `assigned_admin_id=is.null` }, (payload) => {
-        // If a lead assigned to this admin is unassigned, remove it from view
-        if (payload.old.assigned_admin_id === currentAdminSession.id && payload.new.assigned_admin_id === null) {
-          setMyLeads((prev) => prev.filter((l) => l.id !== payload.new.id));
+          if (newLead.assigned_admin_id === currentAdminSession?.id) {
+            setLeads((prev) => prev.map((l) => (l.id === newLead.id ? newLead : l)));
+          } else if (oldLead?.assigned_admin_id === currentAdminSession?.id && newLead.assigned_admin_id !== currentAdminSession?.id) {
+            // Lead was assigned to this admin, but now it's not, so remove it
+            setLeads((prev) => prev.filter((l) => l.id !== oldLead.id));
+          }
+        } else if (payload.eventType === 'DELETE' && oldLead?.assigned_admin_id === currentAdminSession?.id) {
+          setLeads((prev) => prev.filter((l) => l.id !== oldLead.id));
         }
       })
       .subscribe();
     return () => {
       adminSupabase.removeChannel(channel);
     };
-  }, [toast, currentAdminSession]);
-
-  const leadsByStatus = useMemo(() => {
-    const filteredLeads = myLeads.filter((l) =>
-      [l.name, l.phone, l.email, l.location, l.city, l.purpose, l.property_type, l.property_title, ...l.tags]
-        .filter(Boolean)
-        .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
-    );
-
-    const grouped: Record<LeadStatus, Lead[]> = {
-      new: [],
-      contacted: [],
-      qualified: [],
-      closed: [],
-    };
-    filteredLeads.forEach(lead => {
-      if (grouped[lead.status]) {
-        grouped[lead.status].push(lead);
-      }
-    });
-    return grouped;
-  }, [myLeads, search]);
-
-  const updateLeadStatus = async (leadId: string, newStatus: LeadStatus) => {
-    try {
-      const { error } = await adminSupabase
-        .from('leads')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', leadId);
-      if (error) throw error;
-
-      setMyLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus, updated_at: new Date().toISOString() } : l)));
-      toast({ title: 'Status Updated', description: `Lead status changed to ${newStatus}` });
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Failed to update status', description: 'Please try again', variant: 'destructive' });
-    }
-  };
-
-  const unassignLead = async (leadId: string) => {
-    try {
-      const { error } = await adminSupabase
-        .from('leads')
-        .update({ assigned_admin_id: null, updated_at: new Date().toISOString() })
-        .eq('id', leadId);
-      if (error) throw error;
-
-      setMyLeads((prev) => prev.filter((l) => l.id !== leadId)); // Remove from current admin's view
-      toast({ title: 'Lead Unassigned', description: 'Lead has been unassigned from you.' });
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Failed to unassign lead', description: 'Please try again', variant: 'destructive' });
-    }
-  };
+  }, [toast, currentAdminSession?.id]);
 
   const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
-
-    const leadId = active.id as string;
     const newStatus = over.id as LeadStatus;
+    const leadPhone = active.id as string;
+    
+    try {
+      // RLS will ensure only leads assigned to the current admin can be updated
+      const { error } = await adminSupabase
+        .from('leads')
+        .update({ status: newStatus })
+        .eq('phone', leadPhone)
+        .eq('assigned_admin_id', currentAdminSession?.id); // Explicitly filter by assigned_admin_id
+      if (error) throw error;
+      
+      setLeads((prev) => prev.map((l) => (l.phone === leadPhone ? { ...l, status: newStatus } : l)));
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Failed to move lead', description: 'Please try again', variant: 'destructive' });
+    }
+  };
 
-    if (STATUSES.some(s => s.id === newStatus)) {
-      await updateLeadStatus(leadId, newStatus);
+  const assignLead = async (phone: string, adminId: string) => {
+    // For normal admins, this action should only allow assigning to themselves or unassigning
+    // RLS will prevent assigning to other admins.
+    const session = getCurrentAdminSession();
+    if (!session) {
+      toast({ title: 'No admin session', description: 'Please log in again', variant: 'destructive' });
+      return;
+    }
+
+    // If the admin tries to assign to someone else, or unassign, it will be blocked by RLS.
+    // The UI here for normal admins should ideally only show "Assign to Me" or "Unassign".
+    // For now, we'll let RLS handle the restriction.
+    try {
+      const { error } = await adminSupabase
+        .from('leads')
+        .update({ assigned_admin_id: adminId === 'unassigned' ? null : adminId })
+        .eq('phone', phone)
+        .eq('assigned_admin_id', session.id); // Only allow updating leads currently assigned to them
+      if (error) throw error;
+      
+      setLeads((prev) => prev.map((l) => (l.phone === phone ? { ...l, assigned_admin_id: adminId === 'unassigned' ? null : adminId } : l)));
+      const assignedAdmin = adminUsers.find(u => u.id === adminId);
+      toast({ title: 'Assigned', description: `Lead assigned to ${assignedAdmin?.username || 'Unassigned'}` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Failed to assign', description: 'Please try again', variant: 'destructive' });
     }
   };
 
   const saveNote = async () => {
     if (!noteLeadId || !noteText.trim()) return;
-    if (!currentAdminSession) {
+    const session = getCurrentAdminSession();
+    if (!session) {
       toast({ title: 'No admin session', description: 'Please log in again', variant: 'destructive' });
       return;
     }
     try {
+      // RLS will ensure notes can only be added to leads assigned to the current admin
       const { error } = await adminSupabase.from('lead_notes').insert({
         lead_id: noteLeadId,
-        admin_id: currentAdminSession.id,
+        admin_id: session.id,
         note: noteText.trim(),
       });
       if (error) throw error;
@@ -228,6 +327,22 @@ export default function AdminCRMKanban() {
     }
   };
 
+  const togglePropertyCheck = async (leadPhone: string, propertyId: string) => {
+    setConsolidatedLeads(prev => 
+      prev.map(lead => {
+        if (lead.phone === leadPhone) {
+          return {
+            ...lead,
+            properties: lead.properties.map(prop => 
+              prop.id === propertyId ? { ...prop, checked: !prop.checked } : prop
+            )
+          };
+        }
+        return lead;
+      })
+    );
+  };
+
   const handleCall = (phone: string) => {
     window.open(`tel:${phone}`, '_self');
   };
@@ -238,130 +353,142 @@ export default function AdminCRMKanban() {
     window.open(`https://wa.me/${formatted}?text=${message}`, '_blank');
   };
 
-  const getLeadTypeBadge = (type: Lead['source_type']) => {
-    switch (type) {
-      case 'property_inquiry': return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">Property Inquiry</Badge>;
-      case 'user_inquiry': return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">User Inquiry</Badge>;
-      case 'research_report': return <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">Research Report</Badge>;
-      case 'saved_activity': return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Saved Property</Badge>;
-      case 'manual': return <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300">Manual Lead</Badge>;
-      default: return <Badge variant="outline">Unknown</Badge>;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-lg">🔄 Loading your leads...</div>
-      </div>
-    );
-  }
-
-  if (!currentAdminSession) {
-    return (
-      <div className="text-center py-10 text-muted-foreground">
-        Please log in as an admin to view your assigned leads.
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">My Assigned Leads</h2>
-
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <Input
-          placeholder="Search your leads by name, phone, property, location..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-96"
-        />
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Input
+            placeholder="Search leads by name, phone, property, location..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full sm:w-96"
+          />
+        </div>
       </div>
 
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {STATUSES.map(statusCol => (
-            <DroppableColumn key={statusCol.id} id={statusCol.id}>
-              <Card className="border border-border/60 h-full">
-                <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
-                  <CardTitle className="text-sm flex items-center justify-between">
-                    <span>{statusCol.title}</span>
-                    <Badge variant="secondary">{leadsByStatus[statusCol.id].length}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 space-y-3 min-h-[200px]">
-                  {leadsByStatus[statusCol.id].length === 0 ? (
-                    <div className="text-xs text-muted-foreground py-6 text-center">No leads in this status</div>
-                  ) : (
-                    leadsByStatus[statusCol.id].map((lead) => (
-                      <DraggableCard key={lead.id} id={lead.id}>
-                        <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
-                              <div className="text-xs text-muted-foreground">{lead.phone}</div>
-                              {lead.email && <div className="text-xs text-muted-foreground line-clamp-1">{lead.email}</div>}
+      {loading ? (
+        <div className="text-center py-10 text-muted-foreground">Loading CRM…</div>
+      ) : (
+        <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {STATUSES.map((col) => (
+              <DroppableColumn key={col.id} id={col.id}>
+                <Card className="border border-border/60 h-full">
+                  <CardHeader className="py-3 px-4 border-b border-border/50 bg-card/50">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>{col.title}</span>
+                      <Badge variant="outline">{grouped[col.id].length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 space-y-3">
+                    {grouped[col.id].length === 0 ? (
+                      <div className="text-xs text-muted-foreground py-6 text-center">No leads</div>
+                    ) : (
+                      grouped[col.id].map((lead) => (
+                        <DraggableCard key={lead.phone} id={lead.phone}>
+                          <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
+                                <div className="text-xs text-muted-foreground">{lead.phone}</div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
+                                  <Phone className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
+                                  <MessageCircle className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
-                                <Phone className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
-                                <MessageCircle className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
 
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {getLeadTypeBadge(lead.source_type)}
-                            {lead.property_title && <Badge variant="secondary">{lead.property_title}</Badge>}
-                            {lead.location && <Badge variant="secondary">{lead.location}</Badge>}
-                            {lead.city && <Badge variant="secondary">{lead.city}</Badge>}
-                          </div>
-
-                          <div className="mt-2 flex items-center gap-2 flex-wrap">
-                            <Badge variant={priorityColor[lead.priority]}>Priority: {lead.priority}</Badge>
-                            {lead.next_follow_up_at && (
-                              <Badge variant="outline">Follow-up: {formatDate(lead.next_follow_up_at)}</Badge>
+                            {/* Properties interested in */}
+                            {lead.properties.length > 0 && (
+                              <div className="mt-2">
+                                <div className="text-xs text-muted-foreground mb-1">
+                                  Properties interested ({lead.propertyCount}):
+                                </div>
+                                <div className="space-y-1 max-h-24 overflow-y-auto">
+                                  {lead.properties.map((property) => (
+                                    <div key={property.id} className="flex items-center gap-2">
+                                      <Checkbox
+                                        id={`${lead.phone}-${property.id}`}
+                                        checked={property.checked}
+                                        onCheckedChange={() => togglePropertyCheck(lead.phone, property.id)}
+                                      />
+                                      <label
+                                        htmlFor={`${lead.phone}-${property.id}`}
+                                        className="text-xs cursor-pointer line-clamp-1 flex-1"
+                                      >
+                                        {property.title}
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             )}
-                          </div>
 
-                          <div className="mt-3 flex items-center gap-2 flex-wrap">
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={() => {
-                                setNoteLeadId(lead.id);
-                                setNoteText('');
-                              }}
-                            >
-                              <StickyNote className="h-4 w-4 mr-1" />
-                              Add note
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={() => unassignLead(lead.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <UserMinus className="h-4 w-4 mr-1" />
-                              Unassign
-                            </Button>
-                          </div>
+                            <div className="mt-2 text-xs text-muted-foreground line-clamp-2">
+                              {[lead.purpose, lead.property_type, lead.budget_range, lead.location, lead.city]
+                                .filter(Boolean)
+                                .join(' • ')}
+                            </div>
+                            
+                            <div className="mt-2 flex items-center gap-2 flex-wrap">
+                              <Badge variant={priorityColor[lead.priority]}>Priority: {lead.priority}</Badge>
+                              {lead.next_follow_up_at && (
+                                <Badge variant="outline">Follow-up: {formatDate(lead.next_follow_up_at)}</Badge>
+                              )}
+                              {lead.assigned_admin_id && (
+                                <Badge variant="secondary">
+                                  Assigned: {adminUsers.find(u => u.id === lead.assigned_admin_id)?.username || 'Unknown'}
+                                </Badge>
+                              )}
+                            </div>
 
-                          <div className="mt-2 text-[11px] text-muted-foreground">
-                            Updated {formatRelativeTime(lead.updated_at)}
+                            <div className="mt-3 flex items-center gap-2 flex-wrap">
+                              {/* For normal admins, this dropdown should ideally only allow "Unassign" or "Assign to Me" */}
+                              <Select onValueChange={(value) => assignLead(lead.phone, value)}>
+                                <SelectTrigger className="w-auto h-8">
+                                  <div className="flex items-center gap-1">
+                                    <UserPlus className="h-4 w-4" />
+                                    <span className="text-xs">Assign to</span>
+                                    <ChevronDown className="h-3 w-3" />
+                                  </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={currentAdminSession?.id || ''}>Assign to Me</SelectItem>
+                                  <SelectItem value="unassigned">Unassign</SelectItem>
+                                  {/* Removed other admin options for normal admin view */}
+                                </SelectContent>
+                              </Select>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => {
+                                  setNoteLeadId(lead.id);
+                                  setNoteText('');
+                                }}
+                              >
+                                <StickyNote className="h-4 w-4 mr-1" />
+                                Add note
+                              </Button>
+                            </div>
+
+                            <div className="mt-2 text-[11px] text-muted-foreground">
+                              Updated {formatRelativeTime(lead.updated_at)}
+                            </div>
                           </div>
-                        </div>
-                      </DraggableCard>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </DroppableColumn>
-          ))}
-        </div>
-      </DndContext>
+                        </DraggableCard>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </DroppableColumn>
+            ))}
+          </div>
+        </DndContext>
+      )}
 
       <Dialog open={!!noteLeadId} onOpenChange={(open) => !open && (setNoteLeadId(null), setNoteText(''))}>
         <DialogContent>
