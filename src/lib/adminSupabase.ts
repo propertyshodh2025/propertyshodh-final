@@ -3,20 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = "https://bujpqglebnkdwlbguekm.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1anBxZ2xlYm5rZHdsYmd1ZWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0ODE2MjEsImV4cCI6MjA2ODA1NzYyMX0.Db4ysTZ2uNEAy59uXjMx8fllwoAUlgyqAxZftZ1WKI8";
 
-// Create a special admin client that doesn't use auth context
-export const adminSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-  // Override default headers to ensure we get admin access
-  global: {
-    headers: {
-      'x-admin-bypass': 'true'
-    }
-  }
-});
-
 // Types for admin session management
 interface AdminSession {
   id: string;
@@ -25,6 +11,62 @@ interface AdminSession {
   sessionToken: string;
   expiresAt: string;
 }
+
+// Helper function to get current admin session
+const getCurrentAdminSessionInternal = (): AdminSession | null => {
+  try {
+    const sessionStr = localStorage.getItem('adminSession');
+    if (!sessionStr) return null;
+
+    const session: AdminSession = JSON.parse(sessionStr);
+    
+    // Check if session is expired
+    if (new Date(session.expiresAt) < new Date()) {
+      localStorage.removeItem('adminSession');
+      return null;
+    }
+
+    return session;
+  } catch (error) {
+    localStorage.removeItem('adminSession');
+    return null;
+  }
+};
+
+// Base admin client without session headers
+const baseAdminSupabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
+
+// Function to get admin client with current session token
+export const getAdminSupabase = () => {
+  const session = getCurrentAdminSessionInternal();
+  if (!session?.sessionToken) {
+    return baseAdminSupabase;
+  }
+  
+  return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        'x-admin-session': session.sessionToken
+      }
+    }
+  });
+};
+
+// Default export for backward compatibility - use the session-aware version
+export const adminSupabase = new Proxy({}, {
+  get(target, prop) {
+    return getAdminSupabase()[prop];
+  }
+});
 
 interface AdminAuthResult {
   success: boolean;
@@ -151,25 +193,7 @@ export const logoutAdmin = async (): Promise<void> => {
 };
 
 // Helper function to get current admin session
-export const getCurrentAdminSession = (): AdminSession | null => {
-  try {
-    const sessionStr = localStorage.getItem('adminSession');
-    if (!sessionStr) return null;
-
-    const session: AdminSession = JSON.parse(sessionStr);
-    
-    // Check if session is expired
-    if (new Date(session.expiresAt) < new Date()) {
-      localStorage.removeItem('adminSession');
-      return null;
-    }
-
-    return session;
-  } catch (error) {
-    localStorage.removeItem('adminSession');
-    return null;
-  }
-};
+export const getCurrentAdminSession = getCurrentAdminSessionInternal;
 
 // Legacy helper function for backward compatibility
 export const isAdminAuthenticated = (): boolean => {

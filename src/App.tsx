@@ -22,6 +22,7 @@ import UserDashboard from "./pages/UserDashboard";
 import PresentationPage from "./pages/PresentationPage";
 import NotFound from "./pages/NotFound";
 import ServicesPage from "./pages/ServicesPage";
+import AboutPage from "./pages/AboutPage";
 import LanguageSEO from "@/components/LanguageSEO";
 
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
@@ -79,6 +80,7 @@ const AppContent = () => {
           </AdminRouteProtection>
         } />
         <Route path="/presentation" element={<PresentationPage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/services/loans" element={<ServicesPage />} />
         <Route path="/services/valuation" element={<ServicesPage />} />

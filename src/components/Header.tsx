@@ -4,7 +4,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, LogIn, User, Plus, Menu } from 'lucide-react';
+import { Home, LogIn, User, Plus, Menu, Info, Briefcase } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -71,6 +71,46 @@ export const Header: React.FC = () => {
                 />
               </div>
               <span className="text-lg font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">PropertyShodh</span>
+            </div>
+
+            {/* Center: Navigation */}
+            <div className="hidden lg:flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/')}
+                className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                  location.pathname === '/' 
+                    ? 'bg-primary/10 text-primary font-medium' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <Home className="w-4 h-4 mr-2" />
+                {t('home') || 'Home'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/about')}
+                className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                  location.pathname === '/about' 
+                    ? 'bg-primary/10 text-primary font-medium' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <Info className="w-4 h-4 mr-2" />
+                {t('about') || 'About'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/services')}
+                className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                  location.pathname.startsWith('/services') 
+                    ? 'bg-primary/10 text-primary font-medium' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <Briefcase className="w-4 h-4 mr-2" />
+                {t('services') || 'Services'}
+              </Button>
             </div>
 
             {/* Right: Actions */}
@@ -144,6 +184,34 @@ export const Header: React.FC = () => {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-80 bg-background/80 backdrop-blur-2xl border-l border-white/20 shadow-2xl">
                   <div className="flex flex-col gap-6 mt-6">
+                    
+                    {/* Mobile Navigation */}
+                    <div className="flex flex-col gap-2">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={() => handleNavigation('/')}
+                      >
+                        <Home className="w-4 h-4 mr-2" />
+                        {t('home') || 'Home'}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={() => handleNavigation('/about')}
+                      >
+                        <Info className="w-4 h-4 mr-2" />
+                        {t('about') || 'About'}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={() => handleNavigation('/services')}
+                      >
+                        <Briefcase className="w-4 h-4 mr-2" />
+                        {t('services') || 'Services'}
+                      </Button>
+                    </div>
                     
                     {/* Mobile User Section */}
                     {user ? (

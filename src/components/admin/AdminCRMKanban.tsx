@@ -210,11 +210,8 @@ export default function CRMKanban() {
   useEffect(() => {
     const fetchLeads = async () => {
       try {
-        // RLS will automatically filter leads to only those assigned to the current admin
-        const { data, error } = await adminSupabase
-          .from('leads')
-          .select('*')
-          .order('created_at', { ascending: false });
+        // Use the new RPC function that properly handles admin session authentication
+        const { data, error } = await adminSupabase.rpc('get_admin_assigned_leads');
         if (error) throw error;
         setLeads(data as unknown as Lead[]);
       } catch (e) {
