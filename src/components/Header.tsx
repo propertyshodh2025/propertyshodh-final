@@ -50,15 +50,15 @@ export const Header: React.FC = () => {
           ? 'py-2 bg-background/80 backdrop-blur-2xl border-b border-white/20 dark:border-white/10 shadow-2xl shadow-primary/10' 
           : 'py-4 bg-background/60 backdrop-blur-xl border-b border-white/30 dark:border-white/15 shadow-xl shadow-primary/5'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-8">
+        <div className="w-full pl-1 pr-4 sm:pl-2 sm:pr-6 lg:pl-3 lg:pr-8">
+          <div className="flex items-center justify-between h-16 gap-4 min-w-0">
             
             {/* Left: Logo */}
             <div 
-              className="flex items-center gap-3 cursor-pointer group"
+              className="flex items-center gap-3 cursor-pointer group flex-shrink-0 ml-0"
               onClick={() => navigate('/')}
             >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:shadow-primary/30 transition-all duration-300 overflow-hidden">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:shadow-primary/30 transition-all duration-300 overflow-hidden">
                 <img 
                   src="/uploads/324f6fd3-8142-434c-a7ea-4f1aabf59921.png" 
                   alt="Property Radar Logo" 
@@ -70,11 +70,11 @@ export const Header: React.FC = () => {
                   onLoad={() => console.log('NEW LOGO LOADED SUCCESSFULLY!')}
                 />
               </div>
-              <span className="text-lg font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">PropertyShodh</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent whitespace-nowrap">PropertyShodh</span>
             </div>
 
             {/* Center: Navigation */}
-            <div className="hidden lg:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center min-w-0">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/')}
@@ -112,7 +112,7 @@ export const Header: React.FC = () => {
 
             {/* Right: Actions */}
 
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
               
               {/* List New Property Button - Only show on user dashboard */}
               {isUserDashboard && user && (
@@ -170,7 +170,7 @@ export const Header: React.FC = () => {
             </div>
 
             {/* Mobile Menu */}
-            <div className="lg:hidden flex items-center gap-2">
+            <div className="lg:hidden flex items-center gap-2 flex-shrink-0">
               <LanguageToggle />
               <ThemeToggle />
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
