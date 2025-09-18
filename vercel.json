@@ -1,11 +1,10 @@
 {
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install --no-optional --frozen-lockfile --ignore-scripts=false",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "framework": "vite",
   "build": {
     "env": {
-      "NODE_OPTIONS": "--max_old_space_size=4096",
-      "PNPM_FLAGS": "--ignore-scripts=false"
+      "NODE_OPTIONS": "--max_old_space_size=4096"
     }
   },
   "rewrites": [
