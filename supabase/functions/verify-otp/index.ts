@@ -102,26 +102,37 @@ serve(async (req) => {
       const userClient = createClient(SUPABASE_URL, SERVICE_KEY);
       const { data: userData } = await userClient.auth.getUser(jwt);
       const uid = userData?.user?.id;
+      const userEmail = userData?.user?.email;
       if (uid) {
-        console.log(`📝 Updating profile for user: ${uid} with phone: +91${phone}`);
+        console.log(`📝 Creating/updating complete profile for user: ${uid} (${userEmail}) with phone: +91${phone}`);
         const { error: profileError } = await supabase
           .from("profiles")
           .upsert(
             {
               user_id: uid,
+              email: userEmail,
               phone_number: `+91${phone}`,
               mobile_verified: true,
+              terms_accepted: true,
+              privacy_policy_accepted: true,
+              terms_accepted_at: new Date().toISOString(),
+              privacy_policy_accepted_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             },
             { onConflict: "user_id" }
           );
         
         if (profileError) {
-          console.error("❌ Error updating profile:", profileError);
+          console.error("❌ Error creating/updating profile:", profileError);
+          console.error("Profile error details:", JSON.stringify(profileError, null, 2));
         } else {
-          console.log("✅ Profile updated successfully");
+          console.log("✅ Profile created/updated successfully with full verification");
         }
+      } else {
+        console.warn("⚠️ No user ID found in JWT");
       }
+    } else {
+      console.warn("⚠️ No JWT token found - profile will not be updated");
     }
 
     return new Response(JSON.stringify({ verified: true }), {

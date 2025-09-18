@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { EnhancedMobileVerificationDialog } from "@/components/auth/EnhancedMobileVerificationDialog";
@@ -9,117 +9,97 @@ export const PhoneVerificationGate: React.FC = () => {
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
   const [checked, setChecked] = useState(false);
-  const checkInProgressRef = useRef(false);
-  const lastCheckedUserRef = useRef<string | null>(null);
-  const verificationStatusCache = useRef<{ [userId: string]: boolean }>({});
+  const [isChecking, setIsChecking] = useState(false);
 
   const checkProfile = useCallback(async () => {
-    if (loading || checkInProgressRef.current) return;
+    if (loading || isChecking) return;
     if (!user) {
       setOpen(false);
       setChecked(true);
       return;
     }
 
-    // If we already checked this user and they were verified, don't check again
-    if (lastCheckedUserRef.current === user.id && verificationStatusCache.current[user.id] === true) {
-      console.log(`♾️ User ${user.id} already verified in cache, skipping check`);
-      setOpen(false);
-      setChecked(true);
-      return;
-    }
-
-    // If we're checking the same user again too quickly, skip
-    if (lastCheckedUserRef.current === user.id && Date.now() - (verificationStatusCache.current[`${user.id}_timestamp`] || 0) < 5000) {
-      console.log(`⏱️ Skipping recent check for user ${user.id}`);
-      return;
-    }
-
-    checkInProgressRef.current = true;
+    setIsChecking(true);
     
     try {
-      console.log(`🔍 Checking verification status for user: ${user.id}`);
+      console.log(`🔍 [VERIFICATION CHECK] Checking for user: ${user.id}`);
+      console.log(`🔍 [USER INFO] Email: ${user.email}`);
       
-      // Fetch profile including terms acceptance status
+      // Always fetch fresh data from database - no caching
       const { data, error } = await supabase
         .from("profiles")
-        .select("mobile_verified, phone_number, terms_accepted, privacy_policy_accepted")
+        .select("mobile_verified, phone_number, terms_accepted, privacy_policy_accepted, email")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (error) {
-        console.warn("❌ Profile check error", error);
-        console.log("🛠️ Will create profile and show verification dialog");
+        console.error("❌ [DB ERROR] Profile check failed:", error);
+        console.log("🛠️ [ACTION] Showing dialog due to DB error");
         setOpen(true);
         setChecked(true);
         return;
       }
 
-      // Handle case where profile doesn't exist yet (data is null)
+      // Handle case where profile doesn't exist yet
       if (!data) {
-        console.log(`🆆 No profile exists for user ${user.id}, will create one during verification`);
-        console.log("🛠️ Showing verification dialog for new user");
+        console.log(`⚠️ [MISSING PROFILE] No profile exists for user ${user.id}`);
+        console.log("🛠️ [ACTION] Showing dialog for new user");
         setOpen(true);
         setChecked(true);
         return;
       }
 
-      console.log(`📋 Profile data:`, {
+      // Log current verification status from database
+      console.log(`📋 [PROFILE DATA] Status for user ${user.id}:`, {
         mobile_verified: data.mobile_verified,
-        phone_number: data.phone_number ? '***' + data.phone_number.slice(-4) : 'null',
+        phone_number: data.phone_number ? '***' + data.phone_number.slice(-4) : null,
         terms_accepted: data.terms_accepted,
-        privacy_policy_accepted: data.privacy_policy_accepted
+        privacy_policy_accepted: data.privacy_policy_accepted,
+        email: data.email
       });
 
+      // Check all verification requirements
       const isMobileVerified = Boolean(data.mobile_verified) && Boolean(data.phone_number);
       const isTermsAccepted = Boolean(data.terms_accepted);
       const isPrivacyAccepted = Boolean(data.privacy_policy_accepted);
       
-      // Show dialog if any of the mandatory requirements are not met
+      // User is fully verified if ALL conditions are met
       const isFullyVerified = isMobileVerified && isTermsAccepted && isPrivacyAccepted;
       
-      // Cache the verification status
-      verificationStatusCache.current[user.id] = isFullyVerified;
-      verificationStatusCache.current[`${user.id}_timestamp`] = Date.now();
-      lastCheckedUserRef.current = user.id;
-      
-      console.log(`✅ Verification check complete:`, {
-        profileExists: true,
-        isMobileVerified,
-        isTermsAccepted,
-        isPrivacyAccepted,
-        isFullyVerified,
-        shouldShowDialog: !isFullyVerified
+      console.log(`📊 [VERIFICATION RESULT]:`, {
+        mobile_verified: isMobileVerified,
+        terms_accepted: isTermsAccepted,
+        privacy_accepted: isPrivacyAccepted,
+        fully_verified: isFullyVerified
       });
       
-      if (!isFullyVerified) {
-        console.log(`🚨 User not fully verified, showing dialog`);
-        setOpen(true);
-      } else {
-        console.log(`🎉 User fully verified, no dialog needed`);
+      if (isFullyVerified) {
+        console.log(`✅ [SUCCESS] User is fully verified - NO DIALOG`);
         setOpen(false);
+      } else {
+        console.log(`❌ [INCOMPLETE] User needs verification - SHOWING DIALOG`);
+        setOpen(true);
       }
     } catch (e) {
-      console.warn("💥 Profile check failed", e);
-      console.log("🛠️ Showing verification dialog due to error");
+      console.error("💥 [FATAL ERROR] Profile check failed:", e);
+      console.log("🛠️ [ACTION] Showing dialog due to error");
       setOpen(true);
     } finally {
       setChecked(true);
-      checkInProgressRef.current = false;
+      setIsChecking(false);
     }
-  }, [user, loading]);
+  }, [user, loading, isChecking]);
 
   useEffect(() => {
     checkProfile();
   }, [checkProfile]);
 
   const handleVerificationComplete = useCallback(() => {
-    console.log(`🎊 Verification completed for user: ${user?.id}`);
-    if (user) {
-      // Mark user as verified in cache
-      verificationStatusCache.current[user.id] = true;
-      verificationStatusCache.current[`${user.id}_timestamp`] = Date.now();
-    }
+    console.log(`🎊 [VERIFICATION COMPLETE] User ${user?.id} finished verification`);
+    console.log(`🔄 [ACTION] Re-checking verification status from database...`);
+    
+    // Force a fresh check from database after verification
+    setChecked(false);
     setOpen(false);
   }, [user]);
 

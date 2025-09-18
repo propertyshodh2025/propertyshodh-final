@@ -112,48 +112,35 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
       if (error) throw error;
 
       if (data?.verified) {
-        console.log(`📝 Creating/Updating profile with verification data for user: ${user?.id}`);
+        console.log(`✅ OTP verification successful for user: ${user?.id}`);
+        console.log(`📝 Profile should now be fully updated by server`);
         
-        // Create or update the complete profile with all verification data
-        // Note: The verify-otp function already updates mobile_verified and phone_number
-        // We need to also update the terms acceptance
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .upsert({
-            user_id: user?.id,
-            email: user?.email,
-            terms_accepted: true,
-            privacy_policy_accepted: true,
-            terms_accepted_at: new Date().toISOString(),
-            privacy_policy_accepted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id'
-          });
-
-        if (updateError) {
-          console.error('❌ Error updating profile:', updateError);
-          // Don't throw here - the OTP verification succeeded, just log the profile update error
-          console.warn('⚠️ Profile update failed but OTP verification succeeded');
-        } else {
-          console.log(`✅ Profile created/updated successfully`);
-        }
+        // Wait a moment for database to be fully updated
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Verify the profile was actually updated
+        // Verify the profile was actually updated by the server
         const { data: verifyData, error: verifyError } = await supabase
           .from('profiles')
-          .select('mobile_verified, terms_accepted, privacy_policy_accepted')
+          .select('mobile_verified, terms_accepted, privacy_policy_accepted, phone_number')
           .eq('user_id', user?.id)
           .single();
           
         if (verifyError) {
           console.warn('⚠️ Could not verify profile update:', verifyError);
         } else {
-          console.log('🔄 Profile verification status:', verifyData);
+          console.log('🔄 Profile verification status after server update:', verifyData);
+          
+          const isFullyVerified = verifyData.mobile_verified && 
+                                 verifyData.terms_accepted && 
+                                 verifyData.privacy_policy_accepted &&
+                                 verifyData.phone_number;
+          
+          if (isFullyVerified) {
+            console.log('🎉 User is now fully verified!');
+          } else {
+            console.warn('⚠️ User verification incomplete:', verifyData);
+          }
         }
-        
-        // Small delay to ensure database is updated
-        await new Promise(resolve => setTimeout(resolve, 500));
 
         toast({
           title: "Success",
