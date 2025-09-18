@@ -18,15 +18,36 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    chunkSizeWarningLimit: 3500, // Increase limit to handle large application bundles
+    chunkSizeWarningLimit: 5000, // Higher limit for Vercel deployment
+    sourcemap: false, // Disable sourcemaps for faster builds on Vercel
+    minify: 'esbuild', // Use esbuild for faster minification
+    target: 'es2020', // Modern target for better optimization
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Split vendor libraries into separate chunks
-          'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+        manualChunks: (id) => {
+          // Better chunk splitting strategy for Vercel
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('firebase') || id.includes('@firebase')) {
+              return 'firebase-vendor';
+            }
+            if (id.includes('framer-motion')) {
+              return 'animation-vendor';
+            }
+            // Group other vendors
+            return 'vendor';
+          }
         },
       },
+      external: [],
     },
   },
 }));
