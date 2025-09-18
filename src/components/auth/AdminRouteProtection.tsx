@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { validateAdminSession } from '@/lib/adminSupabase';
+import { validateAdminSession, canAccessSuperSuperAdminFeatures } from '@/lib/adminSupabase';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface AdminRouteProtectionProps {
   children: React.ReactNode;
   requiredRole?: 'admin' | 'superadmin' | 'super_super_admin';
+  requireSuperSuperAdmin?: boolean; // Explicit flag for super_super_admin only features
 }
 
-export const AdminRouteProtection = ({ children, requiredRole = 'admin' }: AdminRouteProtectionProps) => {
+export const AdminRouteProtection = ({ children, requiredRole = 'admin', requireSuperSuperAdmin = false }: AdminRouteProtectionProps) => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -30,7 +31,18 @@ export const AdminRouteProtection = ({ children, requiredRole = 'admin' }: Admin
           return;
         }
 
-        // Check role requirements with hierarchy
+        // Check if super_super_admin access is explicitly required
+        if (requireSuperSuperAdmin && !canAccessSuperSuperAdminFeatures(result.admin.role)) {
+          toast({
+            title: "Access Denied",
+            description: "This feature requires Super Super Admin privileges.",
+            variant: "destructive",
+          });
+          navigate('/admin-login');
+          return;
+        }
+
+        // Check role requirements with strict hierarchy
         const roleHierarchy = {
           'admin': 1,
           'superadmin': 2,
@@ -40,10 +52,22 @@ export const AdminRouteProtection = ({ children, requiredRole = 'admin' }: Admin
         const userRoleLevel = roleHierarchy[result.admin.role as keyof typeof roleHierarchy] || 0;
         const requiredRoleLevel = roleHierarchy[requiredRole as keyof typeof roleHierarchy] || 0;
 
+        // Strict role checking - user must have exact role or higher, but with explicit restrictions
         if (userRoleLevel < requiredRoleLevel) {
           toast({
             title: "Access Denied",
-            description: "You don't have permission to access this resource.",
+            description: `This resource requires ${requiredRole} level access or higher.`,
+            variant: "destructive",
+          });
+          navigate('/admin-login');
+          return;
+        }
+        
+        // Additional security: Validate the role is legitimate
+        if (!['admin', 'superadmin', 'super_super_admin'].includes(result.admin.role)) {
+          toast({
+            title: "Security Error",
+            description: "Invalid admin role detected. Please contact system administrator.",
             variant: "destructive",
           });
           navigate('/admin-login');

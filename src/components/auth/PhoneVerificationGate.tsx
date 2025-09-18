@@ -23,6 +23,7 @@ export const PhoneVerificationGate: React.FC = () => {
 
     // If we already checked this user and they were verified, don't check again
     if (lastCheckedUserRef.current === user.id && verificationStatusCache.current[user.id] === true) {
+      console.log(`♾️ User ${user.id} already verified in cache, skipping check`);
       setOpen(false);
       setChecked(true);
       return;
@@ -30,6 +31,7 @@ export const PhoneVerificationGate: React.FC = () => {
 
     // If we're checking the same user again too quickly, skip
     if (lastCheckedUserRef.current === user.id && Date.now() - (verificationStatusCache.current[`${user.id}_timestamp`] || 0) < 5000) {
+      console.log(`⏱️ Skipping recent check for user ${user.id}`);
       return;
     }
 
@@ -47,22 +49,31 @@ export const PhoneVerificationGate: React.FC = () => {
 
       if (error) {
         console.warn("❌ Profile check error", error);
-        // If we can't check verification status, show dialog to be safe
+        console.log("🛠️ Will create profile and show verification dialog");
+        setOpen(true);
+        setChecked(true);
+        return;
+      }
+
+      // Handle case where profile doesn't exist yet (data is null)
+      if (!data) {
+        console.log(`🆆 No profile exists for user ${user.id}, will create one during verification`);
+        console.log("🛠️ Showing verification dialog for new user");
         setOpen(true);
         setChecked(true);
         return;
       }
 
       console.log(`📋 Profile data:`, {
-        mobile_verified: data?.mobile_verified,
-        phone_number: data?.phone_number ? '***' + data.phone_number.slice(-4) : 'null',
-        terms_accepted: data?.terms_accepted,
-        privacy_policy_accepted: data?.privacy_policy_accepted
+        mobile_verified: data.mobile_verified,
+        phone_number: data.phone_number ? '***' + data.phone_number.slice(-4) : 'null',
+        terms_accepted: data.terms_accepted,
+        privacy_policy_accepted: data.privacy_policy_accepted
       });
 
-      const isMobileVerified = Boolean(data?.mobile_verified) && Boolean(data?.phone_number);
-      const isTermsAccepted = Boolean(data?.terms_accepted);
-      const isPrivacyAccepted = Boolean(data?.privacy_policy_accepted);
+      const isMobileVerified = Boolean(data.mobile_verified) && Boolean(data.phone_number);
+      const isTermsAccepted = Boolean(data.terms_accepted);
+      const isPrivacyAccepted = Boolean(data.privacy_policy_accepted);
       
       // Show dialog if any of the mandatory requirements are not met
       const isFullyVerified = isMobileVerified && isTermsAccepted && isPrivacyAccepted;
@@ -73,6 +84,7 @@ export const PhoneVerificationGate: React.FC = () => {
       lastCheckedUserRef.current = user.id;
       
       console.log(`✅ Verification check complete:`, {
+        profileExists: true,
         isMobileVerified,
         isTermsAccepted,
         isPrivacyAccepted,
@@ -89,7 +101,7 @@ export const PhoneVerificationGate: React.FC = () => {
       }
     } catch (e) {
       console.warn("💥 Profile check failed", e);
-      // If verification check fails, show dialog to be safe
+      console.log("🛠️ Showing verification dialog due to error");
       setOpen(true);
     } finally {
       setChecked(true);

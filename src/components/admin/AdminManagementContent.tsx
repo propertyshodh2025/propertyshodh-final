@@ -347,43 +347,93 @@ export function AdminManagementContent() {
                       </div>
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                      {isSuperAdminOrHigher && (
-                        <>
-                          <Button variant="outline" size="sm" onClick={() => openEditDialog(admin)}>
-                            <Edit className="h-4 w-4 mr-1" /> Edit
-                          </Button>
-                          <Button
-                            variant={admin.is_active ? "outline" : "default"}
-                            size="sm"
-                            onClick={() => handleToggleAdminStatus(admin.id)}
-                          >
-                            {admin.is_active ? <X className="h-4 w-4 mr-1" /> : <Check className="h-4 w-4 mr-1" />}
-                            {admin.is_active ? "Deactivate" : "Activate"}
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm">
-                                <Trash2 className="h-4 w-4 mr-1" /> Delete
+                      {/* Only show actions based on current user's permissions */}
+                      {(() => {
+                        // Determine if current user can manage this admin
+                        const canManageThisAdmin = (() => {
+                          switch (currentUserRole) {
+                            case 'admin':
+                              return admin.id === currentAdminSession?.id; // Only self
+                            case 'superadmin':
+                              return admin.role === 'admin' || admin.id === currentAdminSession?.id; // Only admin accounts or self
+                            case 'super_super_admin':
+                              return admin.id !== currentAdminSession?.id; // Any except self
+                            default:
+                              return false;
+                          }
+                        })();
+                        
+                        const canEditThisAdmin = (() => {
+                          switch (currentUserRole) {
+                            case 'admin':
+                              return admin.id === currentAdminSession?.id; // Only self
+                            case 'superadmin':
+                              return admin.role !== 'super_super_admin'; // Not super_super_admin accounts
+                            case 'super_super_admin':
+                              return true; // All accounts
+                            default:
+                              return false;
+                          }
+                        })();
+                        
+                        return canManageThisAdmin ? (
+                          <>
+                            {canEditThisAdmin && (
+                              <Button variant="outline" size="sm" onClick={() => openEditDialog(admin)}>
+                                <Edit className="h-4 w-4 mr-1" /> Edit
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete the admin account
-                                  and remove their access.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteAdmin(admin.id)}>
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </>
-                      )}
+                            )}
+                            {admin.id !== currentAdminSession?.id && currentUserRole !== 'admin' && (
+                              <Button
+                                variant={admin.is_active ? "outline" : "default"}
+                                size="sm"
+                                onClick={() => handleToggleAdminStatus(admin.id)}
+                                disabled={currentUserRole === 'superadmin' && admin.role === 'super_super_admin'}
+                              >
+                                {admin.is_active ? <X className="h-4 w-4 mr-1" /> : <Check className="h-4 w-4 mr-1" />}
+                                {admin.is_active ? "Deactivate" : "Activate"}
+                              </Button>
+                            )}
+                            {admin.id !== currentAdminSession?.id && currentUserRole !== 'admin' && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    disabled={currentUserRole === 'superadmin' && admin.role === 'super_super_admin'}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone. This will permanently delete the admin account
+                                      "{admin.username}" ({admin.role}) and remove their access.
+                                      {admin.role === 'super_super_admin' && currentUserRole === 'superadmin' && 
+                                        " WARNING: You don't have permission to delete Super Super Admin accounts."}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDeleteAdmin(admin.id)}
+                                      disabled={currentUserRole === 'superadmin' && admin.role === 'super_super_admin'}
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground text-xs px-2 py-1 bg-muted rounded">
+                            No actions available
+                          </span>
+                        );
+                      })()}
                     </div>
                   </CardContent>
                 </Card>

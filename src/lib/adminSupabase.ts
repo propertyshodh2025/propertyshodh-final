@@ -192,8 +192,19 @@ export const logoutAdmin = async (): Promise<void> => {
   }
 };
 
-// Helper function to get current admin session
-export const getCurrentAdminSession = getCurrentAdminSessionInternal;
+// Helper function to get current admin session with role validation
+export const getCurrentAdminSession = (): AdminSession | null => {
+  const session = getCurrentAdminSessionInternal();
+  
+  // Additional security check: validate role exists and is legitimate
+  if (session && !['admin', 'superadmin', 'super_super_admin'].includes(session.role)) {
+    console.warn('Invalid admin role detected, clearing session');
+    localStorage.removeItem('adminSession');
+    return null;
+  }
+  
+  return session;
+};
 
 // Legacy helper function for backward compatibility
 export const isAdminAuthenticated = (): boolean => {
@@ -207,4 +218,71 @@ export const setAdminSession = async (role: string): Promise<void> => {
   } catch (error) {
     console.error('Failed to set admin session:', error);
   }
+};
+
+// Role hierarchy validation helpers
+export const canManageRole = (currentRole: string, targetRole: string): boolean => {
+  const roleHierarchy: { [key: string]: number } = {
+    'admin': 1,
+    'superadmin': 2,
+    'super_super_admin': 3
+  };
+  
+  const currentLevel = roleHierarchy[currentRole] || 0;
+  const targetLevel = roleHierarchy[targetRole] || 0;
+  
+  // Super super admin can manage any role
+  if (currentRole === 'super_super_admin') {
+    return true;
+  }
+  
+  // Superadmin can only manage admin roles, not other superadmins or super_super_admins
+  if (currentRole === 'superadmin') {
+    return targetRole === 'admin';
+  }
+  
+  // Admin can't manage any other admin roles
+  if (currentRole === 'admin') {
+    return false;
+  }
+  
+  return false;
+};
+
+export const canCreateRole = (currentRole: string, roleToCreate: string): boolean => {
+  // Super super admin can create any role
+  if (currentRole === 'super_super_admin') {
+    return true;
+  }
+  
+  // Superadmin can only create admin accounts
+  if (currentRole === 'superadmin') {
+    return roleToCreate === 'admin';
+  }
+  
+  // Admin can't create any accounts
+  return false;
+};
+
+export const canAccessSuperSuperAdminFeatures = (currentRole: string): boolean => {
+  return currentRole === 'super_super_admin';
+};
+
+export const canViewRole = (currentRole: string, targetRole: string): boolean => {
+  // Super super admin can view all roles
+  if (currentRole === 'super_super_admin') {
+    return true;
+  }
+  
+  // Superadmin can view admin and superadmin accounts, but NOT super_super_admin
+  if (currentRole === 'superadmin') {
+    return targetRole === 'admin' || targetRole === 'superadmin';
+  }
+  
+  // Admin can only view admin accounts
+  if (currentRole === 'admin') {
+    return targetRole === 'admin';
+  }
+  
+  return false;
 };

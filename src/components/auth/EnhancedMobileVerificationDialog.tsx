@@ -112,26 +112,45 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
       if (error) throw error;
 
       if (data?.verified) {
-        console.log(`📝 Updating profile with terms acceptance for user: ${user?.id}`);
-        // Also update terms acceptance in the profile
+        console.log(`📝 Creating/Updating profile with verification data for user: ${user?.id}`);
+        
+        // Create or update the complete profile with all verification data
+        // Note: The verify-otp function already updates mobile_verified and phone_number
+        // We need to also update the terms acceptance
         const { error: updateError } = await supabase
           .from('profiles')
           .upsert({
             user_id: user?.id,
+            email: user?.email,
             terms_accepted: true,
             privacy_policy_accepted: true,
             terms_accepted_at: new Date().toISOString(),
             privacy_policy_accepted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           }, {
             onConflict: 'user_id'
           });
 
         if (updateError) {
           console.error('❌ Error updating profile:', updateError);
-          throw updateError;
+          // Don't throw here - the OTP verification succeeded, just log the profile update error
+          console.warn('⚠️ Profile update failed but OTP verification succeeded');
+        } else {
+          console.log(`✅ Profile created/updated successfully`);
         }
-
-        console.log(`✅ Profile updated successfully`);
+        
+        // Verify the profile was actually updated
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('profiles')
+          .select('mobile_verified, terms_accepted, privacy_policy_accepted')
+          .eq('user_id', user?.id)
+          .single();
+          
+        if (verifyError) {
+          console.warn('⚠️ Could not verify profile update:', verifyError);
+        } else {
+          console.log('🔄 Profile verification status:', verifyData);
+        }
         
         // Small delay to ensure database is updated
         await new Promise(resolve => setTimeout(resolve, 500));
