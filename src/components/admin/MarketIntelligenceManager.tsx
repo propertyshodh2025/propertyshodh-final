@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Save, X, Eye, EyeOff, BarChart3, TrendingUp, Brain, Activity } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Eye, EyeOff, BarChart3, TrendingUp, Brain, Activity, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -290,6 +290,52 @@ const MarketIntelligenceManager = () => {
       toast({
         title: "Error",
         description: "Failed to delete item",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const convertToLead = async (researchLead: ResearchReportLead) => {
+    try {
+      // Create a new lead in the leads table
+      const { error } = await adminSupabase
+        .from('leads')
+        .insert({
+          source_type: 'research_report',
+          source_id: researchLead.id,
+          name: researchLead.email, // Use email as name initially
+          phone: '', // Research report leads don't have phone
+          email: researchLead.email,
+          property_id: null,
+          property_title: null,
+          city: null,
+          location: null,
+          budget_range: null,
+          property_type: null,
+          purpose: 'Research Report Request',
+          status: 'new',
+          priority: 'medium',
+          tags: ['research_report'],
+          assigned_admin_id: null,
+          next_follow_up_at: null,
+          last_contacted_at: null,
+          notes: `Research report requested on ${new Date(researchLead.requested_at).toLocaleString()}. ${researchLead.is_verified_user ? 'Verified user.' : 'Guest user.'}`
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Research report lead converted to CRM lead successfully",
+      });
+
+      // Refresh data to show the new lead
+      fetchData();
+    } catch (error) {
+      console.error('Error converting to lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to convert to CRM lead",
         variant: "destructive",
       });
     }
@@ -608,6 +654,16 @@ const MarketIntelligenceManager = () => {
                         <p>Requested: {new Date(lead.requested_at).toLocaleString()}</p>
                         <p>Lead Created: {new Date(lead.created_at).toLocaleString()}</p>
                       </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => convertToLead(lead)}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Convert to Lead
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

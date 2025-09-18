@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { MobileVerificationDialog } from "@/components/auth/MobileVerificationDialog";
+import { EnhancedMobileVerificationDialog } from "@/components/auth/EnhancedMobileVerificationDialog";
 
 // Renders nothing, but ensures phone verification dialog is shown for new/unverified users
+// Now also ensures Terms of Service and Privacy Policy acceptance
 export const PhoneVerificationGate: React.FC = () => {
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
@@ -19,10 +20,10 @@ export const PhoneVerificationGate: React.FC = () => {
       }
 
       try {
-        // Fetch profile
+        // Fetch profile including terms acceptance status
         const { data, error } = await supabase
           .from("profiles")
-          .select("mobile_verified, phone_number")
+          .select("mobile_verified, phone_number, terms_accepted, privacy_policy_accepted")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -34,10 +35,14 @@ export const PhoneVerificationGate: React.FC = () => {
           return;
         }
 
-        const isVerified = Boolean(data?.mobile_verified) && Boolean(data?.phone_number);
+        const isMobileVerified = Boolean(data?.mobile_verified) && Boolean(data?.phone_number);
+        const isTermsAccepted = Boolean(data?.terms_accepted);
+        const isPrivacyAccepted = Boolean(data?.privacy_policy_accepted);
         
-        // Always show dialog if not verified - no session storage bypass
-        if (!isVerified) {
+        // Show dialog if any of the mandatory requirements are not met
+        const isFullyVerified = isMobileVerified && isTermsAccepted && isPrivacyAccepted;
+        
+        if (!isFullyVerified) {
           setOpen(true);
         }
       } catch (e) {
@@ -55,7 +60,7 @@ export const PhoneVerificationGate: React.FC = () => {
   if (!checked) return null;
 
   return (
-    <MobileVerificationDialog
+    <EnhancedMobileVerificationDialog
       open={open}
       onOpenChange={() => {}} // Prevent closing the dialog
       onComplete={() => {

@@ -210,6 +210,11 @@ const translations = {
     'low_demand': 'Low Demand',
     'view_full_research_report': 'View Full Research Report',
 
+    // Navigation
+    'home': 'Home',
+    'about': 'About',
+    'services': 'Services',
+
     // Header - Modern
     'list_new_property': 'List New Property',
     'post_property': 'Post Property',
@@ -539,6 +544,11 @@ const translations = {
     'medium_demand': 'मध्यम मागणी',
     'low_demand': 'कमी मागणी',
     'view_full_research_report': 'संपूर्ण संशोधन अहवाल पहा',
+
+    // Navigation
+    'home': 'होम',
+    'about': 'आमच्याबद्दल',
+    'services': 'सेवा',
 
     // Header - Modern
     'list_new_property': 'नवीन मालमत्ता सूचीबद्ध करा',

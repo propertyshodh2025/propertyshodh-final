@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BHK Logic Test</title>
+</head>
+<body>
+    <h1>BHK Logic Test</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        // Simulate the shouldPropertyHaveBHK function
+        function shouldPropertyHaveBHK(propertyType, propertyCategory) {
+            if (!propertyType) return false;
+            
+            const normalizedType = propertyType.toLowerCase().trim();
+            
+            // Properties that NEVER have BHK regardless of category
+            const NEVER_BHK_PROPERTY_TYPES = ['parking', 'garage'];
+            if (NEVER_BHK_PROPERTY_TYPES.includes(normalizedType)) {
+                return false;
+            }
+            
+            // If category is provided, use it as the primary determinant
+            if (propertyCategory) {
+                const normalizedCategory = propertyCategory.toLowerCase().trim();
+                
+                // RESIDENTIAL properties can have BHK if the type supports it
+                if (normalizedCategory === 'residential') {
+                    const RESIDENTIAL_PROPERTY_TYPES_WITH_BHK = ['flat', 'apartment', 'house', 'bungalow', 'villa', 'duplex', 'penthouse', 'studio', 'plot'];
+                    return RESIDENTIAL_PROPERTY_TYPES_WITH_BHK.includes(normalizedType);
+                }
+                
+                // NON-RESIDENTIAL properties should NEVER have BHK
+                if (['commercial', 'agricultural', 'industrial'].includes(normalizedCategory)) {
+                    return false;
+                }
+            }
+            
+            // Fallback: determine based on property type alone
+            const COMMERCIAL_PROPERTY_TYPES = ['office', 'shop', 'showroom', 'warehouse', 'building', 'retail_space', 'commercial_space', 'godown'];
+            const AGRICULTURAL_PROPERTY_TYPES = ['farmland', 'orchard', 'plantation', 'agricultural_land', 'farm'];
+            const INDUSTRIAL_PROPERTY_TYPES = ['factory', 'manufacturing', 'industrial_plot', 'commercial_plot'];
+            
+            if (COMMERCIAL_PROPERTY_TYPES.includes(normalizedType) || 
+                AGRICULTURAL_PROPERTY_TYPES.includes(normalizedType) || 
+                INDUSTRIAL_PROPERTY_TYPES.includes(normalizedType)) {
+                return false;
+            }
+            
+            // Default: assume residential if type supports BHK
+            const RESIDENTIAL_PROPERTY_TYPES_WITH_BHK = ['flat', 'apartment', 'house', 'bungalow', 'villa', 'duplex', 'penthouse', 'studio', 'plot'];
+            return RESIDENTIAL_PROPERTY_TYPES_WITH_BHK.includes(normalizedType);
+        }
+
+        // Test cases
+        const testCases = [
+            // Should have BHK (true)
+            { type: 'flat', category: 'residential', expected: true, description: 'Residential Flat' },
+            { type: 'apartment', category: 'residential', expected: true, description: 'Residential Apartment' },
+            { type: 'house', category: 'residential', expected: true, description: 'Residential House' },
+            { type: 'plot', category: 'residential', expected: true, description: 'Residential Plot' },
+            { type: 'flat', category: null, expected: true, description: 'Flat (no category)' },
+            
+            // Should NOT have BHK (false)
+            { type: 'farmland', category: 'agricultural', expected: false, description: 'Agricultural Farmland' },
+            { type: 'orchard', category: 'agricultural', expected: false, description: 'Agricultural Orchard' },
+            { type: 'office', category: 'commercial', expected: false, description: 'Commercial Office' },
+            { type: 'shop', category: 'commercial', expected: false, description: 'Commercial Shop' },
+            { type: 'farmland', category: null, expected: false, description: 'Farmland (no category)' },
+            { type: 'office', category: null, expected: false, description: 'Office (no category)' },
+        ];
+
+        let resultsHTML = '<h2>Test Results:</h2>';
+        let allPassed = true;
+
+        testCases.forEach((testCase, index) => {
+            const result = shouldPropertyHaveBHK(testCase.type, testCase.category);
+            const passed = result === testCase.expected;
+            allPassed = allPassed && passed;
+            
+            resultsHTML += `
+                <div style="margin: 10px 0; padding: 10px; border: 1px solid ${passed ? 'green' : 'red'}; background: ${passed ? '#f0fff0' : '#fff0f0'}">
+                    <strong>${index + 1}. ${testCase.description}</strong><br>
+                    Type: "${testCase.type}", Category: "${testCase.category || 'none'}"<br>
+                    Expected: ${testCase.expected}, Got: ${result} ${passed ? '✅' : '❌'}
+                </div>
+            `;
+        });
+
+        resultsHTML += `<h2 style="color: ${allPassed ? 'green' : 'red'}">${allPassed ? 'All tests passed! ✅' : 'Some tests failed! ❌'}</h2>`;
+
+        document.getElementById('results').innerHTML = resultsHTML;
+    </script>
+</body>
+</html>

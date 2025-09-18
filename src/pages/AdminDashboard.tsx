@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, ExternalLink, BarChart3, Home, Star, Check, X, Columns3, Users, LogOut, Copy, Shield } from 'lucide-react';
+import { Plus, Edit, Trash2, ExternalLink, BarChart3, Home, Star, Check, X, Columns3, LogOut, Copy, Shield, TrendingUp, Activity, Zap, Eye, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,13 +30,57 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatINRShort } from '@/lib/locale';
 
-// No longer need UserInquiry or UserActivityWithProfile interfaces here as those tabs are moved.
+// Helper function to generate monthly analytics from actual data for Admin dashboard
+const generateAdminMonthlyAnalytics = (listings: any[], sales: any[], inquiries: any[]) => {
+  const currentDate = new Date();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyData = [];
+  
+  // Generate data for the last 6 months
+  for (let i = 5; i >= 0; i--) {
+    const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+    const monthName = monthNames[targetDate.getMonth()];
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth();
+    
+    // Count listings created in this month
+    const listingsCount = listings.filter(listing => {
+      if (!listing.created_at) return false;
+      const createdDate = new Date(listing.created_at);
+      return createdDate.getFullYear() === year && createdDate.getMonth() === month;
+    }).length;
+    
+    // Count sales (properties marked as sold) in this month
+    const salesCount = sales.filter(sale => {
+      if (!sale.updated_at) return false;
+      const updatedDate = new Date(sale.updated_at);
+      return updatedDate.getFullYear() === year && updatedDate.getMonth() === month;
+    }).length;
+    
+    // Count inquiries created in this month
+    const inquiriesCount = inquiries.filter(inquiry => {
+      if (!inquiry.created_at) return false;
+      const createdDate = new Date(inquiry.created_at);
+      return createdDate.getFullYear() === year && createdDate.getMonth() === month;
+    }).length;
+    
+    monthlyData.push({
+      month: monthName,
+      listings: listingsCount,
+      sales: salesCount,
+      inquiries: inquiriesCount
+    });
+  }
+  
+  return monthlyData;
+};
 
 const AdminDashboard = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [userProperties, setUserProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [monthlyData, setMonthlyData] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const navigate = useNavigate();
@@ -58,6 +102,7 @@ const AdminDashboard = () => {
       console.log('AdminDashboard: Authenticated, fetching data');
       fetchProperties();
       fetchUserProperties();
+      fetchMonthlyData();
     }
   }, [navigate, isAdminAuthenticated, authLoading]);
 
@@ -120,6 +165,49 @@ const AdminDashboard = () => {
         description: "Failed to fetch user properties",
         variant: "destructive",
       });
+    }
+  };
+
+  const fetchMonthlyData = async () => {
+    try {
+      // Get all properties with timestamps for listings and sales data
+      const { data: allProperties } = await adminSupabase
+        .from('properties')
+        .select('id, created_at, updated_at, listing_status');
+      
+      // Get ALL types of inquiries for the monthly chart
+      const [propertyInquiriesRes, userInquiriesRes, userActivitiesRes, researchLeadsRes] = await Promise.all([
+        adminSupabase.from('property_inquiries').select('id, created_at'),
+        adminSupabase.from('user_inquiries').select('id, created_at'),
+        adminSupabase.from('user_activities').select('id, activity_type, created_at'),
+        adminSupabase.from('research_report_leads').select('id, created_at')
+      ]);
+      
+      // Filter sold properties for sales data
+      const soldProperties = (allProperties || []).filter(p => p.listing_status === 'Sold');
+      
+      // Combine all inquiries including interest activities
+      const interestActivities = (userActivitiesRes.data || []).filter(activity => 
+        ['property_saved', 'property_viewed', 'property_interest', 'search', 'property_inquiry'].includes(activity.activity_type)
+      );
+      
+      const allInquiries = [
+        ...(propertyInquiriesRes.data || []), 
+        ...(userInquiriesRes.data || []),
+        ...interestActivities,
+        ...(researchLeadsRes.data || [])
+      ];
+      
+      // Generate monthly analytics
+      const monthlyAnalytics = generateAdminMonthlyAnalytics(
+        allProperties || [],
+        soldProperties,
+        allInquiries
+      );
+      
+      setMonthlyData(monthlyAnalytics);
+    } catch (error) {
+      console.error('Error fetching monthly data:', error);
     }
   };
 
@@ -517,14 +605,6 @@ const AdminDashboard = () => {
     { name: 'Sold', value: stats.sold },
   ];
 
-  const monthlyData = [
-    { month: 'Jan', listings: 12, sales: 8, inquiries: 45 },
-    { month: 'Feb', listings: 19, sales: 12, inquiries: 62 },
-    { month: 'Mar', listings: 15, sales: 9, inquiries: 54 },
-    { month: 'Apr', listings: 22, sales: 14, inquiries: 71 },
-    { month: 'May', listings: 18, sales: 11, inquiries: 58 },
-    { month: 'Jun', listings: 25, sales: 16, inquiries: 83 },
-  ];
 
   const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -541,7 +621,12 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+      {/* Animated background pattern */}
+      <div className="fixed inset-0 opacity-[0.03] pointer-events-none">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KPGcgZmlsbD0iIzAwMCIgZmlsbC1vcGFjaXR5PSIxIj4KPGNpcmNsZSBjeD0iNyIgY3k9IjciIHI9IjIiLz4KPC9nPgo8L2c+Cjwvc3ZnPg==')]"></div>
+      </div>
+
 <ConversationalAdminPropertyForm 
   isOpen={showForm && !editingProperty}
   onClose={() => setShowForm(false)}
@@ -565,182 +650,232 @@ const AdminDashboard = () => {
     fetchUserProperties();
   }}
 />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
-          <div className="space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">PropertyShodh - Manage your listings and assigned leads</p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <Button 
-              onClick={() => navigate('/')} 
-              variant="outline"
-              className="flex items-center justify-center gap-2 w-full sm:w-auto"
-              size="sm"
-            >
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Home</span>
-              <span className="sm:hidden">Home</span>
-            </Button>
-            <Button 
-              onClick={() => navigate('/admin/users')} 
-              variant="outline"
-              className="flex items-center justify-center gap-2 w-full sm:w-auto"
-              size="sm"
-            >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Manage Users</span>
-              <span className="sm:hidden">Users</span>
-            </Button>
-<Button 
-  onClick={() => { setEditingProperty(null); setShowForm(true); }} 
-  className="flex items-center justify-center gap-2 w-full sm:w-auto"
-  size="sm"
->
-  <Plus className="h-4 w-4" />
-  <span className="hidden sm:inline">Add Property</span>
-  <span className="sm:hidden">Add</span>
-</Button>
-            <Button 
-              variant="outline" 
-              onClick={handleLogout} 
-              className="flex items-center justify-center gap-2 w-full sm:w-auto"
-              size="sm"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
-              <span className="sm:hidden">Exit</span>
-            </Button>
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Modern Header with Glass Effect */}
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/30 rounded-2xl p-6 sm:p-8 mb-8 shadow-xl shadow-blue-500/5">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                  <Shield className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                    Admin Dashboard
+                  </h1>
+                  <p className="text-slate-600 dark:text-slate-400 font-medium">PropertyShodh - Manage your listings and leads</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="outline"
+                className="bg-white/50 dark:bg-slate-800/50 border-white/30 hover:bg-white/80 backdrop-blur-sm transition-all duration-200"
+                size="default"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
+              <Button 
+                onClick={() => { setEditingProperty(null); setShowForm(true); }} 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                size="default"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Property
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleLogout} 
+                className="bg-white/50 dark:bg-slate-800/50 border-white/30 hover:bg-white/80 backdrop-blur-sm transition-all duration-200"
+                size="default"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <Card className="hover-scale transition-all duration-200 border-0 shadow-md bg-gradient-to-br from-card to-card/80">
-            <CardHeader className="pb-2 px-3 sm:px-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Admin Properties</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4">
-              <div className="text-xl sm:text-2xl font-bold text-foreground">{stats.total}</div>
+        {/* Modern Stats Cards with Glass Effect */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 mb-8">
+          <Card className="group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Admin Properties</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.total}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Home className="h-5 w-5 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="hover-scale transition-all duration-200 border-0 shadow-md bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
-            <CardHeader className="pb-2 px-3 sm:px-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Active Listings</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4">
-              <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{stats.active}</div>
+          
+          <Card className="group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Active Listings</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.active}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="hover-scale transition-all duration-200 border-0 shadow-md bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
-            <CardHeader className="pb-2 px-3 sm:px-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Sold Properties</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4">
-              <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.sold}</div>
+          
+          <Card className="group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Sold Properties</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.sold}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Award className="h-5 w-5 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="hover-scale transition-all duration-200 border-0 shadow-md bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/20 dark:to-orange-900/20">
-            <CardHeader className="pb-2 px-3 sm:px-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300">User Pending</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4">
-              <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400">{userStats.pending}</div>
+          
+          <Card className="group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">User Pending</p>
+                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{userStats.pending}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Zap className="h-5 w-5 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="hover-scale transition-all duration-200 border-0 shadow-md bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
-            <CardHeader className="pb-2 px-3 sm:px-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300">User Approved</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4">
-              <div className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{userStats.approved}</div>
+          
+          <Card className="group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">User Approved</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{userStats.approved}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Check className="h-5 w-5 text-white" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          {/* Removed Search Inquiries and Property Interest cards */}
         </div>
 
-        {/* Tabs for Properties and Inquiries */}
+        {/* Modern Tabs with Glass Effect */}
         <Tabs defaultValue="analytics" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 h-auto gap-1 bg-muted/50 p-1">
-            <TabsTrigger 
-              value="analytics" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Analytics</span>
-              <span className="sm:hidden">Stats</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="properties" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Admin Properties</span>
-              <span className="sm:hidden">Admin</span>
-              <span className="text-xs opacity-70">({properties.length})</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="user-properties" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">By Users</span>
-              <span className="sm:hidden">Users</span>
-              <span className="text-xs opacity-70">({userProperties.length})</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="crm" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Columns3 className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">CRM</span>
-              <span className="sm:hidden">CRM</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="verification" 
-              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Verification</span>
-              <span className="sm:hidden">Verify</span>
-            </TabsTrigger>
-            {/* Removed Inquiries, Search History, Property Interest, Saved, Featured, Market Intel tabs */}
-          </TabsList>
+          <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 rounded-2xl p-2 mb-6 shadow-lg">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto gap-1 bg-transparent p-0">
+              <TabsTrigger 
+                value="analytics" 
+                className="flex items-center gap-2 text-sm py-3 px-4 rounded-xl font-medium transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Analytics</span>
+                <span className="sm:hidden">Stats</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="properties" 
+                className="flex items-center gap-2 text-sm py-3 px-4 rounded-xl font-medium transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
+              >
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Admin Properties</span>
+                <span className="sm:hidden">Admin</span>
+                <span className="text-xs opacity-70 ml-1">({properties.length})</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="user-properties" 
+                className="flex items-center gap-2 text-sm py-3 px-4 rounded-xl font-medium transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
+              >
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline">By Users</span>
+                <span className="sm:hidden">Users</span>
+                <span className="text-xs opacity-70 ml-1">({userProperties.length})</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="crm" 
+                className="flex items-center gap-2 text-sm py-3 px-4 rounded-xl font-medium transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
+              >
+                <Columns3 className="h-4 w-4" />
+                <span className="hidden sm:inline">CRM</span>
+                <span className="sm:hidden">CRM</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="verification" 
+                className="flex items-center gap-2 text-sm py-3 px-4 rounded-xl font-medium transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
+              >
+                <Shield className="h-4 w-4" />
+                <span className="hidden sm:inline">Verification</span>
+                <span className="sm:hidden">Verify</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Modern Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Monthly Performance Chart */}
-              <Card className="border border-border/50 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base sm:text-lg">Monthly Performance</CardTitle>
+              <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 shadow-xl">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                      <BarChart3 className="h-5 w-5 text-white" />
+                    </div>
+                    <CardTitle className="text-lg font-semibold">Monthly Performance</CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64 sm:h-80">
+                  <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={monthlyData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                         <XAxis 
                           dataKey="month" 
                           stroke="hsl(var(--muted-foreground))"
                           fontSize={12}
+                          fontWeight={500}
                         />
                         <YAxis 
                           stroke="hsl(var(--muted-foreground))"
                           fontSize={12}
+                          fontWeight={500}
                         />
                         <Tooltip 
                           contentStyle={{
-                            backgroundColor: 'hsl(var(--background))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                            backdropFilter: 'blur(10px)'
                           }}
                         />
                         <Legend />
-                        <Bar dataKey="listings" fill="#10B981" name="New Listings" />
-                        <Bar dataKey="sales" fill="#3B82F6" name="Sales" />
-                        <Bar dataKey="inquiries" fill="#8B5CF6" name="Inquiries" />
+                        <Bar dataKey="listings" fill="url(#gradient1)" name="New Listings" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="sales" fill="url(#gradient2)" name="Sales" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="inquiries" fill="url(#gradient3)" name="Inquiries" radius={[4, 4, 0, 0]} />
+                        <defs>
+                          <linearGradient id="gradient1" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10B981" stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor="#10B981" stopOpacity={0.3}/>
+                          </linearGradient>
+                          <linearGradient id="gradient2" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                          </linearGradient>
+                          <linearGradient id="gradient3" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.3}/>
+                          </linearGradient>
+                        </defs>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -748,12 +883,17 @@ const AdminDashboard = () => {
               </Card>
 
               {/* Property Status Distribution */}
-              <Card className="border border-border/50 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base sm:text-lg">Property Status Distribution</CardTitle>
+              <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 shadow-xl">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
+                      <Activity className="h-5 w-5 text-white" />
+                    </div>
+                    <CardTitle className="text-lg font-semibold">Property Status Distribution</CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64 sm:h-80">
+                  <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -762,9 +902,11 @@ const AdminDashboard = () => {
                           cy="50%"
                           labelLine={false}
                           label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                          outerRadius={80}
+                          outerRadius={100}
                           fill="#8884d8"
                           dataKey="value"
+                          strokeWidth={2}
+                          stroke="#fff"
                         >
                           {statusData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -772,9 +914,11 @@ const AdminDashboard = () => {
                         </Pie>
                         <Tooltip 
                           contentStyle={{
-                            backgroundColor: 'hsl(var(--background))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                            backdropFilter: 'blur(10px)'
                           }}
                         />
                       </PieChart>
@@ -785,33 +929,50 @@ const AdminDashboard = () => {
             </div>
 
             {/* Inquiry Trend */}
-            <Card className="border border-border/50 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg">Inquiry Trends</CardTitle>
+            <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/30 dark:border-slate-700/30 shadow-xl">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </div>
+                  <CardTitle className="text-lg font-semibold">Inquiry Trends</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="h-64 sm:h-80">
+                <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                       <XAxis 
                         dataKey="month" 
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
+                        fontWeight={500}
                       />
                       <YAxis 
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
+                        fontWeight={500}
                       />
                       <Tooltip 
                         contentStyle={{
-                          backgroundColor: 'hsl(var(--background))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                          backdropFilter: 'blur(10px)'
                         }}
                       />
                       <Legend />
-                      <Line type="monotone" dataKey="inquiries" stroke="#8B5CF6" strokeWidth={3} name="Total Inquiries" />
+                      <Line 
+                        type="monotone" 
+                        dataKey="inquiries" 
+                        stroke="#8B5CF6" 
+                        strokeWidth={3} 
+                        name="Total Inquiries"
+                        dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 6 }}
+                        activeDot={{ r: 8, stroke: '#8B5CF6', strokeWidth: 2, fill: '#fff' }}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

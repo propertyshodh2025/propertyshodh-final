@@ -10,6 +10,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SavedPropertiesProvider } from "@/contexts/SavedPropertiesContext";
 import { AdminRouteProtection } from "@/components/auth/AdminRouteProtection";
 import { useSessionCleanup } from "@/hooks/useSessionCleanup";
+import { MaintenanceWrapper } from "@/components/MaintenanceWrapper";
 import RadarPage from "./pages/RadarPage";
 import SearchResults from "./pages/SearchResults";
 import EnhancedPropertyDetailsWrapper from "./pages/EnhancedPropertyDetailsWrapper";
@@ -23,6 +24,8 @@ import PresentationPage from "./pages/PresentationPage";
 import NotFound from "./pages/NotFound";
 import ServicesPage from "./pages/ServicesPage";
 import AboutPage from "./pages/AboutPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import LanguageSEO from "@/components/LanguageSEO";
 
 import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
@@ -37,10 +40,11 @@ const AppContent = () => {
 
   return (
     <BrowserRouter>
-      <LanguageSEO />
-      
-      <PhoneVerificationGate />
-      <Routes>
+      <MaintenanceWrapper>
+        <LanguageSEO />
+        
+        <PhoneVerificationGate />
+        <Routes>
         <Route path="/" element={<RadarPage />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/property/:id" element={<EnhancedPropertyDetailsWrapper />} />
@@ -81,6 +85,8 @@ const AppContent = () => {
         } />
         <Route path="/presentation" element={<PresentationPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/services/loans" element={<ServicesPage />} />
         <Route path="/services/valuation" element={<ServicesPage />} />
@@ -90,6 +96,7 @@ const AppContent = () => {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </MaintenanceWrapper>
     </BrowserRouter>
   );
 };

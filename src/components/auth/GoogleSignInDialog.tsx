@@ -77,11 +77,11 @@ export const GoogleSignInDialog = ({ open, onOpenChange, onSuccess }: GoogleSign
           
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mt-4">
             <CheckCircle className="w-4 h-4 text-green-400" />
-            <span>You'll verify your mobile number after signing in</span>
+            <span>You'll need to accept our Terms and verify your mobile number</span>
           </div>
 
           <p className="text-xs text-center text-muted-foreground">
-            By continuing, you agree to our Terms of Service and Privacy Policy
+            By continuing, you agree to complete the mandatory Terms of Service and Privacy Policy acceptance process
           </p>
         </div>
       </DialogContent>

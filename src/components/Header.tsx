@@ -4,7 +4,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, LogIn, User, Plus, Menu, Info, Briefcase } from 'lucide-react';
+import { LogIn, User, Plus, Menu } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -84,7 +84,6 @@ export const Header: React.FC = () => {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                <Home className="w-4 h-4 mr-2" />
                 {t('home') || 'Home'}
               </Button>
               <Button 
@@ -96,7 +95,6 @@ export const Header: React.FC = () => {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                <Info className="w-4 h-4 mr-2" />
                 {t('about') || 'About'}
               </Button>
               <Button 
@@ -108,7 +106,6 @@ export const Header: React.FC = () => {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                <Briefcase className="w-4 h-4 mr-2" />
                 {t('services') || 'Services'}
               </Button>
             </div>
@@ -192,7 +189,6 @@ export const Header: React.FC = () => {
                         className="w-full justify-start"
                         onClick={() => handleNavigation('/')}
                       >
-                        <Home className="w-4 h-4 mr-2" />
                         {t('home') || 'Home'}
                       </Button>
                       <Button 
@@ -200,7 +196,6 @@ export const Header: React.FC = () => {
                         className="w-full justify-start"
                         onClick={() => handleNavigation('/about')}
                       >
-                        <Info className="w-4 h-4 mr-2" />
                         {t('about') || 'About'}
                       </Button>
                       <Button 
@@ -208,7 +203,6 @@ export const Header: React.FC = () => {
                         className="w-full justify-start"
                         onClick={() => handleNavigation('/services')}
                       >
-                        <Briefcase className="w-4 h-4 mr-2" />
                         {t('services') || 'Services'}
                       </Button>
                     </div>

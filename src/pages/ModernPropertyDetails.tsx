@@ -17,6 +17,7 @@ import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumberWithLocale } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
+import { shouldPropertyHaveBHK } from '@/lib/propertyUtils';
 import SimilarPropertiesSection from '@/components/SimilarPropertiesSection'; // Import SimilarPropertiesSection
 
 // Lazy load heavy components
@@ -140,7 +141,7 @@ const ModernPropertyDetails: React.FC = () => {
 💰 ${t('price')}: ₹${(property.price / 100000).toFixed(1)}L
 📍 ${t('location')}: ${translateEnum(property.location, language)}, ${translateEnum(property.city, language)}
 🏢 ${t('type')}: ${translateEnum(property.property_type as any, language)}
-${property.bhk ? `🛏️ ${t('bhk_label')}: ${formatNumberWithLocale(property.bhk, language)} BHK` : ''}
+${(property.bhk && shouldPropertyHaveBHK(property.property_type, property.property_category)) ? `🛏️ ${t('bhk_label')}: ${formatNumberWithLocale(property.bhk, language)} BHK` : ''}
 ${property.carpet_area ? `📐 ${t('area')}: ${formatNumberWithLocale(property.carpet_area, language)} sq ft` : ''}
 ${property.built_year ? `📅 ${t('built')}: ${formatNumberWithLocale(property.built_year, language)}` : ''}
 ${property.facing ? `🧭 ${t('facing')}: ${translateEnum(property.facing as any, language)}` : ''}
@@ -194,12 +195,12 @@ ${property.description ? `📋 ${t('description')}:\n${property.description.slic
   }
 
   const propertyStats = [
-    { 
+    ...(shouldPropertyHaveBHK(property.property_type, property.property_category) ? [{ 
       icon: Bed, 
       label: t('bhk_label'), 
       value: property.bhk ? `${formatNumberWithLocale(property.bhk, language)} BHK` : t('not_available'),
       gradient: 'from-blue-500 to-blue-600'
-    },
+    }] : []),
     { 
       icon: Square, 
       label: t('area'), 

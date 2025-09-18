@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumberWithLocale } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
+import { shouldPropertyHaveBHK } from '@/lib/propertyUtils';
 
 interface PropertyCardProps {
   property: Property;
@@ -102,7 +103,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
         </div>
         
         <div className="flex items-center justify-between mb-4 text-sm">
-          {property.bhk && (
+          {property.bhk && shouldPropertyHaveBHK(property.property_type, property.property_category) && (
             <div className="flex items-center text-muted-foreground">
               <Bed size={16} className="mr-1 text-blue-500" />
               <span className="font-medium">{property.bhk} BHK</span>

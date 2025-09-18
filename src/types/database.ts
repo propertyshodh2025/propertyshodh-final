@@ -87,6 +87,7 @@ export interface PropertyFormData {
   title: string;
   description?: string;
   property_type: string;
+  property_category?: string;
   bhk?: number;
   price: number;
   location: string;

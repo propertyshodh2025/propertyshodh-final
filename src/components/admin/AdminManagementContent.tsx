@@ -54,7 +54,14 @@ export function AdminManagementContent() {
     try {
       const { data, error } = await adminSupabase.rpc('get_admin_credentials');
       if (error) throw error;
-      setAdmins(data || []);
+      
+      // Filter out super_super_admin users if current user is only a superadmin
+      let filteredData = data || [];
+      if (!isSuperSuperAdmin) {
+        filteredData = filteredData.filter((admin: AdminCredential) => admin.role !== 'super_super_admin');
+      }
+      
+      setAdmins(filteredData);
     } catch (error) {
       console.error('Error fetching admin credentials:', error);
       toast({
@@ -72,6 +79,17 @@ export function AdminManagementContent() {
       toast({ title: "Error", description: "Username and password are required.", variant: "destructive" });
       return;
     }
+    
+    // Prevent superadmins from creating super_super_admin accounts
+    if (!isSuperSuperAdmin && newAdminRole === 'super_super_admin') {
+      toast({ 
+        title: "Error", 
+        description: "You don't have permission to create Super Super Admin accounts.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     try {
       const { data, error } = await adminSupabase.rpc('create_admin_credential', {
         _username: newAdminUsername,
@@ -217,7 +235,7 @@ export function AdminManagementContent() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
-                    {isSuperSuperAdmin && <SelectItem value="superadmin">Super Admin</SelectItem>}
+                    {isSuperAdminOrHigher && <SelectItem value="superadmin">Super Admin</SelectItem>}
                     {isSuperSuperAdmin && <SelectItem value="super_super_admin">Super Super Admin</SelectItem>}
                   </SelectContent>
                 </Select>

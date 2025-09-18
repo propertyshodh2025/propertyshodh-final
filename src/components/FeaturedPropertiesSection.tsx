@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TranslatableText } from '@/components/TranslatableText';
 import { translateEnum } from '@/lib/staticTranslations';
 import { formatNumberWithLocale } from '@/lib/locale';
+import { shouldPropertyHaveBHK } from '@/lib/propertyUtils';
 
 interface Property {
   id: string;
@@ -154,7 +155,7 @@ export const FeaturedPropertiesSection: React.FC = () => {
 
                 {/* Property Details */}
                 <div className="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground flex-wrap">
-                  {property.bedrooms && (
+                  {property.bedrooms && shouldPropertyHaveBHK(property.property_type, (property as any).property_category) && (
                     <div className="flex items-center gap-1">
                       <Bed className="w-3 h-3" />
                       <span>{formatNumberWithLocale(property.bedrooms, language as any)} {translateEnum('bhk', language as any)}</span>

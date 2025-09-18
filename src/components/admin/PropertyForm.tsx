@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Property, PropertyFormData } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { validatePropertyTitle, cleanPropertyTitle } from '@/lib/propertyUtils';
 
 interface PropertyFormProps {
   property?: Property | null;
@@ -19,6 +20,7 @@ interface PropertyFormProps {
 }
 
 const PROPERTY_TYPES = ['Flat', 'Row House', 'Plot', 'Commercial', 'Bungalow', 'Villa'];
+const PROPERTY_CATEGORIES = ['Residential', 'Commercial', 'Agricultural', 'Industrial'];
 const BHK_OPTIONS = [1, 2, 3, 4, 5, 6];
 const FURNISHING_OPTIONS = ['Unfurnished', 'Semi Furnished', 'Fully Furnished'];
 const AMENITIES_LIST = [
@@ -32,6 +34,7 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
     title: '',
     description: '',
     property_type: '',
+    property_category: '',
     bhk: undefined,
     price: 0,
     location: '',
@@ -60,6 +63,7 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
         title: property.title,
         description: property.description || '',
         property_type: property.property_type,
+        property_category: property.property_category || '',
         bhk: property.bhk,
         price: property.price,
         location: property.location,
@@ -87,6 +91,22 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
     setLoading(true);
 
     try {
+      // Validate and clean the property title
+      const titleValidation = validatePropertyTitle(
+        formData.title,
+        formData.property_type,
+        formData.property_category
+      );
+      
+      if (!titleValidation.isValid && titleValidation.suggestedTitle) {
+        toast({
+          title: "Title Updated",
+          description: `Property title cleaned: BHK removed from ${formData.property_type.toLowerCase()} property`,
+        });
+        
+        formData.title = titleValidation.suggestedTitle;
+      }
+      
       if (property) {
         // Update existing property
         const { error } = await supabase
@@ -188,6 +208,23 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="property_category">Property Category *</Label>
+                  <Select
+                    value={formData.property_category}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, property_category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select property category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROPERTY_CATEGORIES.map(category => (
+                        <SelectItem key={category} value={category.toLowerCase()}>{category}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

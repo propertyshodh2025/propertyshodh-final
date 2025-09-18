@@ -29,7 +29,7 @@ export const MobileVerificationGuard: React.FC<MobileVerificationGuardProps> = (
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("mobile_verified, phone_number")
+          .select("mobile_verified, phone_number, terms_accepted, privacy_policy_accepted")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -39,7 +39,12 @@ export const MobileVerificationGuard: React.FC<MobileVerificationGuardProps> = (
           return;
         }
 
-        const verified = Boolean(data?.mobile_verified) && Boolean(data?.phone_number);
+        const isMobileVerified = Boolean(data?.mobile_verified) && Boolean(data?.phone_number);
+        const isTermsAccepted = Boolean(data?.terms_accepted);
+        const isPrivacyAccepted = Boolean(data?.privacy_policy_accepted);
+        
+        // User is fully verified only if mobile is verified AND terms are accepted
+        const verified = isMobileVerified && isTermsAccepted && isPrivacyAccepted;
         setIsVerified(verified);
       } catch (e) {
         console.warn("Profile verification check failed", e);
@@ -65,9 +70,9 @@ export const MobileVerificationGuard: React.FC<MobileVerificationGuardProps> = (
     return (
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
         <div className="bg-card p-8 rounded-lg shadow-lg max-w-md mx-4 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-foreground">Mobile Verification Required</h2>
+          <h2 className="text-2xl font-bold mb-4 text-foreground">Verification Required</h2>
           <p className="text-muted-foreground mb-6">
-            You must verify your mobile number to access this area of the application.
+            You must verify your mobile number and accept our Terms of Service and Privacy Policy to access this area.
           </p>
           <Button onClick={() => window.location.href = "/"} className="w-full">
             Return to Home

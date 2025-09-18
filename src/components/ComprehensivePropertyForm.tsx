@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { generatePropertyTitle } from '@/lib/propertyUtils';
 
 interface ComprehensivePropertyFormProps {
   isOpen: boolean;
@@ -236,15 +237,18 @@ export const ComprehensivePropertyForm = ({ isOpen, onClose }: ComprehensiveProp
 
   const generateTitle = () => {
     const { bhk } = propertyFeatures;
-    const { property_type } = propertyBasics;
+    const { property_type, property_category } = propertyBasics;
     const { location } = propertyDetails;
     
     if (!property_type || !location) return '';
     
-    const bhkText = bhk ? `${bhk}BHK ` : '';
-    const typeText = property_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-    
-    return `${bhkText}${typeText} in ${location}`;
+    return generatePropertyTitle(
+      property_type,
+      location,
+      bhk,
+      property_category,
+      propertyBasics.title
+    );
   };
 
   const handleSubmit = async () => {

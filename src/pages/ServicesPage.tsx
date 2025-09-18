@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   ArrowLeft, 
   Home, 
@@ -32,6 +33,7 @@ const ServicesPage: React.FC = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState('home-loans');
+  const [centralContactNumber, setCentralContactNumber] = useState<string>('');
 
   // Extract service from URL params or default to home-loans
   useEffect(() => {
@@ -42,6 +44,34 @@ const ServicesPage: React.FC = () => {
     else if (path.includes('/interior')) setActiveSection('interior-design');
     else if (path.includes('/management')) setActiveSection('property-management');
   }, [location]);
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Fetch central contact number from site settings
+  useEffect(() => {
+    const fetchCentralContactNumber = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('central_contact_number')
+          .limit(1)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching central contact number:', error);
+        } else if (data && data.central_contact_number) {
+          setCentralContactNumber(data.central_contact_number);
+        }
+      } catch (error) {
+        console.error('Error fetching central contact number:', error);
+      }
+    };
+
+    fetchCentralContactNumber();
+  }, []);
 
   const services = [
     {
@@ -256,10 +286,11 @@ const ServicesPage: React.FC = () => {
         </div>
 
         {/* Services Content */}
-        <div className="container mx-auto px-4 py-16 space-y-32">
-          {services.map((service, index) => {
+        <div className="container mx-auto px-4 py-20">
+          {/* Show only the active service */}
+          {(() => {
+            const service = currentService;
             const IconComponent = service.icon;
-            const isEven = index % 2 === 0;
             
             return (
               <section 
@@ -267,35 +298,35 @@ const ServicesPage: React.FC = () => {
                 id={service.id}
                 className="scroll-mt-24"
               >
-                <div className={`flex flex-col ${isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-12 lg:gap-16 items-center`}>
+                <div className="flex flex-col lg:flex-row gap-16 lg:gap-20 items-start">
                   
                   {/* Service Info */}
-                  <div className="flex-1 space-y-8">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-16 h-16 ${service.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                          <IconComponent className="w-8 h-8 text-white" />
+                  <div className="flex-1 space-y-10">
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-6">
+                        <div className={`w-20 h-20 ${service.color} rounded-3xl flex items-center justify-center shadow-xl`}>
+                          <IconComponent className="w-10 h-10 text-white" />
                         </div>
                         <div>
-                          <h2 className="text-3xl md:text-4xl font-bold text-foreground">{service.title}</h2>
-                          <p className="text-lg text-muted-foreground">{service.subtitle}</p>
+                          <h2 className="text-4xl md:text-5xl font-bold text-foreground">{service.title}</h2>
+                          <p className="text-xl text-muted-foreground mt-2">{service.subtitle}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Features Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg flex items-center gap-2">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="text-xl flex items-center gap-2">
                             <Star className="w-5 h-5 text-yellow-500" />
                             Key Features
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <ul className="space-y-2">
+                          <ul className="space-y-3">
                             {service.features.map((feature, idx) => (
-                              <li key={idx} className="flex items-start gap-2 text-sm">
+                              <li key={idx} className="flex items-start gap-3 text-sm">
                                 <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                                 <span>{feature}</span>
                               </li>
@@ -305,17 +336,17 @@ const ServicesPage: React.FC = () => {
                       </Card>
 
                       <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg flex items-center gap-2">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="text-xl flex items-center gap-2">
                             <Clock className="w-5 h-5 text-blue-500" />
                             Our Process
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <ol className="space-y-2">
+                          <ol className="space-y-3">
                             {service.process.map((step, idx) => (
                               <li key={idx} className="flex items-start gap-3 text-sm">
-                                <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                <div className="w-7 h-7 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                                   {idx + 1}
                                 </div>
                                 <span>{step}</span>
@@ -329,61 +360,27 @@ const ServicesPage: React.FC = () => {
                     {/* Benefits */}
                     <Card className="bg-gradient-to-r from-primary/5 via-accent/5 to-secondary/5 border border-border/50">
                       <CardHeader>
-                        <CardTitle className="text-xl flex items-center gap-2">
-                          <Award className="w-5 h-5 text-primary" />
+                        <CardTitle className="text-2xl flex items-center gap-2">
+                          <Award className="w-6 h-6 text-primary" />
                           Why Choose Us
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {service.benefits.map((benefit, idx) => (
-                            <div key={idx} className="flex items-center gap-3">
-                              <TrendingUp className="w-5 h-5 text-green-500" />
+                            <div key={idx} className="flex items-start gap-3">
+                              <TrendingUp className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                               <span className="text-sm">{benefit}</span>
                             </div>
                           ))}
                         </div>
                       </CardContent>
                     </Card>
-
-                    {/* CTA Section */}
-                    <div className="bg-card/30 backdrop-blur-sm border border-border/50 rounded-2xl p-6">
-                      <div className="text-center space-y-4">
-                        <h3 className="text-xl font-semibold">Ready to get started with {service.title}?</h3>
-                        <p className="text-muted-foreground">
-                          Contact our experts for a free consultation and personalized solution.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                          <Button
-                            onClick={() => {
-                              if (!user) {
-                                navigate('/dashboard');
-                              } else {
-                                // Navigate to contact form or dashboard
-                                navigate('/dashboard?tab=contact');
-                              }
-                            }}
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/30"
-                          >
-                            <Phone className="w-4 h-4 mr-2" />
-                            Get Free Consultation
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => navigate('/contact')}
-                            className="bg-background/40 backdrop-blur-sm border border-border hover:border-primary/50 rounded-xl px-8 py-3 transition-all duration-300"
-                          >
-                            <Mail className="w-4 h-4 mr-2" />
-                            Send Inquiry
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Service Visual/Stats */}
-                  <div className="flex-1 max-w-lg">
-                    <Card className="bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-sm border border-border/50 shadow-xl">
+                  <div className="flex-1 max-w-xl">
+                    <Card className="bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-sm border border-border/50 shadow-xl sticky top-24">
                       <CardHeader className="text-center">
                         <div className={`w-20 h-20 ${service.color} rounded-3xl flex items-center justify-center mx-auto shadow-lg`}>
                           <IconComponent className="w-10 h-10 text-white" />
@@ -449,7 +446,7 @@ const ServicesPage: React.FC = () => {
                 </div>
               </section>
             );
-          })}
+          })()}
         </div>
 
         {/* Contact Section */}
@@ -467,7 +464,12 @@ const ServicesPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
                   size="lg"
-                  onClick={() => navigate('/contact')}
+                  onClick={() => {
+                    const phoneNumber = centralContactNumber || '+91 98765 43210';
+                    const message = encodeURIComponent('Hi! I would like to schedule a free consultation for your real estate services.');
+                    const whatsappUrl = `https://wa.me/${phoneNumber.replace(/[^0-9]/g, '')}?text=${message}`;
+                    window.open(whatsappUrl, '_blank');
+                  }}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/30"
                 >
                   <Phone className="w-5 h-5 mr-2" />
@@ -487,19 +489,19 @@ const ServicesPage: React.FC = () => {
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-primary">2000+</div>
+                  <div className="text-3xl font-bold text-primary">100+</div>
                   <div className="text-sm text-muted-foreground">Properties Served</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">₹500Cr+</div>
+                  <div className="text-3xl font-bold text-green-600">₹21Cr+</div>
                   <div className="text-sm text-muted-foreground">Transactions Value</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">50+</div>
+                  <div className="text-3xl font-bold text-blue-600">15+</div>
                   <div className="text-sm text-muted-foreground">Expert Partners</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">5</div>
+                  <div className="text-3xl font-bold text-purple-600">10</div>
                   <div className="text-sm text-muted-foreground">Years Experience</div>
                 </div>
               </div>

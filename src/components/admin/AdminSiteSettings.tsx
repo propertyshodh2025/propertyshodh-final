@@ -21,23 +21,33 @@ export const AdminSiteSettings: React.FC = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('central_contact_number')
-        .limit(1)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('central_contact_number')
+          .limit(1)
+          .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+          console.error('Error fetching site settings:', error);
+          toast({
+            title: t('error'),
+            description: t('failed_to_fetch_site_settings'),
+            variant: 'destructive',
+          });
+        } else if (data) {
+          setCentralContactNumber(data.central_contact_number || '');
+        }
+      } catch (error) {
         console.error('Error fetching site settings:', error);
         toast({
           title: t('error'),
           description: t('failed_to_fetch_site_settings'),
           variant: 'destructive',
         });
-      } else if (data) {
-        setCentralContactNumber(data.central_contact_number || '');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchSettings();

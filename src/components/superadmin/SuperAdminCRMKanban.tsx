@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatRelativeTime, formatDate } from '@/lib/dateUtils';
-import { Phone, MessageCircle, UserPlus, ChevronDown, StickyNote, Users, LayoutDashboard, ChevronRight, ChevronDown as ChevronDownIcon } from 'lucide-react';
+import { Phone, MessageCircle, UserPlus, ChevronDown, StickyNote, Users, LayoutDashboard, ChevronRight, ChevronDown as ChevronDownIcon, Mail } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'closed';
@@ -171,10 +171,33 @@ export default function SuperAdminCRMKanban() {
       const isFullyAssigned = leads.every(l => l.assigned_admin_id !== null);
       const firstAdminId = leads[0]?.assigned_admin_id;
       const commonAdminId = isFullyAssigned && leads.every(l => l.assigned_admin_id === firstAdminId) ? firstAdminId : null;
+      
+      // Create a better display name for the lead group
+      const getDisplayName = (leads: Lead[]) => {
+        const primaryLead = leads[0]; // Most recent lead
+        
+        // If we have a name, use it
+        if (primaryLead?.name && primaryLead.name !== 'N/A' && primaryLead.name.trim() !== '') {
+          return primaryLead.name;
+        }
+        
+        // For research report leads, use email if no name
+        if (primaryLead?.source_type === 'research_report' && primaryLead.email) {
+          return primaryLead.email;
+        }
+        
+        // Otherwise, use phone if available
+        if (primaryLead?.phone) {
+          return primaryLead.phone;
+        }
+        
+        // Final fallback
+        return primaryLead?.email || 'Unknown Lead';
+      };
 
       return {
         id: contactKey, // Use contactKey as the draggable ID for grouped leads
-        primaryContact: contactKey, // Display this
+        primaryContact: getDisplayName(leads), // Display this
         leads: leads.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()), // Sort by most recent activity
         isFullyAssigned,
         commonAdminId,
@@ -305,6 +328,49 @@ export default function SuperAdminCRMKanban() {
     window.open(`https://wa.me/${formatted}?text=${message}`, '_blank');
   };
 
+  const handleEmail = (email: string, name: string) => {
+    if (!email) {
+      toast({ title: 'Error', description: 'No email address available for this lead', variant: 'destructive' });
+      return;
+    }
+    
+    console.log('Handling email for:', email, name);
+    
+    const subject = encodeURIComponent('Follow-up on your PropertyShodh inquiry');
+    const body = encodeURIComponent(`Hi ${name},\n\nThank you for your interest in PropertyShodh. We are following up on your recent inquiry.\n\nBest regards,\nPropertyShodh Team`);
+    const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
+    
+    console.log('Mailto URL:', mailtoUrl);
+    
+    // Try multiple approaches to open email
+    try {
+      // Method 1: Direct location change
+      window.location.href = mailtoUrl;
+    } catch (error) {
+      console.error('Method 1 failed:', error);
+      try {
+        // Method 2: Window.open with _blank
+        window.open(mailtoUrl, '_blank');
+      } catch (error2) {
+        console.error('Method 2 failed:', error2);
+        // Method 3: Fallback - copy to clipboard and show message
+        navigator.clipboard.writeText(email).then(() => {
+          toast({ 
+            title: 'Email copied to clipboard', 
+            description: `Email address ${email} has been copied. Please compose your email manually.`,
+            variant: 'default'
+          });
+        }).catch(() => {
+          toast({ 
+            title: 'Email address', 
+            description: `Please send email to: ${email}`,
+            variant: 'default'
+          });
+        });
+      }
+    }
+  };
+
   const getLeadTypeBadge = (type: Lead['source_type']) => {
     switch (type) {
       case 'property_inquiry': return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">Property Inquiry</Badge>;
@@ -361,6 +427,10 @@ export default function SuperAdminCRMKanban() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="font-medium leading-tight line-clamp-1">{groupedLead.primaryContact}</div>
+                            {/* Show email address below title for research report leads */}
+                            {groupedLead.leads[0]?.source_type === 'research_report' && groupedLead.leads[0]?.email && (
+                              <div className="text-xs text-muted-foreground mt-1">{groupedLead.leads[0].email}</div>
+                            )}
                             {/* Display individual leads within the grouped lead */}
                             <Accordion type="single" collapsible className="w-full mt-2">
                               <AccordionItem value="activities">
@@ -372,7 +442,13 @@ export default function SuperAdminCRMKanban() {
                                     <div key={lead.id} className="border-l-2 border-muted-foreground/30 pl-2 py-1">
                                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                         {getLeadTypeBadge(lead.source_type)}
-                                        <span className="ml-1">{lead.name || 'N/A'}</span>
+                                        <span className="ml-1">
+                                          {lead.name && lead.name !== 'N/A' && lead.name.trim() !== '' 
+                                            ? lead.name 
+                                            : (lead.source_type === 'research_report' && lead.email 
+                                              ? lead.email 
+                                              : (lead.phone || 'Unknown'))}
+                                        </span>
                                       </div>
                                       {lead.property_title && <p className="text-xs text-muted-foreground line-clamp-1">Property: {lead.property_title}</p>}
                                       {lead.location && <p className="text-xs text-muted-foreground line-clamp-1">Location: {lead.location}</p>}
@@ -384,8 +460,22 @@ export default function SuperAdminCRMKanban() {
                             </Accordion>
                           </div>
                           <div className="flex items-center gap-1">
-                            {/* Use the phone from the first lead in the group for contact actions */}
-                            {groupedLead.leads[0]?.phone && (
+                            {/* Show different contact methods based on lead type */}
+                            {groupedLead.leads[0]?.source_type === 'research_report' && groupedLead.leads[0]?.email ? (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('Email button clicked!', groupedLead.leads[0].email);
+                                  handleEmail(groupedLead.leads[0].email!, groupedLead.leads[0].name || groupedLead.leads[0].email!);
+                                }} 
+                                aria-label="Email"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            ) : groupedLead.leads[0]?.phone ? (
                               <>
                                 <Button variant="ghost" size="icon" onClick={() => handleCall(groupedLead.leads[0].phone)} aria-label="Call">
                                   <Phone className="h-4 w-4" />
@@ -394,7 +484,7 @@ export default function SuperAdminCRMKanban() {
                                   <MessageCircle className="h-4 w-4" />
                                 </Button>
                               </>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         
@@ -486,17 +576,52 @@ export default function SuperAdminCRMKanban() {
                                         <div className="rounded-md border border-border/60 bg-background p-3 shadow-sm">
                                           <div className="flex items-start justify-between gap-2">
                                             <div>
-                                              <div className="font-medium leading-tight line-clamp-1">{lead.name}</div>
-                                              <div className="text-xs text-muted-foreground">{lead.phone}</div>
-                                              {lead.email && <div className="text-xs text-muted-foreground line-clamp-1">{lead.email}</div>}
+                                              <div className="font-medium leading-tight line-clamp-1">
+                                                {lead.name && lead.name !== 'N/A' && lead.name.trim() !== '' 
+                                                  ? lead.name 
+                                                  : (lead.source_type === 'research_report' && lead.email 
+                                                    ? lead.email 
+                                                    : (lead.phone || 'Unknown Lead'))}
+                                              </div>
+                                              {/* Show email address for research report leads */}
+                                              {lead.source_type === 'research_report' && lead.email && (
+                                                <div className="text-xs text-muted-foreground">{lead.email}</div>
+                                              )}
+                                              {/* Show phone for non-research report leads */}
+                                              {lead.source_type !== 'research_report' && lead.phone && (
+                                                <div className="text-xs text-muted-foreground">{lead.phone}</div>
+                                              )}
+                                              {/* Show email for non-research leads if different from name */}
+                                              {lead.source_type !== 'research_report' && lead.email && lead.email !== lead.name && (
+                                                <div className="text-xs text-muted-foreground line-clamp-1">{lead.email}</div>
+                                              )}
                                             </div>
                                             <div className="flex items-center gap-1">
-                                              <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
-                                                <Phone className="h-4 w-4" />
-                                              </Button>
-                                              <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name)} aria-label="WhatsApp">
-                                                <MessageCircle className="h-4 w-4" />
-                                              </Button>
+                                              {/* Show different contact methods based on lead type */}
+                                              {lead.source_type === 'research_report' && lead.email ? (
+                                                <Button 
+                                                  variant="ghost" 
+                                                  size="icon" 
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    console.log('Assigned leads email button clicked!', lead.email);
+                                                    handleEmail(lead.email!, lead.name || lead.email!);
+                                                  }} 
+                                                  aria-label="Email"
+                                                >
+                                                  <Mail className="h-4 w-4" />
+                                                </Button>
+                                              ) : lead.phone ? (
+                                                <>
+                                                  <Button variant="ghost" size="icon" onClick={() => handleCall(lead.phone)} aria-label="Call">
+                                                    <Phone className="h-4 w-4" />
+                                                  </Button>
+                                                  <Button variant="ghost" size="icon" onClick={() => handleWhatsApp(lead.phone, lead.name || lead.email || 'User')} aria-label="WhatsApp">
+                                                    <MessageCircle className="h-4 w-4" />
+                                                  </Button>
+                                                </>
+                                              ) : null}
                                             </div>
                                           </div>
 
