@@ -105,14 +105,16 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
 
     setLoading(true);
     try {
+      console.log(`🔐 Verifying OTP for phone: ${phoneNumber}`);
       const { data, error } = await supabase.functions.invoke('verify-otp', {
         body: { phone: phoneNumber, otp, purpose: 'verify_mobile' }
       });
       if (error) throw error;
 
       if (data?.verified) {
+        console.log(`📝 Updating profile with terms acceptance for user: ${user?.id}`);
         // Also update terms acceptance in the profile
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .upsert({
             user_id: user?.id,
@@ -120,7 +122,19 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
             privacy_policy_accepted: true,
             terms_accepted_at: new Date().toISOString(),
             privacy_policy_accepted_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id'
           });
+
+        if (updateError) {
+          console.error('❌ Error updating profile:', updateError);
+          throw updateError;
+        }
+
+        console.log(`✅ Profile updated successfully`);
+        
+        // Small delay to ensure database is updated
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         toast({
           title: "Success",
@@ -134,7 +148,7 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
         throw new Error(data?.message || 'Invalid OTP');
       }
     } catch (error: any) {
-      console.error('Error verifying OTP:', error);
+      console.error('❌ Error verifying OTP:', error);
       toast({
         title: "Error",
         description: error.message || "Invalid OTP",

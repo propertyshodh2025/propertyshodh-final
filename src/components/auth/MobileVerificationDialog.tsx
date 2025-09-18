@@ -96,12 +96,18 @@ export const MobileVerificationDialog: React.FC<MobileVerificationDialogProps> =
 
     setLoading(true);
     try {
+      console.log(`🔐 Verifying OTP for phone: ${phoneNumber}`);
       const { data, error } = await supabase.functions.invoke('verify-otp', {
         body: { phone: phoneNumber, otp, purpose: 'verify_mobile' }
       });
       if (error) throw error;
 
       if (data?.verified) {
+        console.log(`✅ OTP verified successfully`);
+        
+        // Small delay to ensure database is updated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         toast({
           title: "Success",
           description: "Mobile number verified successfully!",
@@ -115,7 +121,7 @@ export const MobileVerificationDialog: React.FC<MobileVerificationDialogProps> =
         throw new Error(data?.message || 'Invalid OTP');
       }
     } catch (error: any) {
-      console.error('Error verifying OTP:', error);
+      console.error('❌ Error verifying OTP:', error);
       toast({
         title: "Error",
         description: error.message || "Invalid OTP",

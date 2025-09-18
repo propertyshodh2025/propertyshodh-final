@@ -103,7 +103,8 @@ serve(async (req) => {
       const { data: userData } = await userClient.auth.getUser(jwt);
       const uid = userData?.user?.id;
       if (uid) {
-        await supabase
+        console.log(`📝 Updating profile for user: ${uid} with phone: +91${phone}`);
+        const { error: profileError } = await supabase
           .from("profiles")
           .upsert(
             {
@@ -114,6 +115,12 @@ serve(async (req) => {
             },
             { onConflict: "user_id" }
           );
+        
+        if (profileError) {
+          console.error("❌ Error updating profile:", profileError);
+        } else {
+          console.log("✅ Profile updated successfully");
+        }
       }
     }
 

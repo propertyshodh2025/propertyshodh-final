@@ -44,6 +44,7 @@ export function AdminManagementContent() {
   const currentAdminSession = getCurrentAdminSession();
   const isSuperAdminOrHigher = currentAdminSession?.role === 'superadmin' || currentAdminSession?.role === 'super_super_admin';
   const isSuperSuperAdmin = currentAdminSession?.role === 'super_super_admin';
+  const currentUserRole = currentAdminSession?.role || 'admin';
 
   useEffect(() => {
     fetchAdmins();
@@ -55,10 +56,29 @@ export function AdminManagementContent() {
       const { data, error } = await adminSupabase.rpc('get_admin_credentials');
       if (error) throw error;
       
-      // Filter out super_super_admin users if current user is only a superadmin
+      // Apply strict role-based filtering
       let filteredData = data || [];
-      if (!isSuperSuperAdmin) {
-        filteredData = filteredData.filter((admin: AdminCredential) => admin.role !== 'super_super_admin');
+      
+      // Apply filtering based on current user's role hierarchy
+      switch (currentUserRole) {
+        case 'admin':
+          // Admins can only see other admin accounts (but actually, they shouldn't see this component at all)
+          filteredData = filteredData.filter((admin: AdminCredential) => admin.role === 'admin');
+          break;
+        case 'superadmin':
+          // Superadmins can ONLY see admin and superadmin accounts, NOT super_super_admin
+          filteredData = filteredData.filter((admin: AdminCredential) => 
+            admin.role === 'admin' || admin.role === 'superadmin'
+          );
+          break;
+        case 'super_super_admin':
+          // Super super admins can see all accounts
+          // No filtering needed
+          break;
+        default:
+          // Unknown role - show nothing for security
+          filteredData = [];
+          break;
       }
       
       setAdmins(filteredData);
@@ -80,14 +100,36 @@ export function AdminManagementContent() {
       return;
     }
     
-    // Prevent superadmins from creating super_super_admin accounts
-    if (!isSuperSuperAdmin && newAdminRole === 'super_super_admin') {
-      toast({ 
-        title: "Error", 
-        description: "You don't have permission to create Super Super Admin accounts.", 
-        variant: "destructive" 
-      });
-      return;
+    // Enforce strict role creation hierarchy
+    switch (currentUserRole) {
+      case 'admin':
+        toast({ 
+          title: "Access Denied", 
+          description: "Admins cannot create other admin accounts.", 
+          variant: "destructive" 
+        });
+        return;
+      case 'superadmin':
+        // Superadmins can ONLY create admin accounts
+        if (newAdminRole !== 'admin') {
+          toast({ 
+            title: "Access Denied", 
+            description: "Superadmins can only create admin accounts.", 
+            variant: "destructive" 
+          });
+          return;
+        }
+        break;
+      case 'super_super_admin':
+        // Super super admins can create any account type
+        break;
+      default:
+        toast({ 
+          title: "Access Denied", 
+          description: "Unknown admin role - access denied.", 
+          variant: "destructive" 
+        });
+        return;
     }
     
     try {
@@ -191,6 +233,42 @@ export function AdminManagementContent() {
   };
 
   const openEditDialog = (admin: AdminCredential) => {
+    // Additional role-based security check before opening edit dialog
+    switch (currentUserRole) {
+      case 'admin':
+        // Admins can only edit themselves
+        if (admin.id !== currentAdminSession?.id) {
+          toast({ 
+            title: "Access Denied", 
+            description: "Admins can only edit their own account.", 
+            variant: "destructive" 
+          });
+          return;
+        }
+        break;
+      case 'superadmin':
+        // Superadmins can't edit super_super_admin accounts
+        if (admin.role === 'super_super_admin') {
+          toast({ 
+            title: "Access Denied", 
+            description: "Superadmins cannot modify Super Super Admin accounts.", 
+            variant: "destructive" 
+          });
+          return;
+        }
+        break;
+      case 'super_super_admin':
+        // Super super admins can edit any account
+        break;
+      default:
+        toast({ 
+          title: "Access Denied", 
+          description: "Unknown admin role - access denied.", 
+          variant: "destructive" 
+        });
+        return;
+    }
+    
     setEditingAdmin(admin);
     setEditUsername(admin.username);
     setEditRole(admin.role);
@@ -235,7 +313,8 @@ export function AdminManagementContent() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
-                    {isSuperAdminOrHigher && <SelectItem value="superadmin">Super Admin</SelectItem>}
+                    {/* Only show role options based on current user's role */}
+                    {isSuperSuperAdmin && <SelectItem value="superadmin">Super Admin</SelectItem>}
                     {isSuperSuperAdmin && <SelectItem value="super_super_admin">Super Super Admin</SelectItem>}
                   </SelectContent>
                 </Select>
