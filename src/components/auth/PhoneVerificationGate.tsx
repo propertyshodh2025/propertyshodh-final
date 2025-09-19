@@ -19,6 +19,15 @@ export const PhoneVerificationGate: React.FC = () => {
       return;
     }
 
+    // 🚨 IMMEDIATE FIX: Check localStorage first - if user completed onboarding, NEVER show again
+    const onboardingCompleted = localStorage.getItem(`onboarding_completed_${user.id}`);
+    if (onboardingCompleted === 'true') {
+      console.log(`🛑 [PERMANENT SKIP] User ${user.id} completed onboarding - localStorage check BLOCKS popup forever`);
+      setOpen(false);
+      setChecked(true);
+      return;
+    }
+
     setIsChecking(true);
     
     try {
@@ -106,6 +115,13 @@ export const PhoneVerificationGate: React.FC = () => {
 
   const handleVerificationComplete = useCallback(() => {
     console.log(`🎊 [VERIFICATION COMPLETE] User ${user?.id} finished verification`);
+    
+    // 🚨 IMMEDIATE FIX: Set localStorage flag to NEVER show popup again
+    if (user?.id) {
+      localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
+      console.log(`🔐 [PERMANENT LOCK] Set localStorage flag - popup will NEVER appear again for user ${user.id}`);
+    }
+    
     console.log(`🔄 [ACTION] Re-checking verification status from database...`);
     
     // Force a fresh check from database after verification

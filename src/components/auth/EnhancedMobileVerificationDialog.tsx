@@ -142,6 +142,12 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
           }
         }
 
+        // 🚨 IMMEDIATE FIX: Set localStorage flag to NEVER show popup again
+        if (user?.id) {
+          localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
+          console.log(`🔐 [PERMANENT LOCK] Enhanced dialog - Set localStorage flag for user ${user.id}`);
+        }
+        
         toast({
           title: "Success",
           description: "Mobile number verified successfully!",
@@ -317,15 +323,35 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
                 </div>
               </div>
 
-              <Button
-                onClick={handleProceedToPhone}
-                className={`w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-400 hover:to-blue-400 ${
-                  !canProceedFromTerms ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                disabled={!canProceedFromTerms}
-              >
-                Continue to Mobile Verification
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  onClick={handleProceedToPhone}
+                  className={`w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-400 hover:to-blue-400 ${
+                    !canProceedFromTerms ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  disabled={!canProceedFromTerms}
+                >
+                  Continue to Mobile Verification
+                </Button>
+                
+                {/* 🚨 EMERGENCY SKIP BUTTON */}
+                <Button
+                  onClick={() => {
+                    if (user?.id) {
+                      localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
+                      console.log(`🚨 [EMERGENCY SKIP] User manually skipped onboarding - will never show again`);
+                      onComplete();
+                      if (!mandatory) {
+                        onOpenChange(false);
+                      }
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full text-xs"
+                >
+                  🚨 Never Show This Again (Emergency Skip)
+                </Button>
+              </div>
 
               {!canProceedFromTerms && (
                 <p className="text-xs text-center text-red-600 dark:text-red-400">
