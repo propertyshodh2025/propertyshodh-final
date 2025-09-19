@@ -29,7 +29,7 @@ export const MobileVerificationGuard: React.FC<MobileVerificationGuardProps> = (
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("mobile_verified, phone_number, terms_accepted, privacy_policy_accepted")
+          .select("mobile_verified, phone_number, terms_accepted, privacy_policy_accepted, onboarding_completed")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -39,6 +39,12 @@ export const MobileVerificationGuard: React.FC<MobileVerificationGuardProps> = (
           return;
         }
 
+        // If user has completed onboarding, they are automatically verified
+        if (data?.onboarding_completed) {
+          setIsVerified(true);
+          return;
+        }
+        
         const isMobileVerified = Boolean(data?.mobile_verified) && Boolean(data?.phone_number);
         const isTermsAccepted = Boolean(data?.terms_accepted);
         const isPrivacyAccepted = Boolean(data?.privacy_policy_accepted);

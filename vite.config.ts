@@ -36,9 +36,6 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('@radix-ui')) {
               return 'ui-vendor';
             }
-            if (id.includes('firebase') || id.includes('@firebase')) {
-              return 'firebase-vendor';
-            }
             if (id.includes('framer-motion')) {
               return 'animation-vendor';
             }

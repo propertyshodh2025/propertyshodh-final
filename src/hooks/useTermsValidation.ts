@@ -7,6 +7,7 @@ interface TermsValidationDetails {
   phone_number_provided: boolean;
   terms_accepted: boolean;
   privacy_policy_accepted: boolean;
+  onboarding_completed: boolean;
   terms_accepted_at?: string | null;
   privacy_policy_accepted_at?: string | null;
 }

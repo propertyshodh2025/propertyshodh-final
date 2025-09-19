@@ -28,7 +28,7 @@ export const PhoneVerificationGate: React.FC = () => {
       // Always fetch fresh data from database - no caching
       const { data, error } = await supabase
         .from("profiles")
-        .select("mobile_verified, phone_number, terms_accepted, privacy_policy_accepted, email")
+        .select("mobile_verified, phone_number, terms_accepted, privacy_policy_accepted, email, onboarding_completed")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -49,12 +49,22 @@ export const PhoneVerificationGate: React.FC = () => {
         return;
       }
 
+      // CRITICAL: Check if user has completed onboarding - if so, NEVER show the dialog again
+      if (data.onboarding_completed) {
+        console.log(`🎉 [ONBOARDING COMPLETED] User ${user.id} has completed onboarding - NEVER SHOWING DIALOG AGAIN`);
+        console.log(`✅ [PERMANENT SKIP] Onboarding popup will never appear for this user again`);
+        setOpen(false);
+        setChecked(true);
+        return;
+      }
+
       // Log current verification status from database
       console.log(`📋 [PROFILE DATA] Status for user ${user.id}:`, {
         mobile_verified: data.mobile_verified,
         phone_number: data.phone_number ? '***' + data.phone_number.slice(-4) : null,
         terms_accepted: data.terms_accepted,
         privacy_policy_accepted: data.privacy_policy_accepted,
+        onboarding_completed: data.onboarding_completed,
         email: data.email
       });
 

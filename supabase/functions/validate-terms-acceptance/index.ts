@@ -51,7 +51,7 @@ serve(async (req) => {
     // Fetch user profile with terms acceptance status
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('mobile_verified, phone_number, terms_accepted, privacy_policy_accepted, terms_accepted_at, privacy_policy_accepted_at')
+      .select('mobile_verified, phone_number, terms_accepted, privacy_policy_accepted, terms_accepted_at, privacy_policy_accepted_at, onboarding_completed')
       .eq('user_id', user.id)
       .single()
 
@@ -66,10 +66,12 @@ serve(async (req) => {
       )
     }
 
-    const isFullyVerified = Boolean(profile.mobile_verified) && 
-                           Boolean(profile.phone_number) &&
-                           Boolean(profile.terms_accepted) && 
-                           Boolean(profile.privacy_policy_accepted)
+    // If user has completed onboarding, they are always considered fully verified
+    const isFullyVerified = Boolean(profile.onboarding_completed) || 
+                           (Boolean(profile.mobile_verified) && 
+                            Boolean(profile.phone_number) &&
+                            Boolean(profile.terms_accepted) && 
+                            Boolean(profile.privacy_policy_accepted))
 
     if (action === 'validate') {
       return new Response(
@@ -81,6 +83,7 @@ serve(async (req) => {
             phone_number_provided: Boolean(profile.phone_number),
             terms_accepted: Boolean(profile.terms_accepted),
             privacy_policy_accepted: Boolean(profile.privacy_policy_accepted),
+            onboarding_completed: Boolean(profile.onboarding_completed),
             terms_accepted_at: profile.terms_accepted_at,
             privacy_policy_accepted_at: profile.privacy_policy_accepted_at
           }
@@ -102,7 +105,8 @@ serve(async (req) => {
             missing_requirements: {
               mobile_verification: !Boolean(profile.mobile_verified) || !Boolean(profile.phone_number),
               terms_acceptance: !Boolean(profile.terms_accepted),
-              privacy_policy_acceptance: !Boolean(profile.privacy_policy_accepted)
+              privacy_policy_acceptance: !Boolean(profile.privacy_policy_accepted),
+              onboarding_completed: !Boolean(profile.onboarding_completed)
             }
           }),
           { 

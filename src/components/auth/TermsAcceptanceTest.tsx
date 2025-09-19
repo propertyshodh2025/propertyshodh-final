@@ -93,6 +93,7 @@ export const TermsAcceptanceTest: React.FC = () => {
                 {getStatusBadge(details.phone_number_provided, 'Phone Number')}
                 {getStatusBadge(details.terms_accepted, 'Terms of Service')}
                 {getStatusBadge(details.privacy_policy_accepted, 'Privacy Policy')}
+                {getStatusBadge(details.onboarding_completed, 'Onboarding Completed')}
               </div>
 
               {(details.terms_accepted_at || details.privacy_policy_accepted_at) && (

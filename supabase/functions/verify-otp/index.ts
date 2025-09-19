@@ -117,6 +117,7 @@ serve(async (req) => {
               privacy_policy_accepted: true,
               terms_accepted_at: new Date().toISOString(),
               privacy_policy_accepted_at: new Date().toISOString(),
+              onboarding_completed: true,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "user_id" }
