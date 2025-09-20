@@ -192,6 +192,9 @@ importers:
       '@dyad-sh/react-vite-component-tagger':
         specifier: ^0.8.0
         version: 0.8.0(vite@5.4.19(@types/node@24.3.0))
+      '@esbuild/linux-x64':
+        specifier: ^0.21.5
+        version: 0.21.5
       '@eslint/js':
         specifier: ^9.9.0
         version: 9.34.0
@@ -3081,8 +3084,7 @@ snapshots:
   '@esbuild/linux-s390x@0.21.5':
     optional: true
 
-  '@esbuild/linux-x64@0.21.5':
-    optional: true
+  '@esbuild/linux-x64@0.21.5': {}
 
   '@esbuild/netbsd-x64@0.21.5':
     optional: true
