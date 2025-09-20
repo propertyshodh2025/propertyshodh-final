@@ -25,6 +25,7 @@ serve(async (req) => {
 
   try {
     const { phone, otp, purpose = "verify_mobile" } = await req.json();
+    console.log(`🚀 [VERIFY-OTP] Starting verification - Phone: ${phone}, Purpose: ${purpose}`);
     if (!/^[0-9]{10}$/.test(phone) || !/^[0-9]{6}$/.test(otp)) {
       return new Response(JSON.stringify({ error: "Invalid input" }), {
         status: 400,
@@ -104,36 +105,62 @@ serve(async (req) => {
       const uid = userData?.user?.id;
       const userEmail = userData?.user?.email;
       if (uid) {
-        console.log(`📝 Creating/updating complete profile for user: ${uid} (${userEmail}) with phone: +91${phone}`);
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert(
-            {
-              user_id: uid,
-              email: userEmail,
-              phone_number: `+91${phone}`,
-              mobile_verified: true,
-              terms_accepted: true,
-              privacy_policy_accepted: true,
-              terms_accepted_at: new Date().toISOString(),
-              privacy_policy_accepted_at: new Date().toISOString(),
-              onboarding_completed: true,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" }
-          );
+        console.log(`📝 [VERIFY-OTP] Creating/updating profile for user: ${uid} (${userEmail}) with phone: +91${phone}`);
+        console.log(`📝 [VERIFY-OTP] Purpose: ${purpose}`);
         
-        if (profileError) {
-          console.error("❌ Error creating/updating profile:", profileError);
-          console.error("Profile error details:", JSON.stringify(profileError, null, 2));
+        // For onboarding purpose, complete all requirements in one go
+        if (purpose === 'onboarding') {
+          console.log(`✅ [ONBOARDING] Completing full onboarding for user: ${uid}`);
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .upsert(
+              {
+                user_id: uid,
+                email: userEmail,
+                phone_number: `+91${phone}`,
+                mobile_verified: true,
+                terms_accepted: true,
+                privacy_policy_accepted: true,
+                terms_accepted_at: new Date().toISOString(),
+                privacy_policy_accepted_at: new Date().toISOString(),
+                onboarding_completed: true,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" }
+            );
+            
+          if (profileError) {
+            console.error("❌ [ONBOARDING] Error completing onboarding:", profileError);
+          } else {
+            console.log("🎉 [ONBOARDING] Full onboarding completed successfully!");
+          }
         } else {
-          console.log("✅ Profile created/updated successfully with full verification");
+          // Legacy verify_mobile purpose - only verify mobile
+          console.log(`📱 [MOBILE-ONLY] Updating mobile verification for user: ${uid}`);
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .upsert(
+              {
+                user_id: uid,
+                email: userEmail,
+                phone_number: `+91${phone}`,
+                mobile_verified: true,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" }
+            );
+            
+          if (profileError) {
+            console.error("❌ [MOBILE-ONLY] Error updating mobile verification:", profileError);
+          } else {
+            console.log("✅ [MOBILE-ONLY] Mobile verification updated successfully");
+          }
         }
       } else {
-        console.warn("⚠️ No user ID found in JWT");
+        console.warn("⚠️ [VERIFY-OTP] No user ID found in JWT - profile will not be updated");
       }
     } else {
-      console.warn("⚠️ No JWT token found - profile will not be updated");
+      console.warn("⚠️ [VERIFY-OTP] No JWT token found - profile will not be updated");
     }
 
     return new Response(JSON.stringify({ verified: true }), {

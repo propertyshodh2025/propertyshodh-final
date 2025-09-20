@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTermsValidation } from '@/hooks/useTermsValidation';
 import { useAuth } from '@/contexts/AuthContext';
-import { EnhancedMobileVerificationDialog } from './EnhancedMobileVerificationDialog';
+import { OneTimeOnboardingDialog } from './OneTimeOnboardingDialog';
 import { CheckCircle, XCircle, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export const TermsAcceptanceTest: React.FC = () => {
@@ -144,14 +144,12 @@ export const TermsAcceptanceTest: React.FC = () => {
       </Card>
 
       {/* Verification Dialog */}
-      <EnhancedMobileVerificationDialog
+      <OneTimeOnboardingDialog
         open={showDialog}
-        onOpenChange={() => {}} // Prevent closing during test
         onComplete={() => {
           setShowDialog(false);
           refetch(); // Refresh status after completion
         }}
-        mandatory={true}
       />
     </div>
   );

@@ -28,8 +28,7 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import LanguageSEO from "@/components/LanguageSEO";
 
-import { PhoneVerificationGate } from "@/components/auth/PhoneVerificationGate";
-import { MobileVerificationGuard } from "@/components/auth/MobileVerificationGuard";
+import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import { AdminManagementContent } from "@/components/admin/AdminManagementContent";
 
 const queryClient = new QueryClient();
@@ -43,44 +42,32 @@ const AppContent = () => {
       <MaintenanceWrapper>
         <LanguageSEO />
         
-        <PhoneVerificationGate />
+        <OnboardingGuard />
         <Routes>
         <Route path="/" element={<RadarPage />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/property/:id" element={<EnhancedPropertyDetailsWrapper />} />
         <Route path="/properties" element={<Properties />} />
-        <Route path="/dashboard" element={
-          <MobileVerificationGuard>
-            <UserDashboard />
-          </MobileVerificationGuard>
-        } />
+        <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/admin" element={
           <AdminRouteProtection requiredRole="admin">
-            <MobileVerificationGuard>
-              <AdminDashboard />
-            </MobileVerificationGuard>
+            <AdminDashboard />
           </AdminRouteProtection>
         } />
         <Route path="/admin/users" element={
           <AdminRouteProtection requiredRole="admin">
-            <MobileVerificationGuard>
-              <AdminManagementContent />
-            </MobileVerificationGuard>
+            <AdminManagementContent />
           </AdminRouteProtection>
         } />
         <Route path="/superadmin/*" element={
           <AdminRouteProtection requiredRole="superadmin">
-            <MobileVerificationGuard>
-              <SuperAdminDashboard />
-            </MobileVerificationGuard>
+            <SuperAdminDashboard />
           </AdminRouteProtection>
         } />
         <Route path="/omega-admin" element={
           <AdminRouteProtection requiredRole="super_super_admin">
-            <MobileVerificationGuard>
-              <SuperSuperAdminDashboard />
-            </MobileVerificationGuard>
+            <SuperSuperAdminDashboard />
           </AdminRouteProtection>
         } />
         <Route path="/presentation" element={<PresentationPage />} />
