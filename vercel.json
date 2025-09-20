@@ -1,5 +1,7 @@
 {
   "framework": "vite",
+  "buildCommand": "pnpm install --force && pnpm run build",
+  "installCommand": "pnpm install --force",
   "rewrites": [
     {
       "source": "/(.*)",
