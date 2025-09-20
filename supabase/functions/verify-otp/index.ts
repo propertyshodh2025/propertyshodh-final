@@ -25,6 +25,7 @@ serve(async (req) => {
 
   try {
     const { phone, otp, purpose = "verify_mobile" } = await req.json();
+    console.log(`🔍 [VERIFY-OTP] Processing OTP verification for purpose: ${purpose}, phone: ${phone}`);
     console.log(`🚀 [VERIFY-OTP] Starting verification - Phone: ${phone}, Purpose: ${purpose}`);
     if (!/^[0-9]{10}$/.test(phone) || !/^[0-9]{6}$/.test(otp)) {
       return new Response(JSON.stringify({ error: "Invalid input" }), {

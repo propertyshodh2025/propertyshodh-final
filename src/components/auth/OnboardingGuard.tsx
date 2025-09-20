@@ -27,12 +27,25 @@ export const OnboardingGuard: React.FC = () => {
       return;
     }
 
-    // First check localStorage - fastest check
+    // 🚨 EMERGENCY FIX: Check multiple localStorage keys to ensure popup never shows for completed users
     const localStorageKey = `onboarding_completed_${user.id}`;
     const completedLocally = localStorage.getItem(localStorageKey);
     
-    if (completedLocally === 'true') {
-      console.log(`✅ [ONBOARDING SKIP] User ${user.id} has completed onboarding (localStorage)`);
+    // Also check if user manually disabled popup
+    const manuallyDisabled = localStorage.getItem(`popup_disabled_${user.id}`);
+    const emergencyBypass = localStorage.getItem(`emergency_skip_${user.id}`);
+    const neverShow = localStorage.getItem(`never_show_onboarding_${user.id}`);
+    const userVerified = localStorage.getItem(`user_verified_${user.id}`);
+    
+    // Global emergency overrides
+    const globalDisabled = localStorage.getItem('global_popup_disabled');
+    const emergencyOverride = localStorage.getItem('emergency_override');
+    
+    if (completedLocally === 'true' || manuallyDisabled === 'true' || emergencyBypass === 'true' || 
+        neverShow === 'true' || userVerified === 'true' || globalDisabled === 'true' || emergencyOverride === 'true') {
+      console.log(`✅ [ONBOARDING SKIP] User ${user.id} - popup permanently blocked`);
+      console.log(`🚫 [POPUP BLOCKED] Multiple override flags detected - onboarding will NEVER show`);
+      console.log(`🗺️ [FLAGS] completed=${completedLocally}, disabled=${manuallyDisabled}, emergency=${emergencyBypass}, never=${neverShow}, verified=${userVerified}, global=${globalDisabled}, override=${emergencyOverride}`);
       setNeedsOnboarding(false);
       setChecking(false);
       return;
