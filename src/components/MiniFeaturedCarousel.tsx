@@ -83,7 +83,7 @@ export const MiniFeaturedCarousel = () => {
         const maxIndex = Math.max(0, properties.length - 2);
         return prevIndex >= maxIndex ? 0 : prevIndex + 1;
       });
-    }, 3000);
+    }, 5000);
 
     return () => clearInterval(intervalId);
   }, [properties.length]);
@@ -138,9 +138,6 @@ export const MiniFeaturedCarousel = () => {
     );
   }
 
-  // Get current visible properties (2 at a time)
-  const visibleProperties = properties.slice(currentIndex, currentIndex + 2);
-
   return (
     <div className="w-full py-4 px-4 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-4">
@@ -165,17 +162,26 @@ export const MiniFeaturedCarousel = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {visibleProperties.map((property) => (
-          <Card
-            key={property.id}
-            className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden w-full"
-            onClick={() => handlePropertyClick(property.id)}
-          >
+      <div className="relative overflow-hidden mx-4 sm:mx-6 lg:mx-8">
+        <div 
+          className="flex transition-transform duration-1000 ease-in-out"
+          style={{ 
+            transform: `translateX(-${currentIndex * 50}%)`,
+          }}
+        >
+          {properties.map((property) => (
+            <div 
+              key={property.id} 
+              className="w-1/2 px-3 flex-shrink-0"
+            >
+              <Card
+                className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden w-full"
+                onClick={() => handlePropertyClick(property.id)}
+              >
             <CardContent className="p-0">
               <div className="flex flex-col h-full">
                 {/* Image Section */}
-                <div className="relative h-48">
+                <div className="relative h-64">
                   <img
                     src={property.images?.[0] || '/placeholder.svg'}
                     alt={property.title}
@@ -201,16 +207,16 @@ export const MiniFeaturedCarousel = () => {
                 </div>
 
                 {/* Content Section */}
-                <div className="p-4 flex-1 flex flex-col justify-between">
+                <div className="p-3 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-bold text-lg mb-2 line-clamp-2 text-foreground">
+                    <h3 className="font-semibold text-base mb-1.5 line-clamp-2 text-foreground">
                       <TranslatableText text={property.title} context="property.title" />
                     </h3>
-                    <p className="text-xl font-bold text-primary mb-3">
+                    <p className="text-lg font-bold text-primary mb-2">
                       {formatINRShort(property.price, language)}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                      <MapPin className="h-4 w-4 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                      <MapPin className="h-3 w-3 shrink-0" />
                       <span className="truncate">
                         <TranslatableText text={property.location} context="property.location" />, 
                         <TranslatableText text={property.city} context="property.city" />
@@ -219,19 +225,19 @@ export const MiniFeaturedCarousel = () => {
                   </div>
 
                   {/* Property Details */}
-                  <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Bed className="h-4 w-4" />
+                        <Bed className="h-3 w-3" />
                         <span>{property.bhk} {t('bhk')}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Bath className="h-4 w-4" />
+                        <Bath className="h-3 w-3" />
                         <span>{property.bathrooms} {t('bath')}</span>
                       </div>
                       {property.carpet_area && (
                         <div className="flex items-center gap-1">
-                          <Square className="h-4 w-4" />
+                          <Square className="h-3 w-3" />
                           <span>{property.carpet_area} {t('sq_ft')}</span>
                         </div>
                       )}
@@ -241,26 +247,28 @@ export const MiniFeaturedCarousel = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      {/* Progress Indicators */}
-      {properties.length > 2 && (
-        <div className="flex justify-center mt-6 gap-2">
-          {Array.from({ length: Math.max(0, properties.length - 1) }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? 'bg-primary w-6'
-                  : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
         </div>
-      )}
+      ))}
     </div>
-  );
+  </div>
+
+  {/* Progress Indicators */}
+  {properties.length > 2 && (
+    <div className="flex justify-center mt-6 gap-2">
+      {Array.from({ length: Math.max(0, properties.length - 1) }).map((_, index) => (
+        <button
+          key={index}
+          onClick={() => setCurrentIndex(index)}
+          className={`w-2 h-2 rounded-full transition-all duration-300 ${
+            index === currentIndex
+              ? 'bg-primary w-6'
+              : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+          }`}
+          aria-label={`Go to slide ${index + 1}`}
+        />
+      ))}
+    </div>
+  )}
+</div>
+);
 };

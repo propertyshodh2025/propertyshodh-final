@@ -130,6 +130,17 @@ const PropertyDetails = () => {
                     <MapPin size={20} className="mr-2 text-primary" />
                     <span className="font-medium">{translateEnum(property.location, language)}</span>
                   </div>
+                  {(property as any).full_address && (
+                    <div className="w-full mt-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                      <div className="flex items-start">
+                        <MapPin size={16} className="mr-2 text-primary mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-medium text-primary text-sm">Complete Address:</span>
+                          <p className="text-muted-foreground text-sm mt-1">{(property as any).full_address}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star 

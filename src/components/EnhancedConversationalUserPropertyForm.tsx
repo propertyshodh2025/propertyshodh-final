@@ -144,6 +144,8 @@ interface FormData {
   full_name: string;
   contact_number: string;
   email_address: string;
+  full_address?: string;
+  detailed_description?: string;
   preferred_contact_time?: string[];
   language_preference?: string;
 }
@@ -320,6 +322,18 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
           required: true
         } as ChatStep,
         {
+          question: "Please provide the complete address of your property:",
+          type: 'text',
+          key: 'full_address',
+          required: true,
+          validation: (value: string) => {
+            if (!value || value.trim().length < 15) {
+              return "Please enter a complete address (at least 15 characters)";
+            }
+            return null;
+          }
+        } as ChatStep,
+        {
           question: "What's the pincode of your property?",
           type: 'text',
           key: 'pincode',
@@ -342,6 +356,22 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
         key: 'price',
         required: true,
         validation: (value: number) => value > 0 ? null : "Please enter a valid price"
+      } as ChatStep);
+    }
+
+    // Description after price
+    if (formData.price > 0) {
+      baseSteps.push({
+        question: "Please provide a detailed description of your property. What makes it special?",
+        type: 'text',
+        key: 'detailed_description',
+        required: true,
+        validation: (value: string) => {
+          if (!value || value.trim().length < 25) {
+            return "Please provide a detailed description (at least 25 characters)";
+          }
+          return null;
+        }
       } as ChatStep);
     }
 
@@ -939,10 +969,11 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
       // Generate title if not provided
       const generatedTitle = formData.title || `${formData.bhk || ''} BHK ${formData.property_type} in ${formData.location}`;
       
-      // Prepare property data with new enhanced fields
-      const propertyData = {
-        title: generatedTitle,
-        description: formData.description || `Beautiful ${formData.property_type} for ${formData.transaction_type}`,
+        // Prepare property data with new enhanced fields
+        const propertyData = {
+          title: generatedTitle,
+          description: formData.detailed_description || formData.description || `Beautiful ${formData.property_type} for ${formData.transaction_type}`,
+          full_address: formData.full_address,
         property_type: formData.property_type,
         property_category: formData.property_category,
         transaction_type: formData.transaction_type,

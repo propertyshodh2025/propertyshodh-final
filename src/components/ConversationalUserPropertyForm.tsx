@@ -61,6 +61,8 @@ interface FormData {
   additional_notes: string | null;
   title: string | null;
   description: string | null;
+  full_address: string | null;
+  detailed_description: string | null;
   custom_amenity: string | null;
   // Security and infrastructure features
   cctv_surveillance: boolean | null;
@@ -139,6 +141,8 @@ export const ConversationalUserPropertyForm = ({ isOpen, onClose }: Conversation
     additional_notes: null,
     title: null,
     description: null,
+    full_address: null,
+    detailed_description: null,
     custom_amenity: null,
     // Security and infrastructure features
     cctv_surveillance: null,
@@ -283,12 +287,36 @@ export const ConversationalUserPropertyForm = ({ isOpen, onClose }: Conversation
       options: AURANGABAD_AREAS.map(area => ({ id: area.toLowerCase().replace(/\s+/g, '-'), label: area, value: area }))
     },
     {
+      id: 'full_address',
+      question: "Please provide the complete address of your property:",
+      type: 'textarea',
+      placeholder: 'e.g., Flat 301, ABC Apartments, Near XYZ Mall, Main Road, Locality Name, Aurangabad - 431001',
+      validation: (value) => {
+        if (!value || value.trim().length < 15) {
+          return 'Please enter a complete address (at least 15 characters)';
+        }
+        return null;
+      }
+    },
+    {
       id: 'price',
       question: "What's your asking price? (Enter amount in ₹)",
       type: 'input',
       inputType: 'number',
       placeholder: 'Enter price in rupees',
       validation: (value) => value <= 0 ? 'Please enter a valid price' : null
+    },
+    {
+      id: 'detailed_description',
+      question: "Please provide a detailed description of your property. What makes it special?",
+      type: 'textarea',
+      placeholder: 'e.g., This beautiful property features spacious rooms, modern amenities, great location...',
+      validation: (value) => {
+        if (!value || value.trim().length < 25) {
+          return 'Please provide a detailed description (at least 25 characters)';
+        }
+        return null;
+      }
     },
     // Only show furnishing for non-plot properties
     ...(formData.property_type !== 'Plot/Land' && formData.property_category !== 'agricultural' ? [{
@@ -623,6 +651,8 @@ export const ConversationalUserPropertyForm = ({ isOpen, onClose }: Conversation
         transaction_type: formData.transaction_type,
         property_category: formData.property_category,
         additional_notes: formData.additional_notes,
+        full_address: formData.full_address,
+        description: formData.detailed_description || formData.description || `Beautiful ${formData.property_type} for ${formData.transaction_type}`,
         approval_status: 'pending',
         email_address: user?.email || '',
         full_name: user?.user_metadata?.full_name || user?.email || '',

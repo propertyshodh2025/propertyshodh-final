@@ -50,6 +50,8 @@ interface AdminFormData {
   images?: string[];
   google_map_link?: string;
   additional_details?: string;
+  full_address?: string;
+  detailed_description?: string;
   agent_name?: string;
   agent_phone?: string;
   approval_status?: string;
@@ -207,6 +209,18 @@ export const ConversationalAdminPropertyForm = ({
           placeholder: 'e.g., XYZ Society'
         },
         {
+          id: 'full_address',
+          question: 'Please provide the complete address of your property:',
+          type: 'textarea' as const,
+          placeholder: 'e.g., Flat 301, ABC Apartments, Near XYZ Mall, Main Road, Locality Name, City - Pincode',
+          validation: (value: string) => {
+            if (!value || value.trim().length < 10) {
+              return 'Please enter a complete address (at least 10 characters)';
+            }
+            return null;
+          }
+        },
+        {
           id: 'pincode',
           question: "What's the pincode of your property?",
           type: 'input' as const,
@@ -281,6 +295,22 @@ export const ConversationalAdminPropertyForm = ({
         currentFormData.bhk || 
         currentFormData.property_type) {
       steps.push({ id: 'price', question: getPropertyPriceQuestion(), type: 'input' as const, inputType: 'number' as const });
+    }
+
+    // Add detailed description after price
+    if (currentFormData.price && Number(currentFormData.price) > 0) {
+      steps.push({
+        id: 'detailed_description',
+        question: 'Please provide a detailed description of your property. Mention unique features, nearby amenities, and what makes it special:',
+        type: 'textarea' as const,
+        placeholder: 'e.g., This beautiful property features spacious rooms with excellent ventilation, modern amenities, close to schools and hospitals, with easy access to public transportation...',
+        validation: (value: string) => {
+          if (!value || value.trim().length < 20) {
+            return 'Please provide a detailed description (at least 20 characters)';
+          }
+          return null;
+        }
+      });
     }
 
     if (currentFormData.price && Number(currentFormData.price) > 0) {
@@ -557,11 +587,11 @@ export const ConversationalAdminPropertyForm = ({
 
       // Generate title/description similar to user flow
       const generatedTitle = (formData.title && formData.title.trim()) || `${formData.bhk || ''} BHK ${formData.property_type || ''} in ${formData.location || ''}`.replace(/\s+/g, ' ').trim();
-      const generatedDescription = (formData.description && formData.description.trim()) || `Beautiful ${formData.property_type || 'property'} for ${formData.transaction_type || 'sale/rent'}`;
+      const finalDescription = formData.detailed_description || formData.description || `Beautiful ${formData.property_type || 'property'} for ${formData.transaction_type || 'sale/rent'}`;
 
       const propertyData = {
         title: generatedTitle,
-        description: generatedDescription,
+        description: finalDescription,
         property_type: formData.property_type || '',
         bhk: formData.bhk || 1,
         price: formData.price || 0,
@@ -582,6 +612,7 @@ export const ConversationalAdminPropertyForm = ({
         transaction_type: formData.transaction_type || '',
         property_category: formData.property_category || '',
         additional_notes: formData.additional_details || '',
+        full_address: formData.full_address || '',
         approval_status: formData.approval_status || 'pending',
         highlights: formData.highlights || [],
         submitted_by_user: false,

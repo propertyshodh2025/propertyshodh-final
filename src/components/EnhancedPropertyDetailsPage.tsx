@@ -110,6 +110,7 @@ interface Property extends DatabaseProperty {
   furnishing?: string;
   parking_spaces?: number;
   parking_type?: string;
+  full_address?: string;
 }
 
 interface EnhancedPropertyDetailsPageProps {
@@ -1179,6 +1180,15 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
                     <MapPin size={18} className="mr-2 text-primary" />
                     <span className="font-medium">{translateEnum(property.location, language)}, {translateEnum(property.city, language)}</span>
                   </div>
+                  {property.full_address && (
+                    <div className="flex items-start mt-2">
+                      <MapPin size={16} className="mr-2 text-primary mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <span className="font-medium text-primary">Full Address:</span>
+                        <p className="text-muted-foreground mt-1 leading-relaxed">{property.full_address}</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star 
@@ -1267,9 +1277,24 @@ ${property.description ? `📋 Description:\n${property.description.slice(0, 150
                   <CardTitle className="text-xl md:text-2xl text-foreground">{t('about_property')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <p className="text-muted-foreground leading-relaxed text-sm md:text-lg">
-                    <TranslatableText text={property.description || 'No description available for this property.'} context={`property.description:${property.id}`} />
-                  </p>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground leading-relaxed text-sm md:text-lg">
+                      <TranslatableText text={property.description || 'No description available for this property.'} context={`property.description:${property.id}`} />
+                    </p>
+                    
+                    {/* Display full address if available */}
+                    {property.full_address && (
+                      <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                        <h4 className="font-semibold text-primary mb-2 flex items-center">
+                          <MapPin size={18} className="mr-2" />
+                          Complete Address
+                        </h4>
+                        <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
+                          {property.full_address}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   
                   <Separator className="bg-white/10" />
                   
