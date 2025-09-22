@@ -30,6 +30,29 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
   const [propertyCategory, setPropertyCategory] = useState('residential');
   const [propertySubtype, setPropertySubtype] = useState('all');
   const [bhkType, setBhkType] = useState('all');
+  
+  // Function to determine if a property type should have BHK
+  const shouldShowBHK = () => {
+    if (propertyCategory === 'land') return false;
+    if (propertyCategory === 'commercial') {
+      // Only some commercial types might have BHK-like concepts
+      const bhkCommercialTypes = ['serviced_apartment', 'hotel_motel', 'resort'];
+      return bhkCommercialTypes.includes(propertySubtype);
+    }
+    if (propertyCategory === 'residential') {
+      // Most residential types have BHK, except land/plot
+      const noBhkResidentialTypes = ['plot_land'];
+      return !noBhkResidentialTypes.includes(propertySubtype);
+    }
+    return true; // Default to showing BHK for other categories
+  };
+
+  // Effect to handle BHK reset when category or subtype changes
+  useEffect(() => {
+    if (!shouldShowBHK()) {
+      setBhkType('all');
+    }
+  }, [propertyCategory, propertySubtype]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const { toast } = useToast();
 
@@ -252,10 +275,6 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
           {/* Hero Title */}
-          <br />
-          <br />
-          <br />
-          <br />
           <div className="relative space-y-4 max-w-4xl mx-auto">
             <div className="relative z-10">
               <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground">
@@ -289,7 +308,14 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"> {/* Changed to md:grid-cols-3 */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">{t('property_type_label')}</label>
-                  <select value={propertyCategory} onChange={e => setPropertyCategory(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
+                  <select value={propertyCategory} onChange={e => {
+                    setPropertyCategory(e.target.value);
+                    // Reset subtype and BHK when category changes
+                    setPropertySubtype('all');
+                    if (e.target.value === 'land') {
+                      setBhkType('all'); // Reset BHK for land
+                    }
+                  }} className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
                     <option value="residential">{t('residential')}</option>
                     <option value="commercial">{t('commercial')}</option>
                     <option value="land">{t('land')}</option>
@@ -300,20 +326,98 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
                   <label className="text-sm font-medium text-muted-foreground">{t('category_label')}</label>
                   <select value={propertySubtype} onChange={e => setPropertySubtype(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
                     <option value="all">{t('all_types')}</option>
-                    <option value="apartment">{t('apartment')}</option>
-                    <option value="villa">{t('villa')}</option>
-                    <option value="house">{t('house')}</option>
+                    {propertyCategory === 'land' ? (
+                      // Land specific options
+                      <>
+                        <option value="commercial">{t('commercial')}</option>
+                        <option value="residential">{t('residential')}</option>
+                        <option value="agricultural">{t('agricultural')}</option>
+                      </>
+                    ) : propertyCategory === 'residential' ? (
+                      // Residential property options
+                      <>
+                        <option value="plot_land">{t('plot_land')}</option>
+                        <option value="house">{t('house')}</option>
+                        <option value="flat_apartment">{t('flat_apartment')}</option>
+                        <option value="villa">{t('villa')}</option>
+                        <option value="row_house">{t('row_house')}</option>
+                        <option value="townhouse">{t('townhouse')}</option>
+                        <option value="bungalow">{t('bungalow')}</option>
+                        <option value="penthouse">{t('penthouse')}</option>
+                        <option value="studio_apartment">{t('studio_apartment')}</option>
+                        <option value="farmhouse">{t('farmhouse')}</option>
+                        <option value="condominium">{t('condominium')}</option>
+                        <option value="duplex_triplex">{t('duplex_triplex')}</option>
+                        <option value="mansion">{t('mansion')}</option>
+                        <option value="cottage">{t('cottage')}</option>
+                        <option value="serviced_apartment">{t('serviced_apartment')}</option>
+                        <option value="garden_flat">{t('garden_flat')}</option>
+                        <option value="loft_apartment">{t('loft_apartment')}</option>
+                        <option value="holiday_home">{t('holiday_home')}</option>
+                      </>
+                    ) : propertyCategory === 'commercial' ? (
+                      // Commercial property options
+                      <>
+                        <option value="shop_retail">{t('shop_retail')}</option>
+                        <option value="office_space">{t('office_space')}</option>
+                        <option value="showroom">{t('showroom')}</option>
+                        <option value="warehouse_godown">{t('warehouse_godown')}</option>
+                        <option value="hotel_motel">{t('hotel_motel')}</option>
+                        <option value="restaurant_cafe">{t('restaurant_cafe')}</option>
+                        <option value="shopping_mall">{t('shopping_mall')}</option>
+                        <option value="clinic_hospital">{t('clinic_hospital')}</option>
+                        <option value="coworking_space">{t('coworking_space')}</option>
+                        <option value="industrial_shed">{t('industrial_shed')}</option>
+                        <option value="commercial_land">{t('commercial_land')}</option>
+                        <option value="it_park">{t('it_park')}</option>
+                        <option value="school_college">{t('school_college')}</option>
+                        <option value="cinema_multiplex">{t('cinema_multiplex')}</option>
+                        <option value="banquet_hall">{t('banquet_hall')}</option>
+                        <option value="petrol_pump">{t('petrol_pump')}</option>
+                        <option value="bank">{t('bank')}</option>
+                        <option value="gymnasium">{t('gymnasium')}</option>
+                        <option value="cold_storage">{t('cold_storage')}</option>
+                        <option value="resort">{t('resort')}</option>
+                      </>
+                    ) : (
+                      // Default fallback options
+                      <>
+                        <option value="apartment">{t('apartment')}</option>
+                        <option value="villa">{t('villa')}</option>
+                        <option value="house">{t('house')}</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">{t('bhk_label')}</label>
-                  <select value={bhkType} onChange={e => setBhkType(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <option value="all">{t('any')}</option>
-                    <option value="1bhk">{t('1_bhk')}</option>
-                    <option value="2bhk">{t('2_bhk')}</option>
-                    <option value="3bhk">{t('3_bhk')}</option>
-                    <option value="4bhk">{t('4_bhk')}</option>
+                  <label className={`text-sm font-medium ${
+                    !shouldShowBHK() 
+                      ? 'text-muted-foreground/50' 
+                      : 'text-muted-foreground'
+                  }`}>
+                    {t('bhk_label')}
+                  </label>
+                  <select 
+                    value={bhkType} 
+                    onChange={e => setBhkType(e.target.value)} 
+                    disabled={!shouldShowBHK()}
+                    className={`w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent ${
+                      !shouldShowBHK()
+                        ? 'bg-muted cursor-not-allowed opacity-50'
+                        : 'bg-background'
+                    }`}
+                  >
+                    <option value="all">{!shouldShowBHK() ? t('not_applicable') : t('any')}</option>
+                    {shouldShowBHK() && (
+                      <>
+                        <option value="1bhk">{t('1_bhk')}</option>
+                        <option value="2bhk">{t('2_bhk')}</option>
+                        <option value="3bhk">{t('3_bhk')}</option>
+                        <option value="4bhk">{t('4_bhk')}</option>
+                        <option value="5bhk">{t('5_bhk')}</option>
+                      </>
+                    )}
                   </select>
                 </div>
 

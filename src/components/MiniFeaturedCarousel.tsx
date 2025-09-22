@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Bed, Bath, Square, Star } from 'lucide-react'; // Added Star icon
+import { MapPin, Bed, Bath, Square, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatINRShort } from '@/lib/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -24,10 +24,10 @@ interface Property {
 }
 
 export const MiniFeaturedCarousel = () => {
-  const trackRef = useRef<HTMLDivElement>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const { t, language } = useLanguage();
   const navigate = useNavigate();
 
@@ -74,31 +74,34 @@ export const MiniFeaturedCarousel = () => {
     };
   }, []);
 
+  // Auto-scroll effect with 3-second delay
   useEffect(() => {
-    const track = trackRef.current;
-    if (!track || properties.length === 0) return;
+    if (properties.length <= 2) return;
 
-    let animationFrameId: number;
-    let currentPosition = 0;
-    const speed = 0.5;
+    const intervalId = setInterval(() => {
+      setCurrentIndex((prevIndex) => {
+        const maxIndex = Math.max(0, properties.length - 2);
+        return prevIndex >= maxIndex ? 0 : prevIndex + 1;
+      });
+    }, 3000);
 
-    const animate = () => {
-      if (track.scrollWidth > track.clientWidth) {
-        currentPosition -= speed;
-        if (Math.abs(currentPosition) >= track.scrollWidth / 2) {
-          currentPosition = 0;
-        }
-        track.style.transform = `translateX(${currentPosition}px)`;
-      }
-      animationFrameId = requestAnimationFrame(animate);
-    };
+    return () => clearInterval(intervalId);
+  }, [properties.length]);
 
-    animationFrameId = requestAnimationFrame(animate);
+  // Navigation functions
+  const goToPrevious = () => {
+    setCurrentIndex((prevIndex) => {
+      const maxIndex = Math.max(0, properties.length - 2);
+      return prevIndex <= 0 ? maxIndex : prevIndex - 1;
+    });
+  };
 
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [properties]);
+  const goToNext = () => {
+    setCurrentIndex((prevIndex) => {
+      const maxIndex = Math.max(0, properties.length - 2);
+      return prevIndex >= maxIndex ? 0 : prevIndex + 1;
+    });
+  };
 
   const handlePropertyClick = (propertyId: string) => {
     navigate(`/property/${propertyId}`);
@@ -106,11 +109,11 @@ export const MiniFeaturedCarousel = () => {
 
   if (loading) {
     return (
-      <div className="w-full overflow-hidden py-4">
-        <h2 className="text-2xl font-bold mb-4 text-foreground px-4 sm:px-6 lg:px-8">{t('featured_properties')}</h2>
-        <div className="flex gap-4 animate-pulse px-4 sm:px-6 lg:px-8">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="min-w-[280px] h-64 bg-muted rounded-lg" />
+      <div className="w-full py-4 px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-bold mb-4 text-foreground">{t('featured_properties')}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="h-80 bg-muted rounded-lg" />
           ))}
         </div>
       </div>
@@ -135,84 +138,129 @@ export const MiniFeaturedCarousel = () => {
     );
   }
 
+  // Get current visible properties (2 at a time)
+  const visibleProperties = properties.slice(currentIndex, currentIndex + 2);
+
   return (
-    <div className="w-full overflow-hidden py-4">
-      <h2 className="text-2xl font-bold mb-4 text-foreground px-4 sm:px-6 lg:px-8">{t('featured_properties')}</h2>
-      <style jsx>{`
-        .marquee {
-          animation: marquee-scroll linear infinite;
-          animation-duration: ${properties.length * 5}s;
-        }
-        @keyframes marquee-scroll {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
-      <div
-        ref={trackRef}
-        className="marquee flex flex-nowrap items-stretch gap-4 will-change-transform px-4 sm:px-6 lg:px-8"
-        style={{ width: `${properties.concat(properties).length * 280}px` }}
-      >
-        {properties.concat(properties).map((property, index) => (
+    <div className="w-full py-4 px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-foreground">{t('featured_properties')}</h2>
+        {properties.length > 2 && (
+          <div className="flex gap-2">
+            <button
+              onClick={goToPrevious}
+              className="p-2 rounded-full bg-background border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+              aria-label="Previous properties"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={goToNext}
+              className="p-2 rounded-full bg-background border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+              aria-label="Next properties"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {visibleProperties.map((property) => (
           <Card
-            key={`${property.id}-${index}`}
-            className="min-w-[280px] cursor-pointer hover:shadow-md transition-shadow"
+            key={property.id}
+            className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden w-full"
             onClick={() => handlePropertyClick(property.id)}
           >
             <CardContent className="p-0">
-              <div className="relative">
-                <img
-                  src={property.images?.[0] || '/placeholder.svg'}
-                  alt={property.title}
-                  loading="lazy"
-                  className="w-full h-40 object-cover rounded-t-lg"
-                />
-                <Badge
-                  variant="secondary"
-                  className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
-                >
-                  <TranslatableText text={property.transaction_type} context="property.transaction_type" />
-                </Badge>
-                {property.is_featured && (
+              <div className="flex flex-col h-full">
+                {/* Image Section */}
+                <div className="relative h-48">
+                  <img
+                    src={property.images?.[0] || '/placeholder.svg'}
+                    alt={property.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   <Badge
-                    variant="default"
-                    className="absolute top-2 right-2 bg-yellow-500/80 backdrop-blur-sm text-white flex items-center gap-1"
+                    variant="secondary"
+                    className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm border-0"
                   >
-                    <Star className="h-3 w-3 fill-current" />
-                    {t('featured')}
+                    <TranslatableText text={property.transaction_type} context="property.transaction_type" />
                   </Badge>
-                )}
-              </div>
-              <div className="p-3">
-                <h3 className="font-semibold text-sm mb-1 line-clamp-2"><TranslatableText text={property.title} context="property.title" /></h3>
-                <p className="text-md font-bold text-primary mb-1">
-                  {formatINRShort(property.price, language)}
-                </p>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                  <MapPin className="h-3 w-3" />
-                  <span className="truncate"><TranslatableText text={property.location} context="property.location" />, <TranslatableText text={property.city} context="property.city" /></span>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Bed className="h-3 w-3" />
-                    <span>{property.bhk} {t('bhk')}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Bath className="h-3 w-3" />
-                    <span>{property.bathrooms} {t('bath')}</span>
-                  </div>
-                  {property.carpet_area && (
-                    <div className="flex items-center gap-1">
-                      <Square className="h-3 w-3" />
-                      <span>{property.carpet_area} {t('sq_ft')}</span>
-                    </div>
+                  {property.is_featured && (
+                    <Badge
+                      variant="default"
+                      className="absolute top-3 right-3 bg-yellow-500/90 backdrop-blur-sm text-white flex items-center gap-1 border-0"
+                    >
+                      <Star className="h-3 w-3 fill-current" />
+                      {t('featured')}
+                    </Badge>
                   )}
+                </div>
+
+                {/* Content Section */}
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg mb-2 line-clamp-2 text-foreground">
+                      <TranslatableText text={property.title} context="property.title" />
+                    </h3>
+                    <p className="text-xl font-bold text-primary mb-3">
+                      {formatINRShort(property.price, language)}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      <span className="truncate">
+                        <TranslatableText text={property.location} context="property.location" />, 
+                        <TranslatableText text={property.city} context="property.city" />
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Property Details */}
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Bed className="h-4 w-4" />
+                        <span>{property.bhk} {t('bhk')}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Bath className="h-4 w-4" />
+                        <span>{property.bathrooms} {t('bath')}</span>
+                      </div>
+                      {property.carpet_area && (
+                        <div className="flex items-center gap-1">
+                          <Square className="h-4 w-4" />
+                          <span>{property.carpet_area} {t('sq_ft')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Progress Indicators */}
+      {properties.length > 2 && (
+        <div className="flex justify-center mt-6 gap-2">
+          {Array.from({ length: Math.max(0, properties.length - 1) }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? 'bg-primary w-6'
+                  : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

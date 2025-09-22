@@ -12,6 +12,7 @@ import { Property, PropertyFormData } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { validatePropertyTitle, cleanPropertyTitle } from '@/lib/propertyUtils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PropertyFormProps {
   property?: Property | null;
@@ -19,8 +20,31 @@ interface PropertyFormProps {
   onCancel: () => void;
 }
 
-const PROPERTY_TYPES = ['Flat', 'Row House', 'Plot', 'Commercial', 'Bungalow', 'Villa'];
+// Comprehensive property categories and types
 const PROPERTY_CATEGORIES = ['Residential', 'Commercial', 'Agricultural', 'Industrial'];
+
+// Property types based on category
+const PROPERTY_TYPES = {
+  residential: [
+    'plot_land', 'house', 'flat_apartment', 'villa', 'row_house', 'townhouse', 'bungalow',
+    'penthouse', 'studio_apartment', 'farmhouse', 'condominium', 'duplex_triplex',
+    'mansion', 'cottage', 'serviced_apartment', 'garden_flat', 'loft_apartment', 'holiday_home'
+  ],
+  commercial: [
+    'shop_retail', 'office_space', 'showroom', 'warehouse_godown', 'hotel_motel',
+    'restaurant_cafe', 'shopping_mall', 'clinic_hospital', 'coworking_space',
+    'industrial_shed', 'commercial_land', 'it_park', 'school_college',
+    'cinema_multiplex', 'banquet_hall', 'petrol_pump', 'bank', 'gymnasium',
+    'cold_storage', 'resort'
+  ],
+  agricultural: [
+    'farmland', 'orchard', 'plantation', 'agricultural_land', 'farm'
+  ],
+  industrial: [
+    'factory', 'manufacturing_unit', 'industrial_plot', 'commercial_plot'
+  ]
+};
+
 const BHK_OPTIONS = [1, 2, 3, 4, 5, 6];
 const FURNISHING_OPTIONS = ['Unfurnished', 'Semi Furnished', 'Fully Furnished'];
 const AMENITIES_LIST = [
@@ -28,6 +52,46 @@ const AMENITIES_LIST = [
   'Security', 'Power Backup', 'Playground', 'Internet/Wi-Fi',
   'Air Conditioning', 'Balcony', 'Terrace', 'Store Room'
 ];
+
+// Function to determine if a property type should have BHK
+const shouldShowBHK = (propertyCategory: string, propertyType: string) => {
+  if (!propertyCategory) return true;
+  
+  const normalizedCategory = propertyCategory.toLowerCase();
+  
+  // Land/agricultural properties don't have BHK
+  if (normalizedCategory === 'agricultural') return false;
+  
+  // Some commercial properties might have BHK-like concepts
+  if (normalizedCategory === 'commercial') {
+    const bhkCommercialTypes = ['serviced_apartment', 'hotel_motel', 'resort'];
+    return bhkCommercialTypes.includes(propertyType);
+  }
+  
+  // Residential properties have BHK except land/plots
+  if (normalizedCategory === 'residential') {
+    const noBhkResidentialTypes = ['plot_land'];
+    return !noBhkResidentialTypes.includes(propertyType);
+  }
+  
+  // Industrial properties generally don't have BHK
+  if (normalizedCategory === 'industrial') return false;
+  
+  return true; // Default to showing BHK
+};
+
+// Function to get available property types based on category
+const getPropertyTypesByCategory = (category: string) => {
+  if (!category) return [];
+  const normalizedCategory = category.toLowerCase();
+  return PROPERTY_TYPES[normalizedCategory as keyof typeof PROPERTY_TYPES] || [];
+};
+
+// Function to format property type for display
+const formatPropertyTypeLabel = (propertyType: string) => {
+  // Use translation keys for display
+  return propertyType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
 
 export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
   const [formData, setFormData] = useState<PropertyFormData>({
@@ -56,6 +120,13 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
+  
+  // Check if BHK should be shown based on current form data
+  const showBHKField = shouldShowBHK(formData.property_category || '', formData.property_type || '');
+  
+  // Get available property types for current category
+  const availablePropertyTypes = getPropertyTypesByCategory(formData.property_category || '');
 
   useEffect(() => {
     if (property) {
@@ -214,7 +285,14 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
                   <Label htmlFor="property_category">Property Category *</Label>
                   <Select
                     value={formData.property_category}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, property_category: value }))}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        property_category: value,
+                        property_type: '', // Reset property type when category changes
+                        bhk: undefined // Reset BHK when category changes
+                      }));
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select property category" />
@@ -231,37 +309,60 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
                   <Label htmlFor="property_type">Property Type *</Label>
                   <Select
                     value={formData.property_type}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, property_type: value }))}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        property_type: value,
+                        bhk: !shouldShowBHK(formData.property_category || '', value) ? undefined : prev.bhk
+                      }));
+                    }}
+                    disabled={!formData.property_category}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select property type" />
+                      <SelectValue placeholder={formData.property_category ? "Select property type" : "Select category first"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {PROPERTY_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      {availablePropertyTypes.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {t(type) || formatPropertyTypeLabel(type)}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bhk">BHK</Label>
+                  <Label 
+                    htmlFor="bhk" 
+                    className={`${!showBHKField ? 'text-muted-foreground/50' : ''}`}
+                  >
+                    BHK {!showBHKField && '(Not Applicable)'}
+                  </Label>
                   <Select
                     value={formData.bhk?.toString() || ''}
                     onValueChange={(value) => setFormData(prev => ({ 
                       ...prev, 
                       bhk: value ? parseInt(value) : undefined 
                     }))}
+                    disabled={!showBHKField}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select BHK" />
+                    <SelectTrigger className={!showBHKField ? 'bg-muted cursor-not-allowed opacity-50' : ''}>
+                      <SelectValue placeholder={showBHKField ? "Select BHK" : "N/A"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {BHK_OPTIONS.map(bhk => (
+                      {showBHKField && BHK_OPTIONS.map(bhk => (
                         <SelectItem key={bhk} value={bhk.toString()}>{bhk} BHK</SelectItem>
                       ))}
+                      {!showBHKField && (
+                        <SelectItem value="" disabled>Not Applicable</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
+                  {!showBHKField && (
+                    <p className="text-xs text-muted-foreground">
+                      BHK is not applicable for this property type
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

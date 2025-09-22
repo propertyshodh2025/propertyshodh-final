@@ -51,7 +51,7 @@ export const Header: React.FC = () => {
           : 'py-4 bg-background/60 backdrop-blur-xl border-b border-white/30 dark:border-white/15 shadow-xl shadow-primary/5'
       }`}>
         <div className="w-full pl-1 pr-4 sm:pl-2 sm:pr-6 lg:pl-3 lg:pr-8">
-          <div className="flex items-center justify-between h-16 gap-4 min-w-0">
+          <div className="flex items-center justify-between h-20 gap-4 min-w-0">
             
             {/* Left: Logo */}
             <div 
@@ -70,7 +70,7 @@ export const Header: React.FC = () => {
                   onLoad={() => console.log('NEW LOGO LOADED SUCCESSFULLY!')}
                 />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent whitespace-nowrap">PropertyShodh</span>
+              <span className="text-3xl font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent whitespace-nowrap">PropertyShodh</span>
             </div>
 
             {/* Center: Navigation */}

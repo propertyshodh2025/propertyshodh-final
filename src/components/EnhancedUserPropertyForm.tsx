@@ -15,46 +15,80 @@ import { useAuth } from '@/contexts/AuthContext';
 import { GoogleSignInDialog } from '@/components/auth/GoogleSignInDialog';
 import PropertyVerificationForm from './PropertyVerificationForm';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EnhancedUserPropertyFormProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// Enhanced property categories based on Google form
+// Enhanced property categories with comprehensive types
 const PROPERTY_CATEGORIES = {
   residential: {
     label: 'Residential / निवासी',
     types: [
-      'Flat/Apartment / फ्लॅट/अपार्टमेंट',
-      'House/Bungalow / घर/बंगला', 
-      'Villa / व्हिला',
-      'Plot/Land / प्लॉट/जमीन'
+      { key: 'plot_land', label: 'Plot / Land' },
+      { key: 'house', label: 'House' },
+      { key: 'flat_apartment', label: 'Flat / Apartment' },
+      { key: 'villa', label: 'Villa' },
+      { key: 'row_house', label: 'Row House' },
+      { key: 'townhouse', label: 'Townhouse' },
+      { key: 'bungalow', label: 'Bungalow' },
+      { key: 'penthouse', label: 'Penthouse' },
+      { key: 'studio_apartment', label: 'Studio Apartment' },
+      { key: 'farmhouse', label: 'Farmhouse' },
+      { key: 'condominium', label: 'Condominium (Condo)' },
+      { key: 'duplex_triplex', label: 'Duplex / Triplex' },
+      { key: 'mansion', label: 'Mansion' },
+      { key: 'cottage', label: 'Cottage' },
+      { key: 'serviced_apartment', label: 'Serviced Apartment' },
+      { key: 'garden_flat', label: 'Garden Flat' },
+      { key: 'loft_apartment', label: 'Loft Apartment' },
+      { key: 'holiday_home', label: 'Holiday Home' }
     ]
   },
   commercial: {
-    label: 'Commercial / व्यावसायिक', 
+    label: 'Commercial / व्यावसायिक',
     types: [
-      'Office Space / कार्यालय जागा',
-      'Shop/Showroom / दुकान/शोरूम',
-      'Warehouse / गोदाम',
-      'Building / इमारत'
+      { key: 'shop_retail', label: 'Shop / Retail Store' },
+      { key: 'office_space', label: 'Office Space' },
+      { key: 'showroom', label: 'Showroom' },
+      { key: 'warehouse_godown', label: 'Warehouse / Godown' },
+      { key: 'hotel_motel', label: 'Hotel / Motel' },
+      { key: 'restaurant_cafe', label: 'Restaurant / Café' },
+      { key: 'shopping_mall', label: 'Shopping Mall / Plaza' },
+      { key: 'clinic_hospital', label: 'Clinic / Hospital' },
+      { key: 'coworking_space', label: 'Co-working Space' },
+      { key: 'industrial_shed', label: 'Industrial Shed / Factory' },
+      { key: 'commercial_land', label: 'Commercial Land / Plot' },
+      { key: 'it_park', label: 'IT Park / Business Center' },
+      { key: 'school_college', label: 'School / College' },
+      { key: 'cinema_multiplex', label: 'Cinema / Multiplex' },
+      { key: 'banquet_hall', label: 'Banquet Hall' },
+      { key: 'petrol_pump', label: 'Petrol Pump' },
+      { key: 'bank', label: 'Bank' },
+      { key: 'gymnasium', label: 'Gymnasium / Fitness Center' },
+      { key: 'cold_storage', label: 'Cold Storage' },
+      { key: 'resort', label: 'Resort' }
     ]
   },
   agricultural: {
     label: 'Agricultural / कृषी',
     types: [
-      'Farmland / शेतजमीन',
-      'Orchard / बाग', 
-      'Plantation / लागवड'
+      { key: 'farmland', label: 'Farmland' },
+      { key: 'orchard', label: 'Orchard' },
+      { key: 'plantation', label: 'Plantation' },
+      { key: 'agricultural_land', label: 'Agricultural Land' },
+      { key: 'farm', label: 'Farm' }
     ]
   },
   industrial: {
     label: 'Industrial / औद्योगिक',
     types: [
-      'Factory / कारखाना',
-      'Manufacturing Unit / उत्पादन युनिट',
-      'Industrial Plot / औद्योगिक प्लॉट'
+      { key: 'factory', label: 'Factory' },
+      { key: 'manufacturing_unit', label: 'Manufacturing Unit' },
+      { key: 'industrial_plot', label: 'Industrial Plot' },
+      { key: 'commercial_plot', label: 'Commercial Plot' }
     ]
   }
 };
@@ -65,7 +99,34 @@ const TRANSACTION_TYPES = [
   'For Lease / पट्ट्याने'
 ];
 
-const BHK_OPTIONS = ['1 BHK', '2 BHK', '3 BHK', '4+ BHK'];
+const BHK_OPTIONS = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5+ BHK'];
+
+// Function to determine if a property type should have BHK
+const shouldShowBHK = (propertyCategory: string, propertyType: string) => {
+  if (!propertyCategory) return true;
+  
+  const normalizedCategory = propertyCategory.toLowerCase();
+  
+  // Land/agricultural properties don't have BHK
+  if (normalizedCategory === 'agricultural') return false;
+  
+  // Some commercial properties might have BHK-like concepts
+  if (normalizedCategory === 'commercial') {
+    const bhkCommercialTypes = ['serviced_apartment', 'hotel_motel', 'resort'];
+    return bhkCommercialTypes.includes(propertyType);
+  }
+  
+  // Residential properties have BHK except land/plots
+  if (normalizedCategory === 'residential') {
+    const noBhkResidentialTypes = ['plot_land'];
+    return !noBhkResidentialTypes.includes(propertyType);
+  }
+  
+  // Industrial properties generally don't have BHK
+  if (normalizedCategory === 'industrial') return false;
+  
+  return true; // Default to showing BHK
+};
 const BATHROOM_OPTIONS = ['1 Bathroom / १ स्नानगृह', '2 Bathrooms / २ स्नानगृह', '3+ Bathrooms / ३+ स्नानगृह'];
 const PARKING_OPTIONS = ['Car Parking / कार पार्किंग', 'Bike Parking / बाईक पार्किंग', 'No Parking / पार्किंग नाही'];
 const FURNISHING_OPTIONS = ['Furnished / सुसज्ज', 'Semi-Furnished / अर्ध-सुसज्ज', 'Unfurnished / असुसज्ज'];
@@ -143,6 +204,10 @@ export const EnhancedUserPropertyForm = ({ isOpen, onClose }: EnhancedUserProper
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploadAllImages, setUploadAllImages] = useState<(() => Promise<string[]>) | null>(null);
   const { toast } = useToast();
+  const { t } = useLanguage();
+  
+  // Check if BHK should be shown based on current form data
+  const showBHKField = shouldShowBHK(formData.property_category, formData.property_type);
 
   const [formData, setFormData] = useState({
     // Personal Information
@@ -461,14 +526,23 @@ export const EnhancedUserPropertyForm = ({ isOpen, onClose }: EnhancedUserProper
                 <Label>Property Type / प्रॉपर्टी प्रकार *</Label>
                 <Select
                   value={formData.property_type}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, property_type: value }))}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      property_type: value,
+                      // Reset BHK if the new property type doesn't support it
+                      bhk: !shouldShowBHK(formData.property_category, value) ? undefined : prev.bhk
+                    }));
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select property type" />
                   </SelectTrigger>
                   <SelectContent>
                     {PROPERTY_CATEGORIES[formData.property_category]?.types.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                      <SelectItem key={type.key} value={type.key}>
+                        {t(type.key) || type.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -628,23 +702,34 @@ export const EnhancedUserPropertyForm = ({ isOpen, onClose }: EnhancedUserProper
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Bedrooms / शयनकक्ष</Label>
+                <Label className={`${!showBHKField ? 'text-muted-foreground/50' : ''}`}>
+                  Bedrooms / शयनकक्ष {!showBHKField ? '(Not Applicable)' : ''}
+                </Label>
                 <Select
                   value={formData.bhk?.toString() || ''}
                   onValueChange={(value) => setFormData(prev => ({ 
                     ...prev, 
                     bhk: value ? parseInt(value.split(' ')[0]) : undefined 
                   }))}
+                  disabled={!showBHKField}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select BHK" />
+                  <SelectTrigger className={!showBHKField ? 'bg-muted cursor-not-allowed opacity-50' : ''}>
+                    <SelectValue placeholder={showBHKField ? "Select BHK" : "N/A"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {BHK_OPTIONS.map(bhk => (
+                    {showBHKField && BHK_OPTIONS.map(bhk => (
                       <SelectItem key={bhk} value={bhk}>{bhk}</SelectItem>
                     ))}
+                    {!showBHKField && (
+                      <SelectItem value="" disabled>Not Applicable</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {!showBHKField && (
+                  <p className="text-xs text-muted-foreground">
+                    BHK is not applicable for this property type
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
