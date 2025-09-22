@@ -90,6 +90,45 @@ export default function TermsPage({ className, style }: TermsPageProps) {
             </Card>
           </div>
 
+          {/* RERA Disclaimer */}
+          <div className="mt-14 md:mt-20">
+            <Card className="bg-card border border-amber-200 dark:border-amber-800 rounded-2xl bg-amber-50/50 dark:bg-amber-900/20">
+              <CardHeader className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                  Important Disclaimer
+                </div>
+                <CardTitle className="text-2xl md:text-3xl text-amber-800 dark:text-amber-200">RERA Disclaimer</CardTitle>
+                <CardDescription className="text-base text-amber-700 dark:text-amber-300">
+                  Please read this important disclaimer regarding real estate information and RERA compliance.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-xl bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 p-6">
+                  <div className="space-y-4 text-sm">
+                    <p className="text-amber-800 dark:text-amber-200 leading-relaxed">
+                      <strong>Disclaimer:</strong> By using or accessing this Website, you agree with the Disclaimer without any qualification or limitation. This website is only for the purpose of providing information regarding real estate projects and properties in different geographies.
+                    </p>
+                    
+                    <div className="space-y-3 text-amber-700 dark:text-amber-300">
+                      <p><strong>www.Propertyshodh.com</strong> is a real estate marketing website. The information regarding real estate projects and properties provided herein have been collected from publicly available sources, and is yet to be verified as per RERA guidelines.</p>
+                      
+                      <p>Further, the company has not checked the RERA* registration status of the real estate projects listed herein. The company does not make any representation in regards to the compliances done against these projects.</p>
+                      
+                      <p>The Websites and all its content are provided with all faults on an "as is" and "as available" basis. You agree to our terms & Conditions, Cookie and Privacy Policy.</p>
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-amber-300 dark:border-amber-700">
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        * RERA: Real Estate (Regulation and Development) Act, 2016
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Defined Terms */}
           <div className="mt-14 md:mt-20">
             <Card className="bg-card border border-border rounded-2xl">

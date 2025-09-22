@@ -1,5 +1,6 @@
 
 import { QuestionOption, Property } from '@/types/property';
+import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 
 export const propertyTypes: QuestionOption[] = [
   { id: 'apartment', label: 'Flat/Apartment', icon: 'Building' },
@@ -19,58 +20,14 @@ export const budgetRanges: QuestionOption[] = [
   { id: 'all', label: 'All Budget Ranges', icon: 'CircleDollarSign' }
 ];
 
+// Generate aurangabadLocalities from comprehensive AURANGABAD_AREAS
 export const aurangabadLocalities: QuestionOption[] = [
-  { id: 'cidco', label: 'CIDCO', icon: 'MapPin' },
-  { id: 'osmanpura', label: 'Osmanpura', icon: 'MapPin' },
-  { id: 'garkheda', label: 'Garkheda', icon: 'MapPin' },
-  { id: 'beed-bypass', label: 'Beed Bypass', icon: 'MapPin' },
-  { id: 'waluj', label: 'Waluj', icon: 'MapPin' },
-  { id: 'paithan-road', label: 'Paithan Road', icon: 'MapPin' },
-  { id: 'kanchanwadi', label: 'Kanchanwadi', icon: 'MapPin' },
-  { id: 'jalna-road', label: 'Jalna Road', icon: 'MapPin' },
-  { id: 'samarth-nagar', label: 'Samarth Nagar', icon: 'MapPin' },
-  { id: 'aurangpura', label: 'Aurangpura', icon: 'MapPin' },
-  { id: 'shahgunj', label: 'Shahgunj', icon: 'MapPin' },
-  { id: 'gulmandi', label: 'Gulmandi', icon: 'MapPin' },
-  { id: 'ulkanagari', label: 'Ulkanagari', icon: 'MapPin' },
-  { id: 'jyoti-nagar', label: 'Jyoti Nagar', icon: 'MapPin' },
-  { id: 'bansilal-nagar', label: 'Bansilal Nagar', icon: 'MapPin' },
-  { id: 'shreya-nagar', label: 'Shreya Nagar', icon: 'MapPin' },
-  { id: 'satara-parisar', label: 'Satara Parisar', icon: 'MapPin' },
-  { id: 'padegaon', label: 'Padegaon', icon: 'MapPin' },
-  { id: 'harsul', label: 'Harsul', icon: 'MapPin' },
-  { id: 'mukundwadi', label: 'Mukundwadi', icon: 'MapPin' },
-  { id: 'naregaon', label: 'Naregaon', icon: 'MapPin' },
-  { id: 'chikalthana', label: 'Chikalthana', icon: 'MapPin' },
-  { id: 'shendra-midc', label: 'Shendra MIDC', icon: 'MapPin' },
-  { id: 'begumpura', label: 'Begumpura', icon: 'MapPin' },
-  { id: 'jadhavwadi', label: 'Jadhavwadi', icon: 'MapPin' },
-  { id: 'pundlik-nagar', label: 'Pundlik Nagar', icon: 'MapPin' },
-  { id: 'deolai', label: 'Deolai', icon: 'MapPin' },
-  { id: 'chishtiya-colony', label: 'Chishtiya Colony', icon: 'MapPin' },
-  { id: 'jawahar-colony', label: 'Jawahar Colony', icon: 'MapPin' },
-  { id: 'station-road', label: 'Station Road', icon: 'MapPin' },
-  { id: 'vedant-nagar', label: 'Vedant Nagar', icon: 'MapPin' },
-  { id: 'bajaj-nagar', label: 'Bajaj Nagar', icon: 'MapPin' },
-  { id: 'nakshatrawadi', label: 'Nakshatrawadi', icon: 'MapPin' },
-  { id: 'mondha-naka', label: 'Mondha Naka', icon: 'MapPin' },
-  { id: 'bhavsinghpura', label: 'Bhavsinghpura', icon: 'MapPin' },
-  { id: 'mgm', label: 'MGM (Mahatma Gandhi Mission)', icon: 'MapPin' },
-  { id: 'nirala-bazar', label: 'Nirala Bazar', icon: 'MapPin' },
-  { id: 'town-centre', label: 'Town Centre', icon: 'MapPin' },
-  { id: 'mayur-park', label: 'Mayur Park', icon: 'MapPin' },
-  { id: 'khadkeshwar', label: 'Khadkeshwar', icon: 'MapPin' },
-  { id: 'padampura', label: 'Padampura', icon: 'MapPin' },
-  { id: 'dashmesh-nagar', label: 'Dashmesh Nagar', icon: 'MapPin' },
-  { id: 'shahanurwadi', label: 'Shahanurwadi', icon: 'MapPin' },
-  { id: 'kotla-colony', label: 'Kotla Colony', icon: 'MapPin' },
-  { id: 'itkheda', label: 'Itkheda', icon: 'MapPin' },
-  { id: 'new-usmanpura', label: 'New Usmanpura', icon: 'MapPin' },
-  { id: 'seven-hills', label: 'Seven Hills', icon: 'MapPin' },
-  { id: 'tilak-nagar', label: 'Tilak Nagar', icon: 'MapPin' },
-  { id: 'kranti-chowk', label: 'Kranti Chowk', icon: 'MapPin' },
-  { id: 'sillod-road', label: 'Sillod Road', icon: 'MapPin' },
-  { id: 'all', label: 'All Locations', icon: 'Globe' }
+  ...AURANGABAD_AREAS.map(area => ({
+    id: area.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+    label: area,
+    icon: 'MapPin' as const
+  })),
+  { id: 'all', label: 'All Locations', icon: 'Globe' as const }
 ];
 
 export const bedroomOptions: QuestionOption[] = [

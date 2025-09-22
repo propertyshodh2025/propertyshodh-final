@@ -53,6 +53,18 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
       setBhkType('all');
     }
   }, [propertyCategory, propertySubtype]);
+
+  // Effect to monitor and clean duplicates from selectedAreas
+  useEffect(() => {
+    const uniqueAreas = [...new Set(selectedAreas)];
+    if (uniqueAreas.length !== selectedAreas.length) {
+      // Use a timeout to avoid potential infinite loops
+      const timeoutId = setTimeout(() => {
+        setSelectedAreas(uniqueAreas);
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [selectedAreas]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const { toast } = useToast();
 
@@ -200,17 +212,27 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
   const handleLocationSelect = (value: string) => {
     setSelectedLocation(value);
-    if (value !== 'all' && !selectedAreas.includes(value)) {
-      setSelectedAreas(prev => [...prev, value]);
-    } else if (value === 'all') {
+    // Handle dropdown selection
+    if (value === 'all') {
       setSelectedAreas([]);
+    } else if (value !== 'all' && !selectedAreas.includes(value)) {
+      // This is a dropdown selection for a specific location
+      // Add it to selectedAreas only if it's not already there
+      setSelectedAreas(prev => {
+        const newAreas = [...prev, value];
+        const uniqueAreas = [...new Set(newAreas)]; // Remove duplicates just in case
+        return uniqueAreas;
+      });
     }
   };
 
   const handleAreaSelection = (areas: string[]) => {
-    setSelectedAreas(areas);
-    if (areas.length > 0) {
-      setSelectedLocation(areas[0]);
+    // Remove duplicates from the areas array
+    const uniqueAreas = [...new Set(areas)];
+    
+    setSelectedAreas(uniqueAreas);
+    if (uniqueAreas.length > 0) {
+      setSelectedLocation(uniqueAreas[0]);
     } else {
       setSelectedLocation('all');
     }
@@ -443,9 +465,15 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
                 </div>
                 <GridBasedAurangabadMap selectedAreas={selectedAreas} onAreaSelection={handleAreaSelection} onLocationSelect={handleLocationSelect} />
                 {selectedAreas.length > 0 && <div className="mt-3 flex flex-wrap gap-1">
-                    {selectedAreas.map(area => <span key={area} className="inline-flex items-center px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
+                    {[...new Set(selectedAreas)].map((area, index) => <span key={`${area}-${index}`} className="inline-flex items-center px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
                         {translateEnum(area, language as any)}
-                        <button onClick={() => setSelectedAreas(prev => prev.filter(a => a !== area))} className="ml-1 hover:text-destructive">
+                        <button onClick={() => {
+                          setSelectedAreas(prev => {
+                            const filtered = prev.filter(a => a !== area);
+                            const unique = [...new Set(filtered)];
+                            return unique;
+                          });
+                        }} className="ml-1 hover:text-destructive">
                           ×
                         </button>
                       </span>)}

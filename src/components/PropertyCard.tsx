@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumberWithLocale } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
-import { shouldPropertyHaveBHK } from '@/lib/propertyUtils';
+import { shouldPropertyHaveBHK, getPropertyTypeDisplayName } from '@/lib/propertyUtils';
 
 interface PropertyCardProps {
   property: Property;
@@ -119,7 +119,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
         
         <div className="flex gap-2 mb-4">
           <Badge variant="outline" className="text-xs">
-            {translateEnum(property.property_type, language)}
+            {translateEnum(getPropertyTypeDisplayName(property.property_type), language)}
           </Badge>
           {property.possession_status && (
             <Badge variant="outline" className="text-xs">

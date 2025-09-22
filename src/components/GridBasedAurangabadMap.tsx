@@ -56,9 +56,19 @@ export const GridBasedAurangabadMap: React.FC<GridMapProps> = ({
     
     onAreaSelection(newAreas);
     
-    // If selecting (not deselecting), also update the dropdown
+    // Update the dropdown to reflect the change
     if (!selectedAreas.includes(location)) {
+      // Set the dropdown to show this location when adding
       onLocationSelect(location);
+    } else {
+      // Reset to 'all' when removing the last location or multiple locations exist
+      const remainingAreas = newAreas.length;
+      if (remainingAreas === 0) {
+        onLocationSelect('all');
+      } else if (remainingAreas === 1) {
+        onLocationSelect(newAreas[0]);
+      }
+      // Don't change dropdown if multiple areas are selected
     }
   };
 

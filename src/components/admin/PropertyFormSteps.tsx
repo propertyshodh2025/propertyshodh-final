@@ -23,18 +23,30 @@ interface PropertyFormStepsProps {
 const PROPERTY_CATEGORIES = {
   residential: {
     label: 'Residential / निवासी',
-    types: ['Flat/Apartment', 'House/Bungalow', 'Villa', 'Plot/Land']
+    types: [
+      // 🏡 Residential Properties
+      'Plot/Land', 'House', 'Flat/Apartment', 'Villa', 'Row House', 'Townhouse', 'Bungalow',
+      'Penthouse', 'Studio Apartment', 'Farmhouse', 'Condominium (Condo)', 'Duplex/Triplex',
+      'Mansion', 'Cottage', 'Serviced Apartment', 'Garden Flat', 'Loft Apartment', 'Holiday Home'
+    ]
   },
   commercial: {
     label: 'Commercial / व्यावसायिक', 
-    types: ['Office Space', 'Shop/Showroom', 'Warehouse', 'Building']
+    types: [
+      // 🏢 Commercial Properties
+      'Shop/Retail Store', 'Office Space', 'Showroom', 'Warehouse/Godown', 'Hotel/Motel',
+      'Restaurant/Café', 'Shopping Mall/Plaza', 'Clinic/Hospital', 'Co-working Space',
+      'Industrial Shed/Factory', 'Commercial Land/Plot', 'IT Park/Business Center', 'School/College',
+      'Cinema/Multiplex', 'Banquet Hall', 'Petrol Pump', 'Bank', 'Gymnasium/Fitness Center',
+      'Cold Storage', 'Resort'
+    ]
   },
   agricultural: {
     label: 'Agricultural / कृषी',
     types: ['Farmland', 'Orchard', 'Plantation']
   },
   industrial: {
-    label: 'Industrial / औद्योगिक',
+    label: 'Industrial / आउद्योगिक',
     types: ['Factory', 'Manufacturing Unit', 'Industrial Plot']
   }
 };

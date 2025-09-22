@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Phone, Facebook, Instagram, Linkedin, Twitter, Youtube, Share2 } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -15,6 +15,13 @@ export const AdminSiteSettings: React.FC = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [centralContactNumber, setCentralContactNumber] = useState<string>('');
+  const [socialMediaLinks, setSocialMediaLinks] = useState({
+    facebook_url: '',
+    instagram_url: '',
+    linkedin_url: '',
+    twitter_url: '',
+    youtube_url: ''
+  });
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -24,7 +31,7 @@ export const AdminSiteSettings: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('site_settings')
-          .select('central_contact_number')
+          .select('central_contact_number, facebook_url, instagram_url, linkedin_url, twitter_url, youtube_url')
           .limit(1)
           .single();
 
@@ -37,6 +44,13 @@ export const AdminSiteSettings: React.FC = () => {
           });
         } else if (data) {
           setCentralContactNumber(data.central_contact_number || '');
+          setSocialMediaLinks({
+            facebook_url: data.facebook_url || '',
+            instagram_url: data.instagram_url || '',
+            linkedin_url: data.linkedin_url || '',
+            twitter_url: data.twitter_url || '',
+            youtube_url: data.youtube_url || ''
+          });
         }
       } catch (error) {
         console.error('Error fetching site settings:', error);
@@ -53,6 +67,13 @@ export const AdminSiteSettings: React.FC = () => {
     fetchSettings();
   }, [t, toast]);
 
+  const handleSocialMediaChange = (platform: string, value: string) => {
+    setSocialMediaLinks(prev => ({
+      ...prev,
+      [platform]: value
+    }));
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -67,11 +88,16 @@ export const AdminSiteSettings: React.FC = () => {
         throw fetchError;
       }
 
+      const updateData = {
+        central_contact_number: centralContactNumber,
+        ...socialMediaLinks
+      };
+
       if (existingSettings) {
         // Update existing record
         const { error } = await supabase
           .from('site_settings')
-          .update({ central_contact_number: centralContactNumber })
+          .update(updateData)
           .eq('id', existingSettings.id);
 
         if (error) throw error;
@@ -79,7 +105,7 @@ export const AdminSiteSettings: React.FC = () => {
         // Insert new record
         const { error } = await supabase
           .from('site_settings')
-          .insert({ central_contact_number: centralContactNumber });
+          .insert(updateData);
 
         if (error) throw error;
       }
@@ -116,24 +142,84 @@ export const AdminSiteSettings: React.FC = () => {
     );
   }
 
+  const socialPlatforms = [
+    { key: 'facebook_url', label: 'Facebook URL', icon: Facebook, placeholder: 'https://facebook.com/yourcompany' },
+    { key: 'instagram_url', label: 'Instagram URL', icon: Instagram, placeholder: 'https://instagram.com/yourcompany' },
+    { key: 'linkedin_url', label: 'LinkedIn URL', icon: Linkedin, placeholder: 'https://linkedin.com/company/yourcompany' },
+    { key: 'twitter_url', label: 'Twitter URL', icon: Twitter, placeholder: 'https://twitter.com/yourcompany' },
+    { key: 'youtube_url', label: 'YouTube URL', icon: Youtube, placeholder: 'https://youtube.com/c/yourcompany' }
+  ];
+
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle><TranslatableText text="Site Settings" /></CardTitle>
-        <CardDescription><TranslatableText text="Manage global application settings." /></CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="centralContactNumber"><TranslatableText text="Central Contact Number" /></Label>
-          <Input
-            id="centralContactNumber"
-            type="tel"
-            value={centralContactNumber}
-            onChange={(e) => setCentralContactNumber(e.target.value)}
-            placeholder={t('enter_central_contact_number')}
-          />
-        </div>
-        <Button onClick={handleSave} disabled={isSaving}>
+    <div className="space-y-6 w-full max-w-4xl mx-auto">
+      {/* Contact Information */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            <CardTitle><TranslatableText text="Contact Information" /></CardTitle>
+          </div>
+          <CardDescription><TranslatableText text="Manage contact details displayed across the site." /></CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="centralContactNumber"><TranslatableText text="Central Contact Number" /></Label>
+            <Input
+              id="centralContactNumber"
+              type="tel"
+              value={centralContactNumber}
+              onChange={(e) => setCentralContactNumber(e.target.value)}
+              placeholder={t('enter_central_contact_number')}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Social Media Links */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Share2 className="h-5 w-5" />
+            <CardTitle><TranslatableText text="Social Media Links" /></CardTitle>
+          </div>
+          <CardDescription><TranslatableText text="Configure social media platform URLs that will appear on the contact page and footer." /></CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            {socialPlatforms.map((platform) => {
+              const Icon = platform.icon;
+              return (
+                <div key={platform.key} className="space-y-2">
+                  <Label htmlFor={platform.key} className="flex items-center gap-2">
+                    <Icon className="h-4 w-4" />
+                    {platform.label}
+                  </Label>
+                  <Input
+                    id={platform.key}
+                    type="url"
+                    value={socialMediaLinks[platform.key as keyof typeof socialMediaLinks]}
+                    onChange={(e) => handleSocialMediaChange(platform.key, e.target.value)}
+                    placeholder={platform.placeholder}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">How to use:</h4>
+            <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+              <li>• Enter the complete URL for each social media platform</li>
+              <li>• Leave empty if you don't want to display that platform</li>
+              <li>• URLs will appear as clickable links on the contact page</li>
+              <li>• Changes take effect immediately after saving</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={isSaving} size="lg">
           {isSaving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -141,7 +227,7 @@ export const AdminSiteSettings: React.FC = () => {
           )}
           <TranslatableText text="Save Settings" />
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

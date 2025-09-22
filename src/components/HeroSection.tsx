@@ -77,7 +77,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ totalProperties }) => 
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light tracking-tight text-foreground leading-[1.2] md:leading-[1.3] lg:leading-[1.4] animate-fade-in overflow-visible">
                 {t('hero.title')}
                 <br />
-                <span className="font-normal bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent animate-scale-in text-base sm:text-xl md:text-2xl lg:text-3xl">
+                <span className="font-normal text-primary dark:text-blue-400 animate-scale-in text-base sm:text-xl md:text-2xl lg:text-3xl">
                   {t('hero.subtitle')}
                 </span>
               </h1>

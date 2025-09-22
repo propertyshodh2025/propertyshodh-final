@@ -23,18 +23,20 @@ interface PropertyFormProps {
 // Comprehensive property categories and types
 const PROPERTY_CATEGORIES = ['Residential', 'Commercial', 'Agricultural', 'Industrial'];
 
-// Property types based on category
+// Property types based on category - Comprehensive list
 const PROPERTY_TYPES = {
   residential: [
+    // 🏡 Residential Properties
     'plot_land', 'house', 'flat_apartment', 'villa', 'row_house', 'townhouse', 'bungalow',
     'penthouse', 'studio_apartment', 'farmhouse', 'condominium', 'duplex_triplex',
     'mansion', 'cottage', 'serviced_apartment', 'garden_flat', 'loft_apartment', 'holiday_home'
   ],
   commercial: [
-    'shop_retail', 'office_space', 'showroom', 'warehouse_godown', 'hotel_motel',
-    'restaurant_cafe', 'shopping_mall', 'clinic_hospital', 'coworking_space',
-    'industrial_shed', 'commercial_land', 'it_park', 'school_college',
-    'cinema_multiplex', 'banquet_hall', 'petrol_pump', 'bank', 'gymnasium',
+    // 🏢 Commercial Properties
+    'shop_retail_store', 'office_space', 'showroom', 'warehouse_godown', 'hotel_motel',
+    'restaurant_cafe', 'shopping_mall_plaza', 'clinic_hospital', 'coworking_space',
+    'industrial_shed_factory', 'commercial_land_plot', 'it_park_business_center', 'school_college',
+    'cinema_multiplex', 'banquet_hall', 'petrol_pump', 'bank', 'gymnasium_fitness_center',
     'cold_storage', 'resort'
   ],
   agricultural: [

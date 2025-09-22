@@ -24,8 +24,10 @@ import PresentationPage from "./pages/PresentationPage";
 import NotFound from "./pages/NotFound";
 import ServicesPage from "./pages/ServicesPage";
 import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import CareersPage from "./pages/CareersPage";
 import LanguageSEO from "@/components/LanguageSEO";
 
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
@@ -72,6 +74,8 @@ const AppContent = () => {
         } />
         <Route path="/presentation" element={<PresentationPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/careers" element={<CareersPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/services" element={<ServicesPage />} />

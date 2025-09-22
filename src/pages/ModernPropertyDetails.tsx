@@ -51,7 +51,7 @@ const ModernPropertyDetails: React.FC = () => {
           .from('properties')
           .select('*')
           .eq('id', id)
-          .eq('listing_status', 'active')
+          .in('listing_status', ['Active', 'active']) // Handle case variations
           .maybeSingle();
         
         if (propertyError) {
@@ -438,16 +438,18 @@ ${property.description ? `📋 ${t('description')}:\n${property.description.slic
         </div>
 
         {/* Similar Properties Section at the end */}
-        <div className="mt-12 md:mt-16">
-          <SimilarPropertiesSection
-            currentPropertyId={id!}
-            propertyType={property.property_type || undefined}
-            propertyCategory={property.property_category || undefined}
-            transactionType={property.transaction_type || undefined}
-            location={property.location || undefined}
-            city={property.city || undefined}
-          />
-        </div>
+        {id && property && (
+          <div className="mt-12 md:mt-16">
+            <SimilarPropertiesSection
+              currentPropertyId={id}
+              propertyType={property.property_type || undefined}
+              propertyCategory={property.property_category || undefined}
+              transactionType={property.transaction_type || undefined}
+              location={property.location || undefined}
+              city={property.city || undefined}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

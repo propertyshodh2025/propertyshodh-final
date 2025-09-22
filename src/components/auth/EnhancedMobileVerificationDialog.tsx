@@ -198,7 +198,7 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
     if (!canProceedFromTerms) {
       toast({
         title: "Acceptance Required",
-        description: "You must accept both Terms of Service and Privacy Policy to continue",
+        description: "You must accept both Terms of Service & Disclaimer and Privacy Policy to continue",
         variant: "destructive",
       });
       return;
@@ -239,7 +239,7 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
              'Enter Verification Code'}
           </DialogTitle>
           <p className="text-center text-muted-foreground">
-            {step === 'terms' ? 'Before we start, please accept our Terms of Service and Privacy Policy' :
+            {step === 'terms' ? 'Before we start, please accept our Terms of Service & Disclaimer and Privacy Policy' :
              step === 'phone' ? 'Please verify your mobile number to complete your account setup' : 
              `We've sent a verification code to ${countryCode}${phoneNumber}`}
           </p>
@@ -254,7 +254,7 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
                   <div className="min-w-0">
                     <h4 className="font-semibold text-amber-800 dark:text-amber-200">Mandatory Acceptance</h4>
                     <p className="text-sm text-amber-700 dark:text-amber-300">
-                      You must accept both our Terms of Service and Privacy Policy to use PropertyShodh. 
+                      You must accept both our Terms of Service & Disclaimer and Privacy Policy to use PropertyShodh.
                       This step cannot be skipped.
                     </p>
                   </div>
@@ -277,7 +277,7 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
                         onClick={() => setPolicyView('terms')}
                         className="text-blue-600 hover:text-blue-800 underline font-semibold"
                       >
-                        Terms of Service
+                        Terms of Service and Disclaimer
                       </button>
                     </Label>
                     <Button
@@ -287,7 +287,7 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
                       className="w-full flex items-center gap-2"
                     >
                       <FileText className="w-4 h-4" />
-                      Read Terms of Service
+                      Read Terms of Service & Disclaimer
                     </Button>
                   </div>
                 </div>
@@ -355,7 +355,7 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
 
               {!canProceedFromTerms && (
                 <p className="text-xs text-center text-red-600 dark:text-red-400">
-                  You must accept both Terms of Service and Privacy Policy to continue
+                  You must accept both Terms of Service & Disclaimer and Privacy Policy to continue
                 </p>
               )}
             </>

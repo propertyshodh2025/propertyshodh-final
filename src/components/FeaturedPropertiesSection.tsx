@@ -92,7 +92,7 @@ export const FeaturedPropertiesSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-12">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{t('featured.title')}</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white dark:text-gray-200 mb-2">{t('featured.title')}</h2>
             <p className="text-muted-foreground">{t('featured.subtitle')}</p>
           </div>
           <Button 

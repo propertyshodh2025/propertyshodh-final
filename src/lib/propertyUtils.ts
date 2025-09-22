@@ -10,17 +10,29 @@ export interface PropertyTypeInfo {
 
 // Property types that should include BHK in titles (when in residential category)
 const RESIDENTIAL_PROPERTY_TYPES_WITH_BHK = [
-  'flat', 'apartment', 'house', 'bungalow', 'villa', 'duplex', 'penthouse', 'studio', 'plot'
+  // 🏡 Residential Properties
+  'plot_land', 'house', 'flat_apartment', 'villa', 'row_house', 'townhouse', 'bungalow',
+  'penthouse', 'studio_apartment', 'farmhouse', 'condominium', 'duplex_triplex',
+  'mansion', 'cottage', 'serviced_apartment', 'garden_flat', 'loft_apartment', 'holiday_home',
+  // Legacy support
+  'flat', 'apartment', 'duplex', 'studio', 'plot'
 ];
 
 // Property types that NEVER have BHK (regardless of category)
 const NEVER_BHK_PROPERTY_TYPES = [
-  'parking', 'garage'
+  'parking', 'garage', 'plot_land', 'commercial_land_plot', 'agricultural_land', 'farmland', 'orchard', 'plantation', 'industrial_plot'
 ];
 
 // Commercial property types
 const COMMERCIAL_PROPERTY_TYPES = [
-  'office', 'shop', 'showroom', 'warehouse', 'building', 'retail_space', 'commercial_space', 'godown'
+  // 🏢 Commercial Properties
+  'shop_retail_store', 'office_space', 'showroom', 'warehouse_godown', 'hotel_motel',
+  'restaurant_cafe', 'shopping_mall_plaza', 'clinic_hospital', 'coworking_space',
+  'industrial_shed_factory', 'commercial_land_plot', 'it_park_business_center', 'school_college',
+  'cinema_multiplex', 'banquet_hall', 'petrol_pump', 'bank', 'gymnasium_fitness_center',
+  'cold_storage', 'resort',
+  // Legacy support
+  'office', 'shop', 'warehouse', 'building', 'retail_space', 'commercial_space', 'godown'
 ];
 
 // Agricultural property types
@@ -30,7 +42,9 @@ const AGRICULTURAL_PROPERTY_TYPES = [
 
 // Industrial property types
 const INDUSTRIAL_PROPERTY_TYPES = [
-  'factory', 'manufacturing', 'industrial_plot', 'commercial_plot'
+  'factory', 'manufacturing_unit', 'industrial_plot', 'commercial_plot',
+  // Legacy support
+  'manufacturing'
 ];
 
 // Property categories
@@ -187,4 +201,62 @@ export function cleanPropertyTitle(
     return validation.suggestedTitle;
   }
   return title;
+}
+
+/**
+ * Formats property type for display by converting underscores to spaces and capitalizing
+ */
+export function formatPropertyTypeForDisplay(propertyType: string): string {
+  if (!propertyType) return '';
+  
+  return propertyType
+    .replace(/_/g, ' ')                    // Replace underscores with spaces
+    .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize first letter of each word
+    .trim();
+}
+
+/**
+ * Gets the display name for property types (maps internal IDs to user-friendly names)
+ */
+export function getPropertyTypeDisplayName(propertyType: string): string {
+  // Mapping for specific property types that need special formatting
+  const displayNameMap: Record<string, string> = {
+    // Residential
+    'plot_land': 'Plot / Land',
+    'flat_apartment': 'Flat / Apartment',
+    'row_house': 'Row House',
+    'studio_apartment': 'Studio Apartment',
+    'duplex_triplex': 'Duplex / Triplex',
+    'condominium': 'Condominium (Condo)',
+    'serviced_apartment': 'Serviced Apartment',
+    'garden_flat': 'Garden Flat',
+    'loft_apartment': 'Loft Apartment',
+    'holiday_home': 'Holiday Home',
+    
+    // Commercial
+    'shop_retail_store': 'Shop / Retail Store',
+    'office_space': 'Office Space',
+    'warehouse_godown': 'Warehouse / Godown',
+    'hotel_motel': 'Hotel / Motel',
+    'restaurant_cafe': 'Restaurant / Café',
+    'shopping_mall_plaza': 'Shopping Mall / Plaza',
+    'clinic_hospital': 'Clinic / Hospital',
+    'coworking_space': 'Co-working Space',
+    'industrial_shed_factory': 'Industrial Shed / Factory',
+    'commercial_land_plot': 'Commercial Land / Plot',
+    'it_park_business_center': 'IT Park / Business Center',
+    'school_college': 'School / College',
+    'cinema_multiplex': 'Cinema / Multiplex',
+    'banquet_hall': 'Banquet Hall',
+    'petrol_pump': 'Petrol Pump',
+    'gymnasium_fitness_center': 'Gymnasium / Fitness Center',
+    'cold_storage': 'Cold Storage',
+    
+    // Agricultural/Industrial
+    'manufacturing_unit': 'Manufacturing Unit',
+    'industrial_plot': 'Industrial Plot'
+  };
+  
+  // Return mapped name if exists, otherwise format the property type
+  return displayNameMap[propertyType] || formatPropertyTypeForDisplay(propertyType);
 }

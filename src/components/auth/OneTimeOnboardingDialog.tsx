@@ -261,7 +261,7 @@ export const OneTimeOnboardingDialog: React.FC<OneTimeOnboardingDialogProps> = (
                         onClick={() => setPolicyView('terms')}
                         className="text-blue-600 hover:text-blue-800 underline font-semibold"
                       >
-                        Terms of Service
+                        Terms of Service and Disclaimer
                       </button>
                     </Label>
                     <Button
@@ -271,7 +271,7 @@ export const OneTimeOnboardingDialog: React.FC<OneTimeOnboardingDialogProps> = (
                       className="w-full flex items-center gap-2"
                     >
                       <FileText className="w-4 h-4" />
-                      Read Terms of Service
+                      Read Terms of Service & Disclaimer
                     </Button>
                   </div>
                 </div>
@@ -328,7 +328,7 @@ export const OneTimeOnboardingDialog: React.FC<OneTimeOnboardingDialogProps> = (
 
               {(!termsAccepted || !privacyAccepted) && (
                 <p className="text-xs text-center text-red-600 dark:text-red-400">
-                  You must accept both Terms of Service and Privacy Policy to continue
+                  You must accept both Terms of Service & Disclaimer and Privacy Policy to continue
                 </p>
               )}
             </>

@@ -13,6 +13,8 @@ import { translateAndCache } from '@/lib/translator';
 import { TranslatableText } from '@/components/TranslatableText';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LAND_MEASUREMENT_UNITS, convertToSquareFeet, getAreaDisplayText, validateAreaValue } from '@/lib/landUnits';
+import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
 
 interface EnhancedConversationalUserPropertyFormProps {
   isOpen: boolean;
@@ -155,19 +157,51 @@ const PROPERTY_CATEGORIES = {
   residential: {
     label: 'Residential',
     types: {
-      apartment: { label: 'Apartment/Flat', icon: '🏢' },
-      house: { label: 'Independent House/Villa', icon: '🏠' },
-      plot: { label: 'Residential Plot', icon: '🏞️' },
-      farmhouse: { label: 'Farm House', icon: '🌾' }
+      // 🏡 Residential Properties
+      plot_land: { label: 'Plot / Land', icon: '🏞️' },
+      house: { label: 'House', icon: '🏠' },
+      flat_apartment: { label: 'Flat / Apartment', icon: '🏢' },
+      villa: { label: 'Villa', icon: '🏡' },
+      row_house: { label: 'Row House', icon: '🏘️' },
+      townhouse: { label: 'Townhouse', icon: '🏘️' },
+      bungalow: { label: 'Bungalow', icon: '🏠' },
+      penthouse: { label: 'Penthouse', icon: '🏙️' },
+      studio_apartment: { label: 'Studio Apartment', icon: '🏠' },
+      farmhouse: { label: 'Farmhouse', icon: '🌾' },
+      condominium: { label: 'Condominium (Condo)', icon: '🏢' },
+      duplex_triplex: { label: 'Duplex / Triplex', icon: '🏠' },
+      mansion: { label: 'Mansion', icon: '🏰' },
+      cottage: { label: 'Cottage', icon: '🏡' },
+      serviced_apartment: { label: 'Serviced Apartment', icon: '🏨' },
+      garden_flat: { label: 'Garden Flat', icon: '🌳' },
+      loft_apartment: { label: 'Loft Apartment', icon: '🏠' },
+      holiday_home: { label: 'Holiday Home', icon: '🏖️' }
     }
   },
   commercial: {
     label: 'Commercial',
     types: {
-      office: { label: 'Office Space', icon: '🏢' },
-      shop: { label: 'Shop/Showroom', icon: '🏪' },
-      warehouse: { label: 'Warehouse/Godown', icon: '🏭' },
-      commercial_plot: { label: 'Commercial Plot', icon: '🏗️' }
+      // 🏢 Commercial Properties
+      shop_retail_store: { label: 'Shop / Retail Store', icon: '🏪' },
+      office_space: { label: 'Office Space', icon: '🏢' },
+      showroom: { label: 'Showroom', icon: '🏬' },
+      warehouse_godown: { label: 'Warehouse / Godown', icon: '🏭' },
+      hotel_motel: { label: 'Hotel / Motel', icon: '🏨' },
+      restaurant_cafe: { label: 'Restaurant / Café', icon: '🍽️' },
+      shopping_mall_plaza: { label: 'Shopping Mall / Plaza', icon: '🛍️' },
+      clinic_hospital: { label: 'Clinic / Hospital', icon: '🏥' },
+      coworking_space: { label: 'Co-working Space', icon: '💼' },
+      industrial_shed_factory: { label: 'Industrial Shed / Factory', icon: '🏭' },
+      commercial_land_plot: { label: 'Commercial Land / Plot', icon: '🏗️' },
+      it_park_business_center: { label: 'IT Park / Business Center', icon: '🏢' },
+      school_college: { label: 'School / College', icon: '🏫' },
+      cinema_multiplex: { label: 'Cinema / Multiplex', icon: '🎬' },
+      banquet_hall: { label: 'Banquet Hall', icon: '🏛️' },
+      petrol_pump: { label: 'Petrol Pump', icon: '⛽' },
+      bank: { label: 'Bank', icon: '🏦' },
+      gymnasium_fitness_center: { label: 'Gymnasium / Fitness Center', icon: '💪' },
+      cold_storage: { label: 'Cold Storage', icon: '❄️' },
+      resort: { label: 'Resort', icon: '🏖️' }
     }
   },
   agricultural: {
@@ -180,18 +214,12 @@ const PROPERTY_CATEGORIES = {
   }
 };
 
-const AURANGABAD_LOCATIONS = [
-  { id: 'cidco', label: 'CIDCO', value: 'CIDCO' },
-  { id: 'cantonment', label: 'Cantonment Area', value: 'Cantonment Area' },
-  { id: 'old_city', label: 'Old City', value: 'Old City' },
-  { id: 'new_usmanpura', label: 'New Usmanpura', value: 'New Usmanpura' },
-  { id: 'bajajnagar', label: 'Bajajnagar', value: 'Bajajnagar' },
-  { id: 'prozone_mall', label: 'Prozone Mall Area', value: 'Prozone Mall Area' },
-  { id: 'jalna_road', label: 'Jalna Road', value: 'Jalna Road' },
-  { id: 'beed_bypass', label: 'Beed Bypass', value: 'Beed Bypass' },
-  { id: 'airport_road', label: 'Airport Road', value: 'Airport Road' },
-  { id: 'waluj', label: 'Waluj MIDC', value: 'Waluj MIDC' }
-];
+// Using comprehensive AURANGABAD_AREAS from lib - converted to format expected by form
+const AURANGABAD_LOCATIONS = AURANGABAD_AREAS.map(area => ({
+  id: area.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+  label: area,
+  value: area
+}));
 
 export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: EnhancedConversationalUserPropertyFormProps) => {
   const { user } = useAuth();

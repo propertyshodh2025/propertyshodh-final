@@ -29,6 +29,14 @@ const SimilarPropertiesSection: React.FC<SimilarPropertiesSectionProps> = ({
 
   useEffect(() => {
     const fetchSimilarProperties = async () => {
+      // Early return if currentPropertyId is not valid
+      if (!currentPropertyId || currentPropertyId.trim() === '') {
+        console.warn('SimilarPropertiesSection: currentPropertyId is empty or undefined');
+        setLoading(false);
+        setError('Invalid property ID provided.');
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -36,7 +44,7 @@ const SimilarPropertiesSection: React.FC<SimilarPropertiesSectionProps> = ({
           .from('properties')
           .select('*')
           .in('approval_status', ['approved', 'pending'])
-          .eq('listing_status', 'Active')
+          .in('listing_status', ['Active', 'active']) // Handle case variations
           .neq('id', currentPropertyId) // Exclude the current property
 
         // Prioritize filters based on available data
@@ -61,10 +69,40 @@ const SimilarPropertiesSection: React.FC<SimilarPropertiesSectionProps> = ({
         const { data, error } = await query;
 
         if (error) {
+          console.error('Supabase query error:', error);
           throw error;
         }
 
         setSimilarProperties(data || []);
+        
+        // If no similar properties found with strict filters, try with fewer filters
+        if (!data || data.length === 0) {
+          console.log('No properties found with current filters, trying with fewer filters...');
+          
+          let fallbackQuery = supabase
+            .from('properties')
+            .select('*')
+            .in('approval_status', ['approved', 'pending'])
+            .in('listing_status', ['Active', 'active']);
+          
+          // Only add the neq filter if currentPropertyId is valid
+          if (currentPropertyId && currentPropertyId.trim() !== '') {
+            fallbackQuery = fallbackQuery.neq('id', currentPropertyId);
+          }
+          
+          // Try with just city filter
+          if (city) {
+            fallbackQuery = fallbackQuery.ilike('city', `%${city}%`);
+          }
+          
+          fallbackQuery = fallbackQuery.order('created_at', { ascending: false }).limit(6);
+          
+          const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+          
+          if (!fallbackError && fallbackData) {
+            setSimilarProperties(fallbackData);
+          }
+        }
       } catch (err) {
         console.error('Error fetching similar properties:', err);
         setError('Failed to load similar properties.');

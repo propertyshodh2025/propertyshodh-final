@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EnhancedMobileVerificationDialog } from "@/components/auth/EnhancedMobileVerificationDialog";
 
 // Renders nothing, but ensures phone verification dialog is shown for new/unverified users
-// Now also ensures Terms of Service and Privacy Policy acceptance
+// Now also ensures Terms of Service & Disclaimer and Privacy Policy acceptance
 export const PhoneVerificationGate: React.FC = () => {
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);

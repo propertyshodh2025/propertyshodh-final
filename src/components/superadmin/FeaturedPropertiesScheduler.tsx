@@ -55,6 +55,7 @@ const FeaturedPropertiesScheduler: React.FC = () => {
   
   const { toast } = useToast();
   const { language } = useLanguage();
+  const [migrationStatus, setMigrationStatus] = useState<'checking' | 'applied' | 'required'>('checking');
 
   useEffect(() => {
     fetchData();
@@ -63,6 +64,9 @@ const FeaturedPropertiesScheduler: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // First check if migration has been applied
+      await checkMigrationStatus();
+      
       await Promise.all([
         fetchScheduledItems(),
         fetchAvailableProperties()
@@ -72,9 +76,27 @@ const FeaturedPropertiesScheduler: React.FC = () => {
     }
   };
 
+  const checkMigrationStatus = async () => {
+    try {
+      // Try to query the featuring_scheduled_at column
+      const { error } = await adminSupabase
+        .from('properties')
+        .select('featuring_scheduled_at')
+        .limit(1);
+      
+      if (error && error.code === '42703') {
+        setMigrationStatus('required');
+      } else {
+        setMigrationStatus('applied');
+      }
+    } catch (error) {
+      console.error('Error checking migration status:', error);
+      setMigrationStatus('required');
+    }
+  };
+
   const fetchScheduledItems = async () => {
     try {
-      // Try to fetch scheduled items, but handle missing columns gracefully
       const { data, error } = await adminSupabase
         .from('properties')
         .select(`
@@ -83,16 +105,49 @@ const FeaturedPropertiesScheduler: React.FC = () => {
           location,
           city,
           price,
-          images
+          images,
+          featuring_scheduled_at,
+          featuring_package
         `)
-        .limit(0); // Start with empty query since columns may not exist
+        .not('featuring_scheduled_at', 'is', null)
+        .eq('is_featured', false)
+        .order('featuring_scheduled_at', { ascending: true });
 
-      // For now, return empty array until migration is run
-      setScheduledItems([]);
-      console.log('Scheduled items: Migration required for full functionality');
+      if (error) throw error;
+      
+      // Transform the data to match our interface
+      const transformedData: ScheduledFeaturing[] = (data || []).map(property => ({
+        id: property.id,
+        property_id: property.id,
+        scheduled_at: property.featuring_scheduled_at,
+        duration_days: 7, // Default, will be based on package
+        package_type: property.featuring_package || 'basic',
+        status: 'pending',
+        created_at: property.featuring_scheduled_at,
+        property_title: property.title,
+        property_location: property.location,
+        property_city: property.city,
+        property_price: property.price,
+        property_images: property.images
+      }));
+      
+      setScheduledItems(transformedData);
+      console.log('Scheduled items loaded:', transformedData.length);
     } catch (error) {
       console.error('Error fetching scheduled items:', error);
-      // Don't show error toast for missing table/columns as it's expected before migration
+      
+      // Check if columns don't exist (migration not run)
+      if (error?.code === '42703') {
+        console.log('Migration not yet applied, scheduler functionality disabled');
+        setScheduledItems([]);
+        return;
+      }
+      
+      toast({
+        title: "Error",
+        description: "Failed to fetch scheduled items",
+        variant: "destructive",
+      });
       setScheduledItems([]);
     }
   };
@@ -107,14 +162,8 @@ const FeaturedPropertiesScheduler: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      // Try to filter by featuring_scheduled_at if the column exists
-      // If it doesn't exist (migration not run), we'll just ignore this filter
-      try {
-        query = query.is('featuring_scheduled_at', null);
-      } catch (e) {
-        // Column doesn't exist, proceed without this filter
-        console.log('featuring_scheduled_at column not found, proceeding without filter');
-      }
+      // Filter properties that are not already scheduled and not featured
+      query = query.is('featuring_scheduled_at', null);
 
       const { data, error } = await query;
 
@@ -158,17 +207,12 @@ const FeaturedPropertiesScheduler: React.FC = () => {
       return;
     }
 
-    // Check if database migration has been run
-    toast({
-      title: "Database Migration Required",
-      description: "Please run the database migration to enable scheduling functionality. For now, you can use the 'Browse' tab to feature properties immediately.",
-      variant: "destructive",
-    });
-    return;
-
-    /* This will be enabled after migration is run
     try {
       const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+      
+      // Get the selected package details
+      const selectedPkg = FEATURING_PACKAGES.find(pkg => pkg.id === selectedPackage);
+      const duration = selectedPkg ? selectedPkg.duration : durationDays;
       
       // Update the property with scheduled information
       const { error } = await adminSupabase
@@ -179,20 +223,37 @@ const FeaturedPropertiesScheduler: React.FC = () => {
         })
         .eq('id', selectedPropertyId);
 
-      if (error) throw error;
+      if (error) {
+        // If error is about missing column, show migration message
+        if (error.code === '42703') {
+          toast({
+            title: "Database Migration Required",
+            description: "Please run the database migration to enable scheduling functionality. For now, you can use the 'Browse' tab to feature properties immediately.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       // Log the scheduling action
-      await adminSupabase
-        .from('featured_properties_log')
-        .insert([{
-          property_id: selectedPropertyId,
-          action: 'scheduled',
-          package_type: selectedPackage,
-          duration_days: durationDays,
-          notes: notes || `Scheduled for ${scheduledDateTime.toLocaleString()}`,
-          featured_from: scheduledDateTime.toISOString(),
-          featured_until: new Date(scheduledDateTime.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
-        }]);
+      try {
+        await adminSupabase
+          .from('featured_properties_log')
+          .insert([{
+            property_id: selectedPropertyId,
+            action: 'scheduled',
+            package_type: selectedPackage,
+            duration_days: duration,
+            notes: notes || `Scheduled for ${scheduledDateTime.toLocaleString()}`,
+            featured_from: scheduledDateTime.toISOString(),
+            featured_until: new Date(scheduledDateTime.getTime() + duration * 24 * 60 * 60 * 1000).toISOString(),
+            system_action: false
+          }]);
+      } catch (logError) {
+        console.warn('Failed to log scheduling activity:', logError);
+        // Don't fail the whole operation if logging fails
+      }
 
       toast({
         title: "Success",
@@ -211,13 +272,14 @@ const FeaturedPropertiesScheduler: React.FC = () => {
         variant: "destructive",
       });
     }
-    */
   };
 
   const handleActivateScheduled = async (item: ScheduledFeaturing) => {
     try {
       const now = new Date();
-      const until = new Date(now.getTime() + item.duration_days * 24 * 60 * 60 * 1000);
+      const selectedPkg = FEATURING_PACKAGES.find(pkg => pkg.id === item.package_type);
+      const duration = selectedPkg ? selectedPkg.duration : item.duration_days;
+      const until = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
 
       const { error } = await adminSupabase
         .from('properties')
@@ -226,12 +288,31 @@ const FeaturedPropertiesScheduler: React.FC = () => {
           featured_at: now.toISOString(),
           featured_until: until.toISOString(),
           featuring_scheduled_at: null, // Clear the schedule
+          featuring_package: item.package_type,
           approval_status: 'approved',
           listing_status: 'Active'
         })
         .eq('id', item.property_id);
 
       if (error) throw error;
+
+      // Log the activation
+      try {
+        await adminSupabase
+          .from('featured_properties_log')
+          .insert([{
+            property_id: item.property_id,
+            action: 'featured',
+            package_type: item.package_type,
+            duration_days: duration,
+            notes: 'Activated from scheduled featuring',
+            featured_from: now.toISOString(),
+            featured_until: until.toISOString(),
+            system_action: false
+          }]);
+      } catch (logError) {
+        console.warn('Failed to log activation:', logError);
+      }
 
       toast({
         title: "Success",
@@ -262,14 +343,19 @@ const FeaturedPropertiesScheduler: React.FC = () => {
       if (error) throw error;
 
       // Log the cancellation
-      await adminSupabase
-        .from('featured_properties_log')
-        .insert([{
-          property_id: item.property_id,
-          action: 'unfeatured',
-          notes: 'Scheduled featuring cancelled',
-          system_action: false,
-        }]);
+      try {
+        await adminSupabase
+          .from('featured_properties_log')
+          .insert([{
+            property_id: item.property_id,
+            action: 'unfeatured',
+            package_type: item.package_type,
+            notes: 'Scheduled featuring cancelled',
+            system_action: false,
+          }]);
+      } catch (logError) {
+        console.warn('Failed to log cancellation:', logError);
+      }
 
       toast({
         title: "Success",
@@ -329,13 +415,62 @@ const FeaturedPropertiesScheduler: React.FC = () => {
     }
   };
 
+  // Function to check and auto-activate ready scheduled properties
+  const checkAndActivateReadyProperties = async () => {
+    const now = new Date();
+    const readyItems = scheduledItems.filter(item => new Date(item.scheduled_at) <= now);
+    
+    if (readyItems.length === 0) return;
+    
+    console.log(`Found ${readyItems.length} properties ready for activation`);
+    
+    for (const item of readyItems) {
+      try {
+        await handleActivateScheduled(item);
+        console.log(`Auto-activated property: ${item.property_title}`);
+      } catch (error) {
+        console.error(`Failed to auto-activate property ${item.property_title}:`, error);
+      }
+    }
+  };
+
+  // Check for ready properties every minute
+  useEffect(() => {
+    if (scheduledItems.length === 0) return;
+    
+    const interval = setInterval(checkAndActivateReadyProperties, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [scheduledItems]);
+
   return (
     <div className="space-y-6">
       {/* Header with Add Button */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Featured Properties Scheduler</h2>
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="text-2xl font-bold">Featured Properties Scheduler</h2>
+            {migrationStatus === 'applied' && (
+              <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                ✓ Migration Applied
+              </Badge>
+            )}
+            {migrationStatus === 'required' && (
+              <Badge variant="destructive">
+                ⚠ Migration Required
+              </Badge>
+            )}
+            {migrationStatus === 'checking' && (
+              <Badge variant="secondary">
+                ... Checking
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground">Schedule properties to be featured at specific times</p>
+          {migrationStatus === 'required' && (
+            <p className="text-sm text-amber-600 mt-1">
+              Please run the database migration to enable full scheduling functionality.
+            </p>
+          )}
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -456,9 +591,16 @@ const FeaturedPropertiesScheduler: React.FC = () => {
             <CardContent className="p-8 text-center">
               <Calendar className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No Scheduled Properties</h3>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-4">
                 Schedule properties to be featured at specific times for better campaign management.
               </p>
+              {availableProperties.length === 0 && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800">
+                    If you just ran the database migration, please refresh the page to see available properties.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (

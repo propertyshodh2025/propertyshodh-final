@@ -181,7 +181,7 @@ export const MiniFeaturedCarousel = () => {
             <CardContent className="p-0">
               <div className="flex flex-col h-full">
                 {/* Image Section */}
-                <div className="relative h-64">
+                <div className="relative h-80">
                   <img
                     src={property.images?.[0] || '/placeholder.svg'}
                     alt={property.title}

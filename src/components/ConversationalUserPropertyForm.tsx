@@ -75,19 +75,51 @@ const PROPERTY_CATEGORIES = {
   residential: {
     label: 'Residential / निवासी',
     types: [
-      { id: 'apartment', label: 'Flat/Apartment', value: 'Flat/Apartment' },
-      { id: 'house', label: 'House/Bungalow', value: 'House/Bungalow' },
+      // 🏡 Residential Properties
+      { id: 'plot_land', label: 'Plot / Land', value: 'Plot / Land' },
+      { id: 'house', label: 'House', value: 'House' },
+      { id: 'flat_apartment', label: 'Flat / Apartment', value: 'Flat / Apartment' },
       { id: 'villa', label: 'Villa', value: 'Villa' },
-      { id: 'plot', label: 'Plot/Land', value: 'Plot/Land' }
+      { id: 'row_house', label: 'Row House', value: 'Row House' },
+      { id: 'townhouse', label: 'Townhouse', value: 'Townhouse' },
+      { id: 'bungalow', label: 'Bungalow', value: 'Bungalow' },
+      { id: 'penthouse', label: 'Penthouse', value: 'Penthouse' },
+      { id: 'studio_apartment', label: 'Studio Apartment', value: 'Studio Apartment' },
+      { id: 'farmhouse', label: 'Farmhouse', value: 'Farmhouse' },
+      { id: 'condominium', label: 'Condominium (Condo)', value: 'Condominium (Condo)' },
+      { id: 'duplex_triplex', label: 'Duplex / Triplex', value: 'Duplex / Triplex' },
+      { id: 'mansion', label: 'Mansion', value: 'Mansion' },
+      { id: 'cottage', label: 'Cottage', value: 'Cottage' },
+      { id: 'serviced_apartment', label: 'Serviced Apartment', value: 'Serviced Apartment' },
+      { id: 'garden_flat', label: 'Garden Flat', value: 'Garden Flat' },
+      { id: 'loft_apartment', label: 'Loft Apartment', value: 'Loft Apartment' },
+      { id: 'holiday_home', label: 'Holiday Home', value: 'Holiday Home' }
     ]
   },
   commercial: {
     label: 'Commercial / व्यावसायिक',
     types: [
-      { id: 'office', label: 'Office Space', value: 'Office Space' },
-      { id: 'shop', label: 'Shop/Showroom', value: 'Shop/Showroom' },
-      { id: 'warehouse', label: 'Warehouse', value: 'Warehouse' },
-      { id: 'building', label: 'Building', value: 'Building' }
+      // 🏢 Commercial Properties
+      { id: 'shop_retail_store', label: 'Shop / Retail Store', value: 'Shop / Retail Store' },
+      { id: 'office_space', label: 'Office Space', value: 'Office Space' },
+      { id: 'showroom', label: 'Showroom', value: 'Showroom' },
+      { id: 'warehouse_godown', label: 'Warehouse / Godown', value: 'Warehouse / Godown' },
+      { id: 'hotel_motel', label: 'Hotel / Motel', value: 'Hotel / Motel' },
+      { id: 'restaurant_cafe', label: 'Restaurant / Café', value: 'Restaurant / Café' },
+      { id: 'shopping_mall_plaza', label: 'Shopping Mall / Plaza', value: 'Shopping Mall / Plaza' },
+      { id: 'clinic_hospital', label: 'Clinic / Hospital', value: 'Clinic / Hospital' },
+      { id: 'coworking_space', label: 'Co-working Space', value: 'Co-working Space' },
+      { id: 'industrial_shed_factory', label: 'Industrial Shed / Factory', value: 'Industrial Shed / Factory' },
+      { id: 'commercial_land_plot', label: 'Commercial Land / Plot', value: 'Commercial Land / Plot' },
+      { id: 'it_park_business_center', label: 'IT Park / Business Center', value: 'IT Park / Business Center' },
+      { id: 'school_college', label: 'School / College', value: 'School / College' },
+      { id: 'cinema_multiplex', label: 'Cinema / Multiplex', value: 'Cinema / Multiplex' },
+      { id: 'banquet_hall', label: 'Banquet Hall', value: 'Banquet Hall' },
+      { id: 'petrol_pump', label: 'Petrol Pump', value: 'Petrol Pump' },
+      { id: 'bank', label: 'Bank', value: 'Bank' },
+      { id: 'gymnasium_fitness_center', label: 'Gymnasium / Fitness Center', value: 'Gymnasium / Fitness Center' },
+      { id: 'cold_storage', label: 'Cold Storage', value: 'Cold Storage' },
+      { id: 'resort', label: 'Resort', value: 'Resort' }
     ]
   },
   agricultural: {
