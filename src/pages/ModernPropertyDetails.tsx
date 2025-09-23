@@ -18,7 +18,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumberWithLocale } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
 import { shouldPropertyHaveBHK } from '@/lib/propertyUtils';
-import { useSimpleCentralContact, getContactWithFallback } from '@/hooks/useSimpleCentralContact';
+// Central contact is now handled directly in PropertyContactCard
 import SimilarPropertiesSection from '@/components/SimilarPropertiesSection'; // Import SimilarPropertiesSection
 
 // Lazy load heavy components
@@ -34,9 +34,6 @@ const ModernPropertyDetails: React.FC = () => {
   const [verificationDetails, setVerificationDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { contactNumber } = useSimpleCentralContact();
-  
-  console.log('🏠 PROPERTY DETAILS: Contact number:', contactNumber);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -142,7 +139,7 @@ ${highlights ? `✨ ${t('highlights')}:\n✓ ${highlights}` : ''}
 
 ${amenities ? `🎯 ${t('amenities')}: ${amenities}` : ''}
 
-${getContactWithFallback(contactNumber) ? `📞 ${t('contact')}: ${getContactWithFallback(contactNumber)}` : ''}
+`📞 Contact: PropertyShodh - Check property page for contact details`
 ${property.id ? `🆔 ${t('property_id')}: ${property.id.slice(-8).toUpperCase()}` : ''}
 
 ${property.description ? `📋 ${t('description')}:\n${property.description.slice(0, 150)}${property.description.length > 150 ? '...' : ''}` : ''}`;
@@ -423,7 +420,6 @@ ${property.description ? `📋 ${t('description')}:\n${property.description.slic
             <PropertyContactCard 
               property={property}
               onShare={handleShare}
-              globalContactNumber={getContactWithFallback(contactNumber)} // Pass the central contact number
             />
           </div>
         </div>
