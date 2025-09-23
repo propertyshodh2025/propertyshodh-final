@@ -18,6 +18,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumberWithLocale } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
 import { shouldPropertyHaveBHK } from '@/lib/propertyUtils';
+import { useSimpleCentralContact, getContactWithFallback } from '@/hooks/useSimpleCentralContact';
 import SimilarPropertiesSection from '@/components/SimilarPropertiesSection'; // Import SimilarPropertiesSection
 
 // Lazy load heavy components
@@ -31,9 +32,11 @@ const ModernPropertyDetails: React.FC = () => {
   
   const [property, setProperty] = useState<Property | null>(null);
   const [verificationDetails, setVerificationDetails] = useState<any>(null);
-  const [centralContactNumber, setCentralContactNumber] = useState<string | null>(null); // New state for central contact
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { contactNumber } = useSimpleCentralContact();
+  
+  console.log('🏠 PROPERTY DETAILS: Contact number:', contactNumber);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,18 +83,6 @@ const ModernPropertyDetails: React.FC = () => {
           }
         }
 
-        // Fetch central contact number
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('site_settings')
-          .select('central_contact_number')
-          .limit(1)
-          .single();
-
-        if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 means no rows found
-          console.error('Error fetching site settings:', settingsError);
-        } else if (settingsData) {
-          setCentralContactNumber(settingsData.central_contact_number);
-        }
 
       } catch (err) {
         console.error('Error:', err);
@@ -151,7 +142,7 @@ ${highlights ? `✨ ${t('highlights')}:\n✓ ${highlights}` : ''}
 
 ${amenities ? `🎯 ${t('amenities')}: ${amenities}` : ''}
 
-${centralContactNumber ? `📞 ${t('contact')}: ${centralContactNumber}` : ''}
+${getContactWithFallback(contactNumber) ? `📞 ${t('contact')}: ${getContactWithFallback(contactNumber)}` : ''}
 ${property.id ? `🆔 ${t('property_id')}: ${property.id.slice(-8).toUpperCase()}` : ''}
 
 ${property.description ? `📋 ${t('description')}:\n${property.description.slice(0, 150)}${property.description.length > 150 ? '...' : ''}` : ''}`;
@@ -432,7 +423,7 @@ ${property.description ? `📋 ${t('description')}:\n${property.description.slic
             <PropertyContactCard 
               property={property}
               onShare={handleShare}
-              globalContactNumber={centralContactNumber} // Pass the central contact number
+              globalContactNumber={getContactWithFallback(contactNumber)} // Pass the central contact number
             />
           </div>
         </div>

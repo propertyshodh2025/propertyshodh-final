@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { UserPropertyForm } from "@/components/UserPropertyForm";
 import NotificationPanel from "@/components/NotificationPanel";
-import PropertyVerificationForm from "@/components/PropertyVerificationForm";
 import { UserActivityPanel } from "@/components/UserActivityPanel";
 import { useSavedProperties } from "@/contexts/SavedPropertiesContext";
 import { Plus, Phone, Edit2, Trash2, ArrowLeft, User, Home, ContactIcon, Calendar, MapPin, IndianRupee, Eye, Bell, Clock, X, Activity, DollarSign, Star, Heart, Settings, LogOut } from "lucide-react";
@@ -65,8 +64,6 @@ export default function UserDashboard() {
   const [showPropertyForm, setShowPropertyForm] = useState(false);
   const [newContact, setNewContact] = useState({ number: "", type: "secondary" });
   const [showContactDialog, setShowContactDialog] = useState(false);
-  const [verificationProperty, setVerificationProperty] = useState<UserProperty | null>(null);
-  const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
   const { savedProperties } = useSavedProperties();
   const { language } = useLanguage();
@@ -279,6 +276,99 @@ export default function UserDashboard() {
     }
   };
 
+  const handleRequestVerification = async (propertyId: string, property: UserProperty) => {
+    try {
+      // Check if there's already a verification request for this property
+      const { data: existingVerification } = await supabase
+        .from('property_verification_details')
+        .select('id')
+        .eq('property_id', propertyId)
+        .eq('submitted_by_user_id', user?.id)
+        .maybeSingle();
+
+      // If there's an existing request and property is pending, don't allow new request
+      if (existingVerification && property.verification_status === 'pending') {
+        toast({
+          title: "Verification request already exists",
+          description: "You already have a pending verification request for this property.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Delete existing verification if property was rejected (allow resubmission)
+      if (existingVerification && property.verification_status === 'rejected') {
+        const { error: deleteError } = await supabase
+          .from('property_verification_details')
+          .delete()
+          .eq('id', existingVerification.id);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // Create minimal verification request with basic info
+      const verificationData = {
+        property_id: propertyId,
+        full_name: profile?.full_name || 'Not provided',
+        contact_number: profile?.phone_number || 'Not provided',
+        email_address: profile?.email || user?.email || 'Not provided',
+        ownership_type: 'owner', // Default assumption
+        title_clear: true, // Default assumption  
+        construction_status: 'completed', // Default assumption
+        property_condition: 'good', // Default assumption
+        actual_photos_uploaded: true, // Assume photos are uploaded since property is listed
+        completeness_score: 75, // Default score for basic request
+        language_preference: language,
+        submitted_by_user_id: user?.id,
+        additional_notes: 'Verification requested through simplified process. Team will contact for detailed verification.'
+      };
+
+      const { error } = await supabase
+        .from('property_verification_details')
+        .insert([verificationData]);
+
+      if (error) throw error;
+
+      // Update property verification status to pending
+      await supabase
+        .from('properties')
+        .update({
+          verification_status: 'pending',
+          verification_submitted_at: new Date().toISOString(),
+          verification_score: 75
+        })
+        .eq('id', propertyId);
+
+      // Log user activity
+      if (user) {
+        await supabase.from('user_activities').insert({
+          user_id: user.id,
+          activity_type: 'verification_submitted',
+          property_id: propertyId,
+          metadata: {
+            property_title: property.title,
+            submission_type: 'simple_request'
+          }
+        });
+      }
+
+      toast({
+        title: "Verification request submitted",
+        description: "Your property verification request has been submitted. Our team will contact you for the verification process."
+      });
+      
+      // Refresh data to show updated status
+      fetchUserData();
+    } catch (error) {
+      console.error('Error requesting verification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit verification request. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleRequestFeatured = async (propertyId: string) => {
     try {
       // Check if there's already a pending request
@@ -389,44 +479,37 @@ export default function UserDashboard() {
             <Clock className="w-3 h-3 mr-1" />
             <TranslatableText text="Under Review" context="user:dashboard:verify" />
           </Badge>
-          <div className="flex gap-1">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 text-orange-600 border-orange-200 hover:bg-orange-50"
-              onClick={() => {
-                setVerificationProperty(property);
-                setShowVerificationForm(true);
-              }}
-            >
-              <TranslatableText text="Edit Request" context="user:dashboard:verify" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-red-600 border-red-200 hover:bg-red-50"
-              onClick={() => handleCancelVerification(property.id)}
-            >
-              <X className="w-3 h-3" />
-            </Button>
-          </div>
+          <p className="text-xs text-gray-500 text-center">
+            <TranslatableText text="Our team will contact you soon" context="user:dashboard:verify" />
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+            onClick={() => handleCancelVerification(property.id)}
+          >
+            <X className="w-3 h-3 mr-1" />
+            <TranslatableText text="Cancel Request" context="user:dashboard:verify" />
+          </Button>
         </div>
       );
     }
 
     if (property.verification_status === 'rejected') {
       return (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full text-red-600 border-red-200 hover:bg-red-50"
-          onClick={() => {
-            setVerificationProperty(property);
-            setShowVerificationForm(true);
-          }}
-        >
-          <TranslatableText text="Resubmit Verification" context="user:dashboard:verify" />
-        </Button>
+        <div className="space-y-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+            onClick={() => handleRequestVerification(property.id, property)}
+          >
+            <TranslatableText text="Request Verification" context="user:dashboard:verify" />
+          </Button>
+          <p className="text-xs text-gray-500 text-center">
+            <TranslatableText text="Previous request was rejected" context="user:dashboard:verify" />
+          </p>
+        </div>
       );
     }
 
@@ -436,12 +519,9 @@ export default function UserDashboard() {
         variant="outline" 
         size="sm" 
         className="w-full text-green-600 border-green-200 hover:bg-green-50"
-        onClick={() => {
-          setVerificationProperty(property);
-          setShowVerificationForm(true);
-        }}
+        onClick={() => handleRequestVerification(property.id, property)}
       >
-        <TranslatableText text="Get Verified" context="user:dashboard:verify" />
+        <TranslatableText text="Request Verification" context="user:dashboard:verify" />
       </Button>
     );
   };
@@ -1063,18 +1143,6 @@ export default function UserDashboard() {
           />
         )}
 
-        {showVerificationForm && verificationProperty && (
-          <PropertyVerificationForm
-            isOpen={showVerificationForm}
-            onClose={() => {
-              setShowVerificationForm(false);
-              setVerificationProperty(null);
-              fetchUserData(); // Refresh data after verification
-            }}
-            propertyId={verificationProperty.id}
-            existingProperty={verificationProperty}
-          />
-        )}
       </div>
     </div>
   );

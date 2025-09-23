@@ -28,6 +28,9 @@ interface ConversationalAdminPropertyFormProps {
 interface AdminFormData {
   title?: string;
   property_category?: string;
+  primary_category?: string;
+  secondary_category?: string;
+  agricultural_land_type?: string;
   property_type?: string;
   transaction_type?: string;
   location?: string;
@@ -77,13 +80,13 @@ interface AdminFormData {
 }
 
 
-const PROPERTY_CATEGORIES = {
+const PRIMARY_PROPERTY_CATEGORIES = {
   residential: {
     label: 'Residential',
     types: {
       apartment: { label: 'Apartment/Flat', icon: '🏢' },
       house: { label: 'Independent House/Villa', icon: '🏠' },
-      plot: { label: 'Residential Plot', icon: '🏞️' },
+      plot: { label: 'Residential Plot', icon: '🌞️' },
       farmhouse: { label: 'Farm House', icon: '🌾' }
     }
   },
@@ -93,9 +96,19 @@ const PROPERTY_CATEGORIES = {
       office: { label: 'Office Space', icon: '🏢' },
       shop: { label: 'Shop/Showroom', icon: '🏪' },
       warehouse: { label: 'Warehouse/Godown', icon: '🏭' },
-      commercial_plot: { label: 'Commercial Plot', icon: '🏗️' }
+      commercial_plot: { label: 'Commercial Plot', icon: '🏧' }
     }
   },
+  land: {
+    label: 'Land',
+    types: {}
+  }
+} as const;
+
+// Secondary categories that appear when "Land" is selected
+const LAND_SECONDARY_CATEGORIES = {
+  residential: { label: 'Residential', types: { plot: { label: 'Residential Plot', icon: '🌞️' } } },
+  commercial: { label: 'Commercial', types: { commercial_plot: { label: 'Commercial Plot', icon: '🏧' } } },
   agricultural: {
     label: 'Agricultural',
     types: {
@@ -105,6 +118,9 @@ const PROPERTY_CATEGORIES = {
     }
   }
 } as const;
+
+// Agricultural land types that appear when Agricultural is selected under Land
+const AGRICULTURAL_LAND_TYPES = ['koradwahu', 'bagayti'];
 
 
 
@@ -158,10 +174,10 @@ export const ConversationalAdminPropertyForm = ({
         ]
       },
       {
-        id: 'property_category',
+        id: 'primary_category',
         question: "Hi! Let's help you list your property. What type of property do you want to list?",
         type: 'select' as const,
-        options: Object.entries(PROPERTY_CATEGORIES).map(([key, category]) => ({
+        options: Object.entries(PRIMARY_PROPERTY_CATEGORIES).map(([key, category]) => ({
           id: key,
           label: category.label,
           value: key
@@ -169,15 +185,59 @@ export const ConversationalAdminPropertyForm = ({
       }
     ];
 
-    if (currentFormData.property_category) {
-      const categoryKey = currentFormData.property_category as keyof typeof PROPERTY_CATEGORIES;
-      const types = PROPERTY_CATEGORIES[categoryKey].types as Record<string, { label: string; icon: string }>;
+    // Add secondary category step when "Land" is selected
+    if (currentFormData.primary_category === 'land') {
       steps.push({
-        id: 'property_type',
-        question: `Great! What specific type of ${PROPERTY_CATEGORIES[categoryKey].label.toLowerCase()} property is it?`,
+        id: 'secondary_category',
+        question: "What type of land is it?",
         type: 'select' as const,
-        options: Object.entries(types).map(([key, type]) => ({ id: key, label: `${type.icon} ${type.label}`, value: key }))
+        options: Object.entries(LAND_SECONDARY_CATEGORIES).map(([key, category]) => ({
+          id: key,
+          label: category.label,
+          value: key
+        }))
       });
+    }
+    
+    // Add agricultural land type step when "Agricultural" is selected under "Land"
+    if (currentFormData.primary_category === 'land' && currentFormData.secondary_category === 'agricultural') {
+      steps.push({
+        id: 'agricultural_land_type',
+        question: "What type of agricultural land is it?",
+        type: 'select' as const,
+        options: AGRICULTURAL_LAND_TYPES.map(type => ({
+          id: type,
+          label: type.charAt(0).toUpperCase() + type.slice(1),
+          value: type
+        }))
+      });
+    }
+
+    // Determine which category to use for property types
+    const effectiveCategory = currentFormData.primary_category === 'land' 
+      ? currentFormData.secondary_category 
+      : currentFormData.primary_category;
+      
+    if (effectiveCategory) {
+      const categoryKey = effectiveCategory as keyof typeof PRIMARY_PROPERTY_CATEGORIES | keyof typeof LAND_SECONDARY_CATEGORIES;
+      let types: Record<string, { label: string; icon: string }> = {};
+      
+      // Get types based on the effective category
+      if (currentFormData.primary_category === 'land' && currentFormData.secondary_category) {
+        const secondaryCategoryData = LAND_SECONDARY_CATEGORIES[currentFormData.secondary_category as keyof typeof LAND_SECONDARY_CATEGORIES];
+        types = secondaryCategoryData?.types || {};
+      } else if (PRIMARY_PROPERTY_CATEGORIES[categoryKey as keyof typeof PRIMARY_PROPERTY_CATEGORIES]) {
+        types = (PRIMARY_PROPERTY_CATEGORIES[categoryKey as keyof typeof PRIMARY_PROPERTY_CATEGORIES] as any).types || {};
+      }
+      
+      if (Object.keys(types).length > 0) {
+        steps.push({
+          id: 'property_type',
+          question: `Great! What specific type of ${effectiveCategory} property is it?`,
+          type: 'select' as const,
+          options: Object.entries(types).map(([key, type]) => ({ id: key, label: `${type.icon} ${type.label}`, value: key }))
+        });
+      }
     }
 
     if (currentFormData.property_type) {
@@ -406,9 +466,24 @@ export const ConversationalAdminPropertyForm = ({
   useEffect(() => {
     if (isOpen) {
       if (property) {
+        // Map existing property category to new structure
+        let primaryCategory = property.property_category || '';
+        let secondaryCategory = '';
+        let agriculturalLandType = '';
+        
+        // If the existing property is agricultural, map it to the new Land > Agricultural structure
+        if (property.property_category?.toLowerCase() === 'agricultural') {
+          primaryCategory = 'land';
+          secondaryCategory = 'agricultural';
+          agriculturalLandType = (property as any).agricultural_land_type || '';
+        }
+        
         const initialFormData = {
           title: property.title || '',
           property_category: property.property_category || '',
+          primary_category: primaryCategory,
+          secondary_category: secondaryCategory,
+          agricultural_land_type: agriculturalLandType,
           property_type: property.property_type || '',
           transaction_type: property.transaction_type || '',
           location: property.location || '',
@@ -494,7 +569,7 @@ export const ConversationalAdminPropertyForm = ({
 
     simulateTyping(() => {
       // Check if this step might trigger new questions (regenerate chatSteps)
-      const shouldRegenerateSteps = ['property_category', 'property_type', 'transaction_type', 'carpet_area', 'plot_area', 'bhk', 'price', 'amenities'].includes(step.id);
+      const shouldRegenerateSteps = ['primary_category', 'secondary_category', 'property_category', 'property_type', 'transaction_type', 'carpet_area', 'plot_area', 'bhk', 'price', 'amenities'].includes(step.id);
       
       console.log('Should regenerate steps:', shouldRegenerateSteps, 'for step:', step.id);
       
@@ -585,6 +660,12 @@ export const ConversationalAdminPropertyForm = ({
         }
       }
 
+      // Map the new category structure back to the database format
+      let finalPropertyCategory = formData.primary_category?.toLowerCase() || '';
+      if (formData.primary_category?.toLowerCase() === 'land' && formData.secondary_category) {
+        finalPropertyCategory = formData.secondary_category.toLowerCase();
+      }
+      
       // Generate title/description similar to user flow
       const generatedTitle = (formData.title && formData.title.trim()) || `${formData.bhk || ''} BHK ${formData.property_type || ''} in ${formData.location || ''}`.replace(/\s+/g, ' ').trim();
       const finalDescription = formData.detailed_description || formData.description || `Beautiful ${formData.property_type || 'property'} for ${formData.transaction_type || 'sale/rent'}`;
@@ -610,7 +691,8 @@ export const ConversationalAdminPropertyForm = ({
         parking_type: formData.parking || '',
         property_age: formData.property_age || '',
         transaction_type: formData.transaction_type || '',
-        property_category: formData.property_category || '',
+        property_category: finalPropertyCategory,
+        agricultural_land_type: formData.agricultural_land_type || null,
         additional_notes: formData.additional_details || '',
         full_address: formData.full_address || '',
         approval_status: formData.approval_status || 'pending',
@@ -685,17 +767,7 @@ export const ConversationalAdminPropertyForm = ({
 
   const getCurrentStep = () => {
     const step = chatSteps[currentStep];
-    if (step && step.id === 'property_type' && formData.property_category) {
-      const categoryKey = formData.property_category as keyof typeof PROPERTY_CATEGORIES;
-      const types = PROPERTY_CATEGORIES[categoryKey]?.types;
-      if (types && !Array.isArray(types)) {
-        step.options = Object.entries(types).map(([key, type]) => ({
-          id: key,
-          label: `${(type as any).icon} ${(type as any).label}`,
-          value: key
-        }));
-      }
-    }
+    // The step options are now handled in generateChatSteps, so we don't need to modify them here
     return step;
   };
 

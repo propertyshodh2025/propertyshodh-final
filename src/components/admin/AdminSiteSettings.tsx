@@ -6,14 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Save, Phone, Facebook, Instagram, Linkedin, Twitter, Youtube, Share2 } from 'lucide-react';
 import { TranslatableText } from '@/components/TranslatableText';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 export const AdminSiteSettings: React.FC = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { siteSettings, loading, updateSettings } = useSiteSettings();
   const [centralContactNumber, setCentralContactNumber] = useState<string>('');
   const [socialMediaLinks, setSocialMediaLinks] = useState({
     facebook_url: '',
@@ -22,50 +23,19 @@ export const AdminSiteSettings: React.FC = () => {
     twitter_url: '',
     youtube_url: ''
   });
-  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('site_settings')
-          .select('central_contact_number, facebook_url, instagram_url, linkedin_url, twitter_url, youtube_url')
-          .limit(1)
-          .single();
-
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-          console.error('Error fetching site settings:', error);
-          toast({
-            title: t('error'),
-            description: t('failed_to_fetch_site_settings'),
-            variant: 'destructive',
-          });
-        } else if (data) {
-          setCentralContactNumber(data.central_contact_number || '');
-          setSocialMediaLinks({
-            facebook_url: data.facebook_url || '',
-            instagram_url: data.instagram_url || '',
-            linkedin_url: data.linkedin_url || '',
-            twitter_url: data.twitter_url || '',
-            youtube_url: data.youtube_url || ''
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching site settings:', error);
-        toast({
-          title: t('error'),
-          description: t('failed_to_fetch_site_settings'),
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSettings();
-  }, [t, toast]);
+    // Update local state when siteSettings change
+    setCentralContactNumber(siteSettings.central_contact_number || '');
+    setSocialMediaLinks({
+      facebook_url: siteSettings.facebook_url || '',
+      instagram_url: siteSettings.instagram_url || '',
+      linkedin_url: siteSettings.linkedin_url || '',
+      twitter_url: siteSettings.twitter_url || '',
+      youtube_url: siteSettings.youtube_url || ''
+    });
+  }, [siteSettings]);
 
   const handleSocialMediaChange = (platform: string, value: string) => {
     setSocialMediaLinks(prev => ({
@@ -77,43 +47,19 @@ export const AdminSiteSettings: React.FC = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Check if a record exists
-      const { data: existingSettings, error: fetchError } = await supabase
-        .from('site_settings')
-        .select('id')
-        .limit(1)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError;
-      }
-
       const updateData = {
         central_contact_number: centralContactNumber,
         ...socialMediaLinks
       };
 
-      if (existingSettings) {
-        // Update existing record
-        const { error } = await supabase
-          .from('site_settings')
-          .update(updateData)
-          .eq('id', existingSettings.id);
-
-        if (error) throw error;
-      } else {
-        // Insert new record
-        const { error } = await supabase
-          .from('site_settings')
-          .insert(updateData);
-
-        if (error) throw error;
+      const success = await updateSettings(updateData);
+      
+      if (success) {
+        toast({
+          title: t('success'),
+          description: t('site_settings_updated_successfully'),
+        });
       }
-
-      toast({
-        title: t('success'),
-        description: t('site_settings_updated_successfully'),
-      });
     } catch (error: any) {
       console.error('Error saving site settings:', error);
       toast({

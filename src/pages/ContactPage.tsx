@@ -10,6 +10,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSimpleCentralContact, getContactWithFallback } from '@/hooks/useSimpleCentralContact';
 
 export interface ContactSectionProps {
   className?: string;
@@ -50,14 +51,6 @@ function SlidingCityName({ className = "" }: { className?: string }) {
   );
 }
 
-interface SiteSettings {
-  central_contact_number?: string;
-  facebook_url?: string;
-  instagram_url?: string;
-  linkedin_url?: string;
-  twitter_url?: string;
-  youtube_url?: string;
-}
 
 const socialMediaPlatforms = [
   {
@@ -98,8 +91,9 @@ const socialMediaPlatforms = [
 ];
 
 export default function ContactSection({ className, style }: ContactSectionProps) {
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
-  const [loading, setLoading] = useState(true);
+  const { contactNumber, isLoading } = useSimpleCentralContact();
+  
+  console.log('📞 CONTACT PAGE: Contact number:', contactNumber, 'Loading:', isLoading);
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -113,27 +107,7 @@ export default function ContactSection({ className, style }: ContactSectionProps
   // Scroll to top when page loads
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    fetchSiteSettings();
   }, []);
-
-  const fetchSiteSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('central_contact_number, facebook_url, instagram_url, linkedin_url, twitter_url, youtube_url')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching site settings:', error);
-      } else if (data) {
-        setSiteSettings(data);
-      }
-    } catch (error) {
-      console.error('Error fetching site settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -252,13 +226,13 @@ export default function ContactSection({ className, style }: ContactSectionProps
             <CardContent>
               <div className="space-y-4">
                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {loading ? 'Loading...' : (siteSettings.central_contact_number || '+91 98765 43210')}
+                  {isLoading ? 'Loading...' : getContactWithFallback(contactNumber)}
                 </div>
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
                     className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={() => window.open(`tel:${siteSettings.central_contact_number || '+919876543210'}`, '_self')}
+                    onClick={() => window.open(`tel:${getContactWithFallback(contactNumber)}`, '_self')}
                   >
                     <Phone className="h-4 w-4 mr-2" />
                     Call Now
@@ -266,7 +240,7 @@ export default function ContactSection({ className, style }: ContactSectionProps
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => window.open(`https://wa.me/${(siteSettings.central_contact_number || '+919876543210').replace(/[\s\-\(\)]/g, '')}`, '_blank')}
+                    onClick={() => window.open(`https://wa.me/${getContactWithFallback(contactNumber).replace(/[^\d]/g, '')}`, '_blank')}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     WhatsApp
@@ -311,62 +285,23 @@ export default function ContactSection({ className, style }: ContactSectionProps
           </Card>
         </div>
 
-        {/* Social Media Section */}
-        <div className="mt-14 md:mt-20">
-          <Card className="bg-card border border-border rounded-2xl">
-            <CardHeader className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" aria-hidden="true" />
-                Stay Connected
-              </div>
-              <CardTitle className="text-2xl md:text-3xl">Follow Us on Social Media</CardTitle>
-              <CardDescription className="text-base text-muted-foreground">
-                Join our community and stay updated with the latest property listings, market trends, and company news.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                {socialMediaPlatforms.map((platform) => {
-                  const Icon = platform.icon;
-                  const url = siteSettings[platform.urlKey];
-                  
-                  return (
-                    <motion.div
-                      key={platform.name}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Card className={`group cursor-pointer transition-all duration-300 hover:shadow-lg ${url ? '' : 'opacity-50'}`}>
-                        <CardContent className="p-4 text-center">
-                          <div className={`w-12 h-12 ${platform.color} rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}>
-                            <Icon className="h-6 w-6 text-white" />
-                          </div>
-                          <h3 className="font-semibold mb-2">{platform.name}</h3>
-                          <p className="text-xs text-muted-foreground mb-3">{platform.description}</p>
-                          {url ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full"
-                              onClick={() => window.open(url, '_blank')}
-                            >
-                              <ExternalLink className="h-3 w-3 mr-2" />
-                              Follow
-                            </Button>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">
-                              Coming Soon
-                            </Badge>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Social Media Section - Temporarily hidden until database columns are added */}
+        {false && (
+          <div className="mt-14 md:mt-20">
+            <Card className="bg-card border border-border rounded-2xl">
+              <CardHeader className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4" aria-hidden="true" />
+                  Stay Connected
+                </div>
+                <CardTitle className="text-2xl md:text-3xl">Social Media Coming Soon</CardTitle>
+                <CardDescription className="text-base text-muted-foreground">
+                  Social media integration will be available after database setup is complete.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        )}
 
         {/* Contact Form */}
         <div className="mt-14 md:mt-20">

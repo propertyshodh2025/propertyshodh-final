@@ -1,46 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Home, Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
-
-interface SiteSettings {
-  central_contact_number?: string;
-  facebook_url?: string;
-  instagram_url?: string;
-  linkedin_url?: string;
-  twitter_url?: string;
-  youtube_url?: string;
-}
+import { useSimpleCentralContact, getContactWithFallback } from '@/hooks/useSimpleCentralContact';
 
 export const Footer: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchSiteSettings();
-  }, []);
-
-  const fetchSiteSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('central_contact_number, facebook_url, instagram_url, linkedin_url, twitter_url, youtube_url')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching site settings in footer:', error);
-      } else if (data) {
-        setSiteSettings(data);
-      }
-    } catch (error) {
-      console.error('Error fetching site settings in footer:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { contactNumber, isLoading } = useSimpleCentralContact();
+  
+  console.log('🦶 FOOTER: Contact number:', contactNumber, 'Loading:', isLoading);
 
   const footerSections = [
     {
@@ -111,7 +80,7 @@ export const Footer: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4" />
-                <span>{loading ? 'Loading...' : (siteSettings.central_contact_number || '+91 98765 43210')}</span>
+                <span>{isLoading ? 'Loading...' : getContactWithFallback(contactNumber)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
@@ -119,57 +88,11 @@ export const Footer: React.FC = () => {
               </div>
             </div>
             
-            {/* Social Media Links */}
-            {!loading && Object.values(siteSettings).some(url => url && url.trim() !== '') && (
+            {/* Social Media Links - Temporarily hidden until database columns are added */}
+            {false && (
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-secondary-foreground">Follow Us</h4>
-                <div className="flex items-center gap-3">
-                  {siteSettings.facebook_url && (
-                    <button 
-                      onClick={() => window.open(siteSettings.facebook_url, '_blank')}
-                      className="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-colors duration-200"
-                      title="Follow us on Facebook"
-                    >
-                      <Facebook className="w-4 h-4" />
-                    </button>
-                  )}
-                  {siteSettings.instagram_url && (
-                    <button 
-                      onClick={() => window.open(siteSettings.instagram_url, '_blank')}
-                      className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full flex items-center justify-center transition-all duration-200"
-                      title="Follow us on Instagram"
-                    >
-                      <Instagram className="w-4 h-4" />
-                    </button>
-                  )}
-                  {siteSettings.linkedin_url && (
-                    <button 
-                      onClick={() => window.open(siteSettings.linkedin_url, '_blank')}
-                      className="w-8 h-8 bg-blue-700 hover:bg-blue-800 text-white rounded-full flex items-center justify-center transition-colors duration-200"
-                      title="Connect with us on LinkedIn"
-                    >
-                      <Linkedin className="w-4 h-4" />
-                    </button>
-                  )}
-                  {siteSettings.twitter_url && (
-                    <button 
-                      onClick={() => window.open(siteSettings.twitter_url, '_blank')}
-                      className="w-8 h-8 bg-blue-400 hover:bg-blue-500 text-white rounded-full flex items-center justify-center transition-colors duration-200"
-                      title="Follow us on Twitter"
-                    >
-                      <Twitter className="w-4 h-4" />
-                    </button>
-                  )}
-                  {siteSettings.youtube_url && (
-                    <button 
-                      onClick={() => window.open(siteSettings.youtube_url, '_blank')}
-                      className="w-8 h-8 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors duration-200"
-                      title="Subscribe to our YouTube channel"
-                    >
-                      <Youtube className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                <div className="text-xs text-muted-foreground">Social media links coming soon...</div>
               </div>
             )}
           </div>

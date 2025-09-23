@@ -346,12 +346,29 @@ const VerificationManagement: React.FC = () => {
                                 </CardContent>
                               </Card>
 
+                              {/* Additional Information */}
+                              {selectedRequest.additional_notes && (
+                                <Card>
+                                  <CardHeader>
+                                    <CardTitle className="text-base flex items-center gap-2">
+                                      <FileText size={16} />
+                                      Request Notes
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <p className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                                      {selectedRequest.additional_notes}
+                                    </p>
+                                  </CardContent>
+                                </Card>
+                              )}
+
                               {/* Admin Notes */}
                               <div className="space-y-4">
                                 <Label htmlFor="admin-notes">Admin Notes (Optional)</Label>
                                 <Textarea
                                   id="admin-notes"
-                                  placeholder="Add any notes about this verification..."
+                                  placeholder="Add any notes about this verification. Team will contact user for detailed verification process..."
                                   value={adminNotes}
                                   onChange={(e) => setAdminNotes(e.target.value)}
                                   rows={3}

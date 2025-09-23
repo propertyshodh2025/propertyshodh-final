@@ -20,8 +20,14 @@ interface PropertyFormProps {
   onCancel: () => void;
 }
 
-// Comprehensive property categories and types
-const PROPERTY_CATEGORIES = ['Residential', 'Commercial', 'Agricultural', 'Industrial'];
+// First-level property categories (replaces Agricultural with Land)
+const PRIMARY_PROPERTY_CATEGORIES = ['Residential', 'Commercial', 'Land', 'Industrial'];
+
+// Secondary categories that appear when "Land" is selected
+const LAND_SECONDARY_CATEGORIES = ['Residential', 'Commercial', 'Agricultural'];
+
+// Agricultural land types that appear when Agricultural is selected under Land
+const AGRICULTURAL_LAND_TYPES = ['Koradwahu', 'Bagayti'];
 
 // Property types based on category - Comprehensive list
 const PROPERTY_TYPES = {
@@ -83,9 +89,17 @@ const shouldShowBHK = (propertyCategory: string, propertyType: string) => {
 };
 
 // Function to get available property types based on category
-const getPropertyTypesByCategory = (category: string) => {
-  if (!category) return [];
-  const normalizedCategory = category.toLowerCase();
+const getPropertyTypesByCategory = (primaryCategory: string, secondaryCategory?: string) => {
+  if (!primaryCategory) return [];
+  
+  // For "Land" primary category, use the secondary category to determine types
+  if (primaryCategory.toLowerCase() === 'land' && secondaryCategory) {
+    const normalizedSecondary = secondaryCategory.toLowerCase();
+    return PROPERTY_TYPES[normalizedSecondary as keyof typeof PROPERTY_TYPES] || [];
+  }
+  
+  // For other primary categories, use them directly
+  const normalizedCategory = primaryCategory.toLowerCase();
   return PROPERTY_TYPES[normalizedCategory as keyof typeof PROPERTY_TYPES] || [];
 };
 
@@ -96,11 +110,18 @@ const formatPropertyTypeLabel = (propertyType: string) => {
 };
 
 export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) => {
-  const [formData, setFormData] = useState<PropertyFormData>({
+  const [formData, setFormData] = useState<PropertyFormData & { 
+    primary_category?: string; 
+    secondary_category?: string;
+    agricultural_land_type?: string;
+  }>({
     title: '',
     description: '',
     property_type: '',
     property_category: '',
+    primary_category: '',
+    secondary_category: '',
+    agricultural_land_type: '',
     bhk: undefined,
     price: 0,
     location: '',
@@ -124,19 +145,46 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
   const { toast } = useToast();
   const { t } = useLanguage();
   
+  // Determine the effective category for BHK logic
+  const effectiveCategory = formData.primary_category === 'land' 
+    ? (formData.secondary_category || '') 
+    : (formData.primary_category || '');
+  
   // Check if BHK should be shown based on current form data
-  const showBHKField = shouldShowBHK(formData.property_category || '', formData.property_type || '');
+  const showBHKField = shouldShowBHK(effectiveCategory, formData.property_type || '');
   
   // Get available property types for current category
-  const availablePropertyTypes = getPropertyTypesByCategory(formData.property_category || '');
+  const availablePropertyTypes = getPropertyTypesByCategory(formData.primary_category || '', formData.secondary_category || '');
+  
+  // Show secondary categories when "Land" is selected
+  const showSecondaryCategories = formData.primary_category?.toLowerCase() === 'land';
+  
+  // Show agricultural land types when "Agricultural" is selected under "Land"
+  const showAgriculturalLandTypes = showSecondaryCategories && formData.secondary_category?.toLowerCase() === 'agricultural';
 
   useEffect(() => {
     if (property) {
+      // Map existing property category to new structure
+      let primaryCategory = property.property_category || '';
+      let secondaryCategory = '';
+      let agriculturalLandType = '';
+      
+      // If the existing property is agricultural, map it to the new Land > Agricultural structure
+      if (property.property_category?.toLowerCase() === 'agricultural') {
+        primaryCategory = 'land';
+        secondaryCategory = 'agricultural';
+        // If property has agricultural land type info, extract it
+        agriculturalLandType = (property as any).agricultural_land_type || '';
+      }
+      
       setFormData({
         title: property.title,
         description: property.description || '',
         property_type: property.property_type,
         property_category: property.property_category || '',
+        primary_category: primaryCategory,
+        secondary_category: secondaryCategory,
+        agricultural_land_type: agriculturalLandType,
         bhk: property.bhk,
         price: property.price,
         location: property.location,
@@ -164,27 +212,44 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
     setLoading(true);
 
     try {
+      // Map the new category structure back to the database format
+      let finalPropertyCategory = formData.primary_category?.toLowerCase() || '';
+      if (formData.primary_category?.toLowerCase() === 'land' && formData.secondary_category) {
+        finalPropertyCategory = formData.secondary_category.toLowerCase();
+      }
+      
+      // Prepare the data to save
+      const dataToSave = {
+        ...formData,
+        property_category: finalPropertyCategory,
+        agricultural_land_type: formData.agricultural_land_type || null
+      };
+      
+      // Remove the temporary fields that shouldn't be saved to the database
+      delete (dataToSave as any).primary_category;
+      delete (dataToSave as any).secondary_category;
+      
       // Validate and clean the property title
       const titleValidation = validatePropertyTitle(
-        formData.title,
-        formData.property_type,
-        formData.property_category
+        dataToSave.title,
+        dataToSave.property_type,
+        dataToSave.property_category
       );
       
       if (!titleValidation.isValid && titleValidation.suggestedTitle) {
         toast({
           title: "Title Updated",
-          description: `Property title cleaned: BHK removed from ${formData.property_type.toLowerCase()} property`,
+          description: `Property title cleaned: BHK removed from ${dataToSave.property_type.toLowerCase()} property`,
         });
         
-        formData.title = titleValidation.suggestedTitle;
+        dataToSave.title = titleValidation.suggestedTitle;
       }
       
       if (property) {
         // Update existing property
         const { error } = await supabase
           .from('properties')
-          .update(formData)
+          .update(dataToSave)
           .eq('id', property.id);
 
         if (error) throw error;
@@ -197,7 +262,7 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
         // Create new property
         const { error } = await supabase
           .from('properties')
-          .insert([formData]);
+          .insert([dataToSave]);
 
         if (error) throw error;
         
@@ -284,13 +349,15 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="property_category">Property Category *</Label>
+                  <Label htmlFor="primary_category">Property Category *</Label>
                   <Select
-                    value={formData.property_category}
+                    value={formData.primary_category}
                     onValueChange={(value) => {
                       setFormData(prev => ({
                         ...prev,
-                        property_category: value,
+                        primary_category: value,
+                        secondary_category: '', // Reset secondary category
+                        agricultural_land_type: '', // Reset agricultural land type
                         property_type: '', // Reset property type when category changes
                         bhk: undefined // Reset BHK when category changes
                       }));
@@ -300,12 +367,65 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
                       <SelectValue placeholder="Select property category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PROPERTY_CATEGORIES.map(category => (
+                      {PRIMARY_PROPERTY_CATEGORIES.map(category => (
                         <SelectItem key={category} value={category.toLowerCase()}>{category}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Secondary Category Selection - only show when "Land" is selected */}
+                {showSecondaryCategories && (
+                  <div className="space-y-2">
+                    <Label htmlFor="secondary_category">Land Type *</Label>
+                    <Select
+                      value={formData.secondary_category}
+                      onValueChange={(value) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          secondary_category: value,
+                          agricultural_land_type: '', // Reset agricultural land type
+                          property_type: '', // Reset property type when secondary category changes
+                          bhk: undefined // Reset BHK
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select land type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LAND_SECONDARY_CATEGORIES.map(category => (
+                          <SelectItem key={category} value={category.toLowerCase()}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {/* Agricultural Land Type Selection - only show when Agricultural is selected under Land */}
+                {showAgriculturalLandTypes && (
+                  <div className="space-y-2">
+                    <Label htmlFor="agricultural_land_type">Type of Agricultural Land *</Label>
+                    <Select
+                      value={formData.agricultural_land_type}
+                      onValueChange={(value) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          agricultural_land_type: value
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select agricultural land type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGRICULTURAL_LAND_TYPES.map(type => (
+                          <SelectItem key={type} value={type.toLowerCase()}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="property_type">Property Type *</Label>
@@ -315,13 +435,19 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
                       setFormData(prev => ({
                         ...prev,
                         property_type: value,
-                        bhk: !shouldShowBHK(formData.property_category || '', value) ? undefined : prev.bhk
+                        bhk: !shouldShowBHK(effectiveCategory, value) ? undefined : prev.bhk
                       }));
                     }}
-                    disabled={!formData.property_category}
+                    disabled={!formData.primary_category || (showSecondaryCategories && !formData.secondary_category)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={formData.property_category ? "Select property type" : "Select category first"} />
+                      <SelectValue placeholder={
+                        !formData.primary_category 
+                          ? "Select category first" 
+                          : (showSecondaryCategories && !formData.secondary_category)
+                            ? "Select land type first"
+                            : "Select property type"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {availablePropertyTypes.map(type => (

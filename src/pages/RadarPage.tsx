@@ -14,6 +14,7 @@ import { UserPropertyForm } from '@/components/UserPropertyForm';
 import { QuestionFlowState } from '@/types/property';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import PropertyCounter from '@/components/PropertyCounter';
 
 const Index = () => {
   const { user } = useAuth();
@@ -109,6 +110,9 @@ const Index = () => {
 
       {/* Modern Market Intelligence */}
       <ModernMarketIntelligence />
+
+      {/* Property Counter below Market Intelligence */}
+      <PropertyCounter />
 
       {/* Footer */}
       <Footer />

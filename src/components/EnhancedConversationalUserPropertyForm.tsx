@@ -33,6 +33,9 @@ interface ChatStep {
 interface FormData {
   // Basic Information
   property_category: string;
+  primary_category: string;
+  secondary_category: string;
+  agricultural_land_type: string;
   property_type: string;
   transaction_type: string;
   title: string;
@@ -153,12 +156,12 @@ interface FormData {
 }
 
 // Enhanced property category definitions with detailed subtypes
-const PROPERTY_CATEGORIES = {
+const PRIMARY_PROPERTY_CATEGORIES = {
   residential: {
     label: 'Residential',
     types: {
       // 🏡 Residential Properties
-      plot_land: { label: 'Plot / Land', icon: '🏞️' },
+      plot_land: { label: 'Plot / Land', icon: '🌞️' },
       house: { label: 'House', icon: '🏠' },
       flat_apartment: { label: 'Flat / Apartment', icon: '🏢' },
       villa: { label: 'Villa', icon: '🏡' },
@@ -204,6 +207,26 @@ const PROPERTY_CATEGORIES = {
       resort: { label: 'Resort', icon: '🏖️' }
     }
   },
+  land: {
+    label: 'Land',
+    types: {}
+  }
+};
+
+// Secondary categories that appear when "Land" is selected
+const LAND_SECONDARY_CATEGORIES = {
+  residential: {
+    label: 'Residential',
+    types: {
+      plot_land: { label: 'Plot / Land', icon: '🌞️' }
+    }
+  },
+  commercial: {
+    label: 'Commercial',
+    types: {
+      commercial_land_plot: { label: 'Commercial Land / Plot', icon: '🏧' }
+    }
+  },
   agricultural: {
     label: 'Agricultural',
     types: {
@@ -213,6 +236,9 @@ const PROPERTY_CATEGORIES = {
     }
   }
 };
+
+// Agricultural land types that appear when Agricultural is selected under Land
+const AGRICULTURAL_LAND_TYPES = ['koradwahu', 'bagayti'];
 
 // Using comprehensive AURANGABAD_AREAS from lib - converted to format expected by form
 const AURANGABAD_LOCATIONS = AURANGABAD_AREAS.map(area => ({
@@ -227,6 +253,9 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
     property_category: '',
+    primary_category: '',
+    secondary_category: '',
+    agricultural_land_type: '',
     property_type: '',
     transaction_type: '',
     title: '',
@@ -290,8 +319,8 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
       {
         question: "Hi! Let's help you list your property. What type of property do you want to list?",
         type: 'select',
-        key: 'property_category',
-        options: Object.entries(PROPERTY_CATEGORIES).map(([key, category]) => ({
+        key: 'primary_category',
+        options: Object.entries(PRIMARY_PROPERTY_CATEGORIES).map(([key, category]) => ({
           id: key,
           label: category.label,
           value: key
@@ -300,12 +329,55 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
       }
     ];
 
-    // Property type step - depends on category
-    if (formData.property_category) {
-      const categoryTypes = PROPERTY_CATEGORIES[formData.property_category as keyof typeof PROPERTY_CATEGORIES]?.types;
-      if (categoryTypes) {
+    // Secondary category step - show when "Land" is selected
+    if (formData.primary_category === 'land') {
+      baseSteps.push({
+        question: "What type of land is it?",
+        type: 'select',
+        key: 'secondary_category',
+        options: Object.entries(LAND_SECONDARY_CATEGORIES).map(([key, category]) => ({
+          id: key,
+          label: category.label,
+          value: key
+        })),
+        required: true
+      });
+    }
+    
+    // Agricultural land type step - show when "Agricultural" is selected under "Land"
+    if (formData.primary_category === 'land' && formData.secondary_category === 'agricultural') {
+      baseSteps.push({
+        question: "What type of agricultural land is it?",
+        type: 'select',
+        key: 'agricultural_land_type',
+        options: AGRICULTURAL_LAND_TYPES.map(type => ({
+          id: type,
+          label: type.charAt(0).toUpperCase() + type.slice(1),
+          value: type
+        })),
+        required: true
+      });
+    }
+
+    // Property type step - depends on effective category
+    const effectiveCategory = formData.primary_category === 'land' 
+      ? formData.secondary_category 
+      : formData.primary_category;
+      
+    if (effectiveCategory) {
+      let categoryTypes: Record<string, { label: string; icon: string }> = {};
+      
+      // Get types based on the effective category
+      if (formData.primary_category === 'land' && formData.secondary_category) {
+        const secondaryCategoryData = LAND_SECONDARY_CATEGORIES[formData.secondary_category as keyof typeof LAND_SECONDARY_CATEGORIES];
+        categoryTypes = secondaryCategoryData?.types || {};
+      } else if (PRIMARY_PROPERTY_CATEGORIES[effectiveCategory as keyof typeof PRIMARY_PROPERTY_CATEGORIES]) {
+        categoryTypes = (PRIMARY_PROPERTY_CATEGORIES[effectiveCategory as keyof typeof PRIMARY_PROPERTY_CATEGORIES] as any).types || {};
+      }
+      
+      if (Object.keys(categoryTypes).length > 0) {
         baseSteps.push({
-          question: `Great! What specific type of ${PROPERTY_CATEGORIES[formData.property_category as keyof typeof PROPERTY_CATEGORIES].label.toLowerCase()} property is it?`,
+          question: `Great! What specific type of ${effectiveCategory} property is it?`,
           type: 'select',
           key: 'property_type',
           options: Object.entries(categoryTypes).map(([key, type]) => ({
@@ -994,6 +1066,12 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
         uploadedImageUrls = await uploadAllImagesCallback();
       }
 
+      // Map the new category structure back to the database format
+      let finalPropertyCategory = formData.primary_category?.toLowerCase() || '';
+      if (formData.primary_category?.toLowerCase() === 'land' && formData.secondary_category) {
+        finalPropertyCategory = formData.secondary_category.toLowerCase();
+      }
+      
       // Generate title if not provided
       const generatedTitle = formData.title || `${formData.bhk || ''} BHK ${formData.property_type} in ${formData.location}`;
       
@@ -1003,7 +1081,8 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
           description: formData.detailed_description || formData.description || `Beautiful ${formData.property_type} for ${formData.transaction_type}`,
           full_address: formData.full_address,
         property_type: formData.property_type,
-        property_category: formData.property_category,
+        property_category: finalPropertyCategory,
+        agricultural_land_type: formData.agricultural_land_type || null,
         transaction_type: formData.transaction_type,
         bhk: formData.bhk,
         bathrooms: formData.bathrooms || 1,

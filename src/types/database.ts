@@ -30,6 +30,7 @@ export interface Property {
   verification_score?: number | null;
   transaction_type?: string;
   property_category?: string;
+  agricultural_land_type?: string | null;
   property_subtype?: string | null;
   bhk_type?: string | null;
   total_floors?: number | null;
@@ -88,6 +89,7 @@ export interface PropertyFormData {
   description?: string;
   property_type: string;
   property_category?: string;
+  agricultural_land_type?: string;
   bhk?: number;
   price: number;
   location: string;
