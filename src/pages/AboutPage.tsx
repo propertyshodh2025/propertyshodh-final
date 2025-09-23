@@ -219,7 +219,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                 {/* Flowing River Animation */}
                 <div className="relative max-w-4xl mx-auto">
                   {/* Vertical Flow Line */}
-                  <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 via-purple-500 via-green-500 to-orange-500 opacity-60" />
+                  <div className="absolute left-4 sm:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 via-purple-500 via-green-500 to-orange-500 opacity-60" />
                   
                   {/* Animated story cards */}
                   <motion.div
@@ -246,7 +246,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                           }
                         } 
                       }}
-                      className="relative flex items-start gap-6 group"
+                      className="relative flex flex-col sm:flex-row items-start gap-4 sm:gap-6 group"
                     >
                       {/* Flow indicator */}
                       <div className="relative z-10 flex-shrink-0">
@@ -317,7 +317,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                           }
                         } 
                       }}
-                      className="relative flex items-start gap-6 group flex-row-reverse"
+                      className="relative flex flex-col sm:flex-row-reverse items-start gap-4 sm:gap-6 group"
                     >
                       {/* Flow indicator */}
                       <div className="relative z-10 flex-shrink-0">
@@ -360,12 +360,12 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                         }}
                         className="flex-1 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700 shadow-sm group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1"
                       >
-                        <div className="flex items-center gap-2 mb-2 justify-end">
+                        <div className="flex items-center gap-2 mb-2 sm:justify-end">
                           <div className="h-1 w-8 bg-purple-400 rounded-full" />
                           <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Chapter 2</span>
                         </div>
-                        <h5 className="text-lg font-bold text-purple-900 dark:text-purple-100 mb-3 text-right">The Bridge</h5>
-                        <p className="text-sm text-purple-800 dark:text-purple-200 leading-relaxed text-right">
+                        <h5 className="text-lg font-bold text-purple-900 dark:text-purple-100 mb-3 sm:text-right">The Bridge</h5>
+                        <p className="text-sm text-purple-800 dark:text-purple-200 leading-relaxed sm:text-right">
                           With the vision in place, Rahul brought in Chaitanya. Having deep expertise in digital 
                           marketing and business strategy, Chaitanya understood the ground reality of <SlidingCityName />—how 
                           buyers search, what builders expect, and what was missing in the market. He started shaping 
@@ -388,7 +388,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                           }
                         } 
                       }}
-                      className="relative flex items-start gap-6 group"
+                      className="relative flex flex-col sm:flex-row items-start gap-4 sm:gap-6 group"
                     >
                       {/* Flow indicator */}
                       <div className="relative z-10 flex-shrink-0">
@@ -459,7 +459,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                           }
                         } 
                       }}
-                      className="relative flex items-start gap-6 group flex-row-reverse"
+                      className="relative flex flex-col sm:flex-row-reverse items-start gap-4 sm:gap-6 group"
                     >
                       {/* Flow indicator */}
                       <div className="relative z-10 flex-shrink-0">
@@ -502,12 +502,12 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                         }}
                         className="flex-1 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 rounded-xl p-6 border border-orange-200 dark:border-orange-700 shadow-sm group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1"
                       >
-                        <div className="flex items-center gap-2 mb-2 justify-end">
+                        <div className="flex items-center gap-2 mb-2 sm:justify-end">
                           <div className="h-1 w-8 bg-orange-400 rounded-full" />
                           <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Chapter 4</span>
                         </div>
-                        <h5 className="text-lg font-bold text-orange-900 dark:text-orange-100 mb-3 text-right">The Build</h5>
-                        <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed text-right">
+                        <h5 className="text-lg font-bold text-orange-900 dark:text-orange-100 mb-3 sm:text-right">The Build</h5>
+                        <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed sm:text-right">
                           The four—Sudhakar, Rahul, Chaitanya, and Yadish—teamed up with a clear purpose. From 
                           brainstorming sessions to on-field research, from whiteboard planning to actual development, 
                           they worked together with one goal: to create <SlidingCityName />'s first tech-driven property 
