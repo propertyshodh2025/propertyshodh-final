@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Bed, Bath, Square, Star, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -7,6 +7,7 @@ import { formatINRShort } from '@/lib/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { TranslatableText } from '@/components/TranslatableText';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface Property {
   id: string;
@@ -30,6 +31,10 @@ export const MiniFeaturedCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Check if we're on mobile view
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   useEffect(() => {
     let isMounted = true;
@@ -76,29 +81,32 @@ export const MiniFeaturedCarousel = () => {
 
   // Auto-scroll effect with 3-second delay
   useEffect(() => {
-    if (properties.length <= 2) return;
+    const minPropertiesToShow = isMobile ? 1 : 2;
+    if (properties.length <= minPropertiesToShow) return;
 
     const intervalId = setInterval(() => {
       setCurrentIndex((prevIndex) => {
-        const maxIndex = Math.max(0, properties.length - 2);
+        const maxIndex = Math.max(0, properties.length - minPropertiesToShow);
         return prevIndex >= maxIndex ? 0 : prevIndex + 1;
       });
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [properties.length]);
+  }, [properties.length, isMobile]);
 
   // Navigation functions
   const goToPrevious = () => {
     setCurrentIndex((prevIndex) => {
-      const maxIndex = Math.max(0, properties.length - 2);
+      const minPropertiesToShow = isMobile ? 1 : 2;
+      const maxIndex = Math.max(0, properties.length - minPropertiesToShow);
       return prevIndex <= 0 ? maxIndex : prevIndex - 1;
     });
   };
 
   const goToNext = () => {
     setCurrentIndex((prevIndex) => {
-      const maxIndex = Math.max(0, properties.length - 2);
+      const minPropertiesToShow = isMobile ? 1 : 2;
+      const maxIndex = Math.max(0, properties.length - minPropertiesToShow);
       return prevIndex >= maxIndex ? 0 : prevIndex + 1;
     });
   };
@@ -110,9 +118,9 @@ export const MiniFeaturedCarousel = () => {
   if (loading) {
     return (
       <div className="w-full py-4 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold mb-4 text-foreground">{t('featured_properties')}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
-          {[...Array(2)].map((_, i) => (
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-foreground">{t('featured_properties')}</h2>
+        <div className={`grid gap-6 animate-pulse ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+          {[...Array(isMobile ? 1 : 2)].map((_, i) => (
             <div key={i} className="h-80 bg-muted rounded-lg" />
           ))}
         </div>
@@ -138,50 +146,59 @@ export const MiniFeaturedCarousel = () => {
     );
   }
 
+  const minPropertiesToShow = isMobile ? 1 : 2;
+
   return (
     <div className="w-full py-4 px-4 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-foreground">{t('featured_properties')}</h2>
-        {properties.length > 2 && (
+        <h2 className="text-2xl sm:text-3xl font-bold text-foreground">{t('featured_properties')}</h2>
+        {properties.length > minPropertiesToShow && (
           <div className="flex gap-2">
             <button
               onClick={goToPrevious}
-              className="p-2 rounded-full bg-background border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+              className={`p-2 rounded-full bg-background border border-border hover:bg-accent hover:text-accent-foreground transition-colors ${
+                isMobile ? 'h-10 w-10' : 'h-8 w-8'
+              }`}
               aria-label="Previous properties"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
             </button>
             <button
               onClick={goToNext}
-              className="p-2 rounded-full bg-background border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+              className={`p-2 rounded-full bg-background border border-border hover:bg-accent hover:text-accent-foreground transition-colors ${
+                isMobile ? 'h-10 w-10' : 'h-8 w-8'
+              }`}
               aria-label="Next properties"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
             </button>
           </div>
         )}
       </div>
 
-      <div className="relative overflow-hidden mx-4 sm:mx-6 lg:mx-8">
+      <div className="relative overflow-hidden">
         <div 
+          ref={scrollRef}
           className="flex transition-transform duration-1000 ease-in-out"
           style={{ 
-            transform: `translateX(-${currentIndex * 50}%)`,
+            transform: `translateX(-${currentIndex * (isMobile ? 100 : 50)}%)`,
           }}
         >
           {properties.map((property) => (
             <div 
               key={property.id} 
-              className="w-1/2 px-3 flex-shrink-0"
+              className={`${isMobile ? 'w-full px-2' : 'w-1/2 px-3'} flex-shrink-0`}
             >
               <Card
-                className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden w-full"
+                className={`cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] overflow-hidden w-full ${
+                  isMobile ? 'max-w-md mx-auto' : ''
+                }`}
                 onClick={() => handlePropertyClick(property.id)}
               >
             <CardContent className="p-0">
               <div className="flex flex-col h-full">
                 {/* Image Section */}
-                <div className="relative h-80">
+                <div className={`relative ${isMobile ? 'h-64' : 'h-80'}`}>
                   <img
                     src={property.images?.[0] || '/placeholder.svg'}
                     alt={property.title}
@@ -191,14 +208,18 @@ export const MiniFeaturedCarousel = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   <Badge
                     variant="secondary"
-                    className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm border-0"
+                    className={`absolute top-2 left-2 bg-background/90 backdrop-blur-sm border-0 ${
+                      isMobile ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1'
+                    }`}
                   >
                     <TranslatableText text={property.transaction_type} context="property.transaction_type" />
                   </Badge>
                   {property.is_featured && (
                     <Badge
                       variant="default"
-                      className="absolute top-3 right-3 bg-yellow-500/90 backdrop-blur-sm text-white flex items-center gap-1 border-0"
+                      className={`absolute top-2 right-2 bg-yellow-500/90 backdrop-blur-sm text-white flex items-center gap-1 border-0 ${
+                        isMobile ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1'
+                      }`}
                     >
                       <Star className="h-3 w-3 fill-current" />
                       {t('featured')}
@@ -207,16 +228,22 @@ export const MiniFeaturedCarousel = () => {
                 </div>
 
                 {/* Content Section */}
-                <div className="p-3 flex-1 flex flex-col justify-between">
+                <div className={`${isMobile ? 'p-4' : 'p-3'} flex-1 flex flex-col justify-between`}>
                   <div>
-                    <h3 className="font-semibold text-base mb-1.5 line-clamp-2 text-foreground">
+                    <h3 className={`font-semibold mb-1.5 line-clamp-2 text-foreground ${
+                      isMobile ? 'text-lg' : 'text-base'
+                    }`}>
                       <TranslatableText text={property.title} context="property.title" />
                     </h3>
-                    <p className="text-lg font-bold text-primary mb-2">
+                    <p className={`font-bold text-primary mb-2 ${
+                      isMobile ? 'text-xl' : 'text-lg'
+                    }`}>
                       {formatINRShort(property.price, language)}
                     </p>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                      <MapPin className="h-3 w-3 shrink-0" />
+                    <div className={`flex items-center gap-1.5 text-muted-foreground mb-2 ${
+                      isMobile ? 'text-sm' : 'text-xs'
+                    }`}>
+                      <MapPin className={`shrink-0 ${isMobile ? 'h-4 w-4' : 'h-3 w-3'}`} />
                       <span className="truncate">
                         <TranslatableText text={property.location} context="property.location" />, 
                         <TranslatableText text={property.city} context="property.city" />
@@ -226,18 +253,20 @@ export const MiniFeaturedCarousel = () => {
 
                   {/* Property Details */}
                   <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className={`flex items-center text-muted-foreground ${
+                      isMobile ? 'gap-4 text-sm flex-wrap' : 'gap-3 text-xs'
+                    }`}>
                       <div className="flex items-center gap-1">
-                        <Bed className="h-3 w-3" />
+                        <Bed className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'}`} />
                         <span>{property.bhk} {t('bhk')}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Bath className="h-3 w-3" />
+                        <Bath className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'}`} />
                         <span>{property.bathrooms} {t('bath')}</span>
                       </div>
                       {property.carpet_area && (
                         <div className="flex items-center gap-1">
-                          <Square className="h-3 w-3" />
+                          <Square className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'}`} />
                           <span>{property.carpet_area} {t('sq_ft')}</span>
                         </div>
                       )}
@@ -253,20 +282,28 @@ export const MiniFeaturedCarousel = () => {
   </div>
 
   {/* Progress Indicators */}
-  {properties.length > 2 && (
+  {properties.length > minPropertiesToShow && (
     <div className="flex justify-center mt-6 gap-2">
-      {Array.from({ length: Math.max(0, properties.length - 1) }).map((_, index) => (
+      {Array.from({ length: Math.max(0, properties.length - (minPropertiesToShow - 1)) }).map((_, index) => (
         <button
           key={index}
           onClick={() => setCurrentIndex(index)}
-          className={`w-2 h-2 rounded-full transition-all duration-300 ${
+          className={`rounded-full transition-all duration-300 ${
+            isMobile ? 'w-3 h-3' : 'w-2 h-2'
+          } ${
             index === currentIndex
-              ? 'bg-primary w-6'
+              ? `bg-primary ${isMobile ? 'w-8' : 'w-6'}`
               : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
           }`}
           aria-label={`Go to slide ${index + 1}`}
         />
       ))}
+      {/* Counter for mobile */}
+      {isMobile && (
+        <span className="ml-3 text-xs text-muted-foreground font-medium">
+          {currentIndex + 1} / {properties.length}
+        </span>
+      )}
     </div>
   )}
 </div>

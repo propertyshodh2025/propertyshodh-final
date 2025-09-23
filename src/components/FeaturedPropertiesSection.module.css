@@ -1,0 +1,73 @@
+/* Custom styles for FeaturedPropertiesSection mobile optimization */
+
+.hideScrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.hideScrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Smooth scrolling behavior */
+.mobileCarousel {
+  scroll-behavior: smooth;
+}
+
+/* Card hover animations */
+.propertyCard {
+  transition: all 0.3s ease;
+}
+
+.propertyCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced mobile touch targets */
+@media (max-width: 640px) {
+  .mobileButton {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .propertyDetails {
+    gap: 12px;
+  }
+  
+  .propertyCard {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+}
+
+/* Mobile carousel - one property at a time */
+@media (max-width: 640px) {
+  .mobileCard {
+    width: 100%;
+    max-width: 400px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  
+  .propertyCard {
+    margin: 0 auto;
+    max-width: 380px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .mobileCarousel {
+    scroll-snap-type: x mandatory;
+  }
+}
+
+/* Responsive spacing for very small screens */
+@media (max-width: 380px) {
+  .mobileCard {
+    max-width: 360px;
+  }
+  
+  .propertyCard {
+    max-width: 340px;
+  }
+}
