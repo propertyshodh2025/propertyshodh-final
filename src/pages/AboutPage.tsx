@@ -1,48 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Building2, Goal, Target, KeyRound, Blocks, House, Frame, Linkedin } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 
 export interface AboutSectionProps {
   className?: string;
   style?: React.CSSProperties;
-}
-
-// Sliding City Name Component
-function SlidingCityName({ className = "" }: { className?: string }) {
-  const [currentName, setCurrentName] = useState(0);
-  const cityNames = ["Aurangabad", "Chhatrapati Sambhaji Nagar"];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentName(prev => (prev + 1) % cityNames.length);
-    }, 3000); // Change every 3 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <span className={`relative inline-block min-w-[280px] ${className}`}>
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={currentName}
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -20, opacity: 0 }}
-          transition={{ 
-            duration: 0.5,
-            ease: [0.25, 0.46, 0.45, 0.94]
-          }}
-          className="absolute left-1/2 -translate-x-1/2 inline-block whitespace-nowrap"
-        >
-          {cityNames[currentName]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  );
 }
 
 const founders = [
@@ -116,6 +82,8 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  const staticCityName = "Chhatrapati Sambhaji Nagar (Aurangabad)";
+
   return (
     <div className="min-h-screen bg-background scroll-smooth">
       <Header />
@@ -126,11 +94,11 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
         <header className="w-full text-center space-y-6">
           <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 dark:bg-blue-900 px-3 py-1.5">
             <Building2 className="h-4 w-4 text-blue-700 dark:text-blue-300" aria-hidden="true" />
-            <span className="text-xs font-medium tracking-wide text-blue-700 dark:text-blue-300">PropertyShodh • Built in <SlidingCityName /></span>
+            <span className="text-xs font-medium tracking-wide text-blue-700 dark:text-blue-300">PropertyShodh • Built in {staticCityName}</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">
-            Bringing clarity to real estate—starting in <SlidingCityName />
+            Bringing clarity to real estate—starting in {staticCityName}
           </h1>
           <p className="mx-auto max-w-2xl text-base sm:text-lg text-muted-foreground">
             Our mission is simple: make property discovery trustworthy, fast, and human.
@@ -165,7 +133,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                 Problem → Insight → Solution
               </div>
               <CardTitle className="text-2xl md:text-3xl">
-                Born from the real problems of <SlidingCityName />'s property market
+                Born from the real problems of {staticCityName}'s property market
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground">
                 We heard the same stories again and again—unclear pricing, outdated postings,
@@ -205,7 +173,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                       <h3 className="font-semibold text-green-800 dark:text-green-200">The solution</h3>
                       <p className="text-sm text-green-700 dark:text-green-300">
                         A platform with verified listings, AI‑powered discovery, and local expertise—
-                        purpose‑built for <SlidingCityName />.
+                        purpose‑built for {staticCityName}.
                       </p>
                     </div>
                   </div>
@@ -295,7 +263,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                         </div>
                         <h5 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-3">The Spark</h5>
                         <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
-                          It began when Sudhakar and Rahul looked closely at the property market in <SlidingCityName />. 
+                          It began when Sudhakar and Rahul looked closely at the property market in {staticCityName}. 
                           They noticed how difficult it was for people to find the right property—scattered listings, 
                           missing details, no transparency. They decided to fix it. That's when the idea of PropertyShodh 
                           was born. The name was chosen, the domain was registered, and the mission was set.
@@ -367,7 +335,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                         <h5 className="text-lg font-bold text-purple-900 dark:text-purple-100 mb-3 sm:text-right">The Bridge</h5>
                         <p className="text-sm text-purple-800 dark:text-purple-200 leading-relaxed sm:text-right">
                           With the vision in place, Rahul brought in Chaitanya. Having deep expertise in digital 
-                          marketing and business strategy, Chaitanya understood the ground reality of <SlidingCityName />—how 
+                          marketing and business strategy, Chaitanya understood the ground reality of {staticCityName}—how 
                           buyers search, what builders expect, and what was missing in the market. He started shaping 
                           the strategy to connect people and properties in a smarter way.
                         </p>
@@ -440,7 +408,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                           To bring the idea to life, Chaitanya reached out to Yadish. With a strong background in 
                           Information Technology and Data Science, Yadish became the tech powerhouse behind PropertyShodh. 
                           He built the entire platform from scratch—verified listings, lightning-fast search, smooth design, 
-                          and a reliable system tailored for <SlidingCityName />'s real estate needs.
+                          and a reliable system tailored for {staticCityName}'s real estate needs.
                         </p>
                       </motion.div>
                     </motion.div>
@@ -510,7 +478,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                         <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed sm:text-right">
                           The four—Sudhakar, Rahul, Chaitanya, and Yadish—teamed up with a clear purpose. From 
                           brainstorming sessions to on-field research, from whiteboard planning to actual development, 
-                          they worked together with one goal: to create <SlidingCityName />'s first tech-driven property 
+                          they worked together with one goal: to create {staticCityName}'s first tech-driven property 
                           discovery platform.
                         </p>
                       </motion.div>
@@ -534,7 +502,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                       <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-100 to-orange-100 dark:from-blue-900/30 dark:to-orange-900/30 rounded-full border border-slate-200 dark:border-slate-700">
                         <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          And that's how PropertyShodh took shape—built in <SlidingCityName />, for <SlidingCityName />.
+                          And that's how PropertyShodh took shape—built in {staticCityName}, for {staticCityName}.
                         </p>
                         <div className="h-2 w-2 bg-orange-500 rounded-full animate-pulse" />
                       </div>
@@ -560,7 +528,7 @@ export default function AboutSection({ className, style }: AboutSectionProps) {
                   <div className="flex items-start gap-3">
                     <Frame className="h-5 w-5 mt-0.5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
                     <div className="min-w-0">
-                      <h4 className="font-semibold text-indigo-800 dark:text-indigo-200">Focus on <SlidingCityName /></h4>
+                      <h4 className="font-semibold text-indigo-800 dark:text-indigo-200">Focus on {staticCityName}</h4>
                       <p className="text-sm text-indigo-700 dark:text-indigo-300">
                         An underserved market deserves category‑defining tools. We're building deeply
                         for local needs—neighborhood context, language support, and verified supply.
