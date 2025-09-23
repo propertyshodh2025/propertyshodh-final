@@ -14,6 +14,7 @@ import PropertySearch from '@/components/PropertySearch';
 import Testimonials from '@/components/Testimonials';
 import CallToAction from '@/components/CallToAction';
 import FeaturedPropertiesSection from '@/components/FeaturedPropertiesSection';
+import MRTPLinksSection from '@/components/MRTPLinksSection';
 
 const HomePage = () => {
   const { t } = useTranslation();
@@ -52,6 +53,11 @@ const HomePage = () => {
 
       <section className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <CallToAction />
+      </section>
+
+      {/* MRTP Links Section */}
+      <section className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <MRTPLinksSection />
       </section>
 
       <div className="fixed bottom-6 right-6 z-50">

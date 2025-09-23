@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Building2, Factory, TreePine, Home, MapPin, IndianRupee } from 'lucide-react';
+import { TrendingUp, Building2, TreePine, Home, MapPin, IndianRupee } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Link } from 'react-router-dom';
@@ -15,7 +15,6 @@ interface PropertyCounts {
 interface PropertyCounterData {
   residential: PropertyCounts;
   commercial: PropertyCounts;
-  industrial: PropertyCounts;
   agricultural: PropertyCounts;
 }
 
@@ -37,18 +36,16 @@ const PropertyCounter: React.FC = () => {
   const locationsByCategory = {
     residential: ['CIDCO', 'Garkheda', 'Osmanpura', 'Bajaj Nagar', 'Kanchanwadi'],
     commercial: ['CIDCO', 'Station Road', 'Jalna Road', 'Town Center', 'Osmanpura'],
-    industrial: ['Chikalthana MIDC', 'Waluj MIDC', 'Shendra MIDC', 'Bidkin MIDC', 'Aurangabad MIDC'],
     agricultural: ['Beed Road', 'Jalna Road', 'Paithan Road', 'Sillod Road', 'Kannad Road']
   };
 
   useEffect(() => {
     const fetchPropertyCounts = async () => {
       try {
-        const categories = ['residential', 'commercial', 'industrial', 'agricultural'];
+        const categories = ['residential', 'commercial', 'agricultural'];
         const data: PropertyCounterData = {
           residential: { total: 0, priceRanges: {}, locations: {} },
           commercial: { total: 0, priceRanges: {}, locations: {} },
-          industrial: { total: 0, priceRanges: {}, locations: {} },
           agricultural: { total: 0, priceRanges: {}, locations: {} }
         };
 
@@ -110,8 +107,6 @@ const PropertyCounter: React.FC = () => {
         return Home;
       case 'commercial':
         return Building2;
-      case 'industrial':
-        return Factory;
       case 'agricultural':
         return TreePine;
       default:
@@ -125,8 +120,6 @@ const PropertyCounter: React.FC = () => {
         return 'from-blue-500 to-blue-600';
       case 'commercial':
         return 'from-green-500 to-green-600';
-      case 'industrial':
-        return 'from-orange-500 to-orange-600';
       case 'agricultural':
         return 'from-emerald-500 to-emerald-600';
       default:
@@ -140,8 +133,6 @@ const PropertyCounter: React.FC = () => {
         return 'Total Residential Property';
       case 'commercial':
         return 'Total Commercial Property';
-      case 'industrial':
-        return 'Total Industrial Property';
       case 'agricultural':
         return 'Total Agricultural Property';
       default:
@@ -178,7 +169,7 @@ const PropertyCounter: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-bold">Property Availability</h2>
             <p className="text-muted-foreground mt-2">Loading property data...</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[...Array(4)].map((_, index) => (
               <Card key={index} className="bg-card/50 backdrop-blur-sm animate-pulse">
                 <CardContent className="p-6">
@@ -223,7 +214,7 @@ const PropertyCounter: React.FC = () => {
         </div>
 
         {/* Property Counter Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {Object.entries(propertyData).map(([category, counts], index) => {
             const IconComponent = getCategoryIcon(category);
             const colorClass = getCategoryColor(category);

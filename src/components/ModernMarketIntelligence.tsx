@@ -38,7 +38,7 @@ interface MarketInsight {
 export const ModernMarketIntelligence: React.FC = () => {
   const { t } = useLanguage();
   const [selectedMetric, setSelectedMetric] = useState('price');
-  const [activeTab, setActiveTab] = useState('insights');
+  const [activeTab, setActiveTab] = useState('data');
   const [animatedValues, setAnimatedValues] = useState<Record<string, number>>({});
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [insights, setInsights] = useState<MarketInsight[]>([]);
@@ -191,58 +191,62 @@ export const ModernMarketIntelligence: React.FC = () => {
           </p>
         </div>
 
+        {/* Market Insights - Always Visible */}
+        <div className="mb-16">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-2 mb-4">
+              <Brain className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">Market Insights</span>
+            </div>
+          </div>
+          
+          {/* Research Insights Grid */}
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, index) => (
+                <Card key={index} className="bg-card/50 backdrop-blur-sm border-0">
+                  <CardContent className="p-6">
+                    <div className="w-12 h-12 rounded-2xl bg-muted mb-4 animate-pulse" />
+                    <div className="h-4 bg-muted rounded mb-2 animate-pulse" />
+                    <div className="h-3 bg-muted rounded mb-3 animate-pulse" />
+                    <div className="h-5 bg-muted rounded animate-pulse" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {insights.map((insight, index) => {
+                const IconComponent = getIconComponent(insight.icon_type);
+                return (
+                  <Card key={insight.id} className="group bg-card/50 backdrop-blur-sm border-0 hover:bg-card/80 transition-all duration-500 hover:scale-105 cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${insight.color_scheme} p-3 mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                        <IconComponent className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors">{insight.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-3">{insight.description}</p>
+                      <div className="text-lg font-bold text-primary">{insight.value}</div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Tabs for Market Intelligence */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-16">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="insights" className="flex items-center gap-2">
-              <Brain className="h-4 w-4" />
-              {t('market_insights') || 'Market Insights'}
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="data" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              {t('market_data') || 'Market Data'}
+              Market Data
             </TabsTrigger>
             <TabsTrigger value="ready-reckoner" className="flex items-center gap-2">
               <Calculator className="h-4 w-4" />
               Ready Reckoner Rate
             </TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="insights">
-            {/* Research Insights Grid */}
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[...Array(4)].map((_, index) => (
-                  <Card key={index} className="bg-card/50 backdrop-blur-sm border-0">
-                    <CardContent className="p-6">
-                      <div className="w-12 h-12 rounded-2xl bg-muted mb-4 animate-pulse" />
-                      <div className="h-4 bg-muted rounded mb-2 animate-pulse" />
-                      <div className="h-3 bg-muted rounded mb-3 animate-pulse" />
-                      <div className="h-5 bg-muted rounded animate-pulse" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {insights.map((insight, index) => {
-                  const IconComponent = getIconComponent(insight.icon_type);
-                  return (
-                    <Card key={insight.id} className="group bg-card/50 backdrop-blur-sm border-0 hover:bg-card/80 transition-all duration-500 hover:scale-105 cursor-pointer">
-                      <CardContent className="p-6">
-                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${insight.color_scheme} p-3 mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                          <IconComponent className="h-6 w-6 text-white" />
-                        </div>
-                        <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors">{insight.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-3">{insight.description}</p>
-                        <div className="text-lg font-bold text-primary">{insight.value}</div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
           
           <TabsContent value="data">
 

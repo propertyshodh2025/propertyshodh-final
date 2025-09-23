@@ -15,6 +15,7 @@ import { QuestionFlowState } from '@/types/property';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import PropertyCounter from '@/components/PropertyCounter';
+import MRTPLinksSection from '@/components/MRTPLinksSection';
 
 const Index = () => {
   const { user } = useAuth();
@@ -111,7 +112,12 @@ const Index = () => {
       {/* Modern Market Intelligence */}
       <ModernMarketIntelligence />
 
-      {/* Property Counter below Market Intelligence */}
+      {/* MRTP Links Section */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <MRTPLinksSection />
+      </div>
+
+      {/* Property Counter below MRTP Links */}
       <PropertyCounter />
 
       {/* Footer */}
