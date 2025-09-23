@@ -79,8 +79,8 @@ const founders = [
     image:
       "/uploads/chaitanya.jpg",
     highlights: [
-      "Expert in digital marketing and brand strategy",
-      "Builds trust through clear storytelling and community engagement",
+      "Leverages AI, marketing, and user-first design to innovate real estate.",
+      "Focuses on data-driven campaigns and market penetration.",
       "Drives full-funnel growth with practical, result-oriented strategies",
     ],
     accent: "brand",
