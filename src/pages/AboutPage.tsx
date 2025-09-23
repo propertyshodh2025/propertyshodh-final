@@ -36,7 +36,7 @@ function SlidingCityName({ className = "" }: { className?: string }) {
             duration: 0.5,
             ease: [0.25, 0.46, 0.45, 0.94]
           }}
-          className="absolute left-1/2 -translate-x-1/2 inline-block"
+          className="absolute left-1/2 -translate-x-1/2 inline-block whitespace-nowrap"
         >
           {cityNames[currentName]}
         </motion.span>
