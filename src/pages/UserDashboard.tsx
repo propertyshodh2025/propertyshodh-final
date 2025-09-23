@@ -203,24 +203,39 @@ export default function UserDashboard() {
 
   const handleDeleteProperty = async (propertyId: string) => {
     try {
-      const { error } = await supabase
-        .from('properties')
-        .delete()
-        .eq('id', propertyId)
-        .eq('user_id', user?.id);
+      // Use the safe deletion RPC function that handles all foreign key constraints
+      const { data, error } = await supabase.rpc('safe_delete_property_with_cleanup', {
+        property_id_param: propertyId
+      });
 
       if (error) throw error;
+      
+      // Check if the function returned success
+      if (!data?.success) {
+        throw new Error(data?.error || 'Unknown error occurred during deletion');
+      }
 
       setUserProperties(prev => prev.filter(property => property.id !== propertyId));
       toast({
         title: "Property deleted",
-        description: "Property has been removed successfully"
+        description: "Property and all related data have been removed successfully"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting property:', error);
+      
+      // Provide more specific error message based on the error
+      let errorMessage = "Failed to delete property. Please try again.";
+      if (error?.message?.includes('Property not found')) {
+        errorMessage = "Property not found or already deleted.";
+      } else if (error?.message?.includes('foreign key') || error?.code === '23503') {
+        errorMessage = "Cannot delete property due to database constraints. Please contact support.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to delete property. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     }

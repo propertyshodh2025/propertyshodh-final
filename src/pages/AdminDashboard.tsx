@@ -318,23 +318,55 @@ const AdminDashboard = () => {
     if (!confirm('Are you sure you want to delete this property?')) return;
 
     try {
-      const { error } = await adminSupabase
-        .from('properties')
-        .delete()
-        .eq('id', id);
+      // Use the safe deletion RPC function that handles all foreign key constraints
+      const { data, error } = await adminSupabase.rpc('safe_delete_property_with_cleanup', {
+        property_id_param: id
+      });
 
       if (error) throw error;
       
+      // Check if the function returned success
+      if (!data?.success) {
+        throw new Error(data?.error || 'Unknown error occurred during deletion');
+      }
+      
+      // Update the UI state
       setProperties(properties.filter(p => p.id !== id));
+      setUserProperties(prev => prev.filter(p => p.id !== id));
+      
+      // Show detailed success message with deletion count
+      const deletedRecords = data.deleted_records;
+      const recordsInfo = [];
+      if (deletedRecords?.notifications > 0) recordsInfo.push(`${deletedRecords.notifications} notifications`);
+      if (deletedRecords?.user_activities > 0) recordsInfo.push(`${deletedRecords.user_activities} activities`);
+      if (deletedRecords?.property_inquiries > 0) recordsInfo.push(`${deletedRecords.property_inquiries} inquiries`);
+      if (deletedRecords?.verification_details > 0) recordsInfo.push(`${deletedRecords.verification_details} verifications`);
+      if (deletedRecords?.featured_log_entries > 0) recordsInfo.push(`${deletedRecords.featured_log_entries} featured logs`);
+      
+      const detailsText = recordsInfo.length > 0 
+        ? `Property and related data deleted: ${recordsInfo.join(', ')}` 
+        : "Property deleted successfully";
+      
       toast({
         title: "Success",
-        description: "Property deleted successfully",
+        description: detailsText,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting property:', error);
+      
+      // Provide more specific error message based on the error
+      let errorMessage = "Failed to delete property";
+      if (error?.message?.includes('Property not found')) {
+        errorMessage = "Property not found or already deleted.";
+      } else if (error?.message?.includes('foreign key') || error?.code === '23503') {
+        errorMessage = "Cannot delete property due to database constraints. Please contact support.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to delete property",
+        description: errorMessage,
         variant: "destructive",
       });
     }
