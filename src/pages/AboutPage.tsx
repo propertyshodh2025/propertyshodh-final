@@ -74,7 +74,7 @@ const founders = [
   },
   {
     name: "Chaitanya",
-    role: "Marketing Co-Founder",
+    role: "Co-Founder & CMO",
     emphasis: "Creative strategy • Market execution",
     image:
       "/uploads/chaitanya.jpg",
