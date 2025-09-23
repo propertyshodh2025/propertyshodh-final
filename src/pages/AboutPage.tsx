@@ -25,7 +25,7 @@ function SlidingCityName({ className = "" }: { className?: string }) {
   }, []);
 
   return (
-    <span className={`inline-block ${className}`}>
+    <span className={`relative inline-block min-w-[280px] ${className}`}>
       <AnimatePresence mode="wait">
         <motion.span
           key={currentName}
@@ -36,7 +36,7 @@ function SlidingCityName({ className = "" }: { className?: string }) {
             duration: 0.5,
             ease: [0.25, 0.46, 0.45, 0.94]
           }}
-          className="inline-block"
+          className="absolute left-1/2 -translate-x-1/2 inline-block"
         >
           {cityNames[currentName]}
         </motion.span>
