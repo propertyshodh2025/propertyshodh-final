@@ -87,7 +87,7 @@ const founders = [
   },
   {
     name: "Yadish",
-    role: "Tech Partner",
+    role: "Co-Founder & CTO",
     emphasis: "Platform architecture • End-to-end development",
     image:
       "/uploads/yadish.jpg",
