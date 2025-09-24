@@ -70,7 +70,10 @@ export const Header: React.FC = () => {
                   onLoad={() => console.log('NEW LOGO LOADED SUCCESSFULLY!')}
                 />
               </div>
-              <span className="text-2xl md:text-3xl font-bold text-primary dark:text-blue-400 whitespace-nowrap">PropertyShodh</span>
+              <span className="text-2xl md:text-3xl font-bold whitespace-nowrap">
+                <span className="text-primary dark:text-blue-400">Property</span>
+                <span className="text-blue-900 dark:text-blue-200">Shodh</span>
+              </span>
             </div>
 
             {/* Center: Navigation */}
