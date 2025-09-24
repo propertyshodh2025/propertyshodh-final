@@ -47,11 +47,11 @@ export const Header: React.FC = () => {
     <>
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? 'py-2 bg-background/80 backdrop-blur-2xl border-b border-white/20 dark:border-white/10 shadow-2xl shadow-primary/10' 
-          : 'py-4 bg-background/60 backdrop-blur-xl border-b border-white/30 dark:border-white/15 shadow-xl shadow-primary/5'
+          ? 'py-1 bg-background/80 backdrop-blur-2xl border-b border-white/20 dark:border-white/10 shadow-2xl shadow-primary/10' 
+          : 'py-3 bg-background/60 backdrop-blur-xl border-b border-white/30 dark:border-white/15 shadow-xl shadow-primary/5'
       }`}>
         <div className="w-full pl-1 pr-4 sm:pl-2 sm:pr-6 lg:pl-3 lg:pr-8">
-          <div className="flex items-center justify-between h-20 gap-4 min-w-0">
+          <div className="flex items-center justify-between h-16 gap-4 min-w-0">
             
             {/* Left: Logo */}
             <div 
