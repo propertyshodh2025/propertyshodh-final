@@ -300,7 +300,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
           <div className="relative space-y-4 max-w-4xl mx-auto">
             <div className="relative z-10">
               <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground">
-                <span className="bg-gradient-to-r from-primary via-accent to-primary dark:from-blue-400 dark:via-purple-400 dark:to-blue-400 bg-clip-text text-transparent animate-fade-in">
+                <span className="text-blue-800 dark:text-blue-300">
                   {t('find_your_perfect')}
                 </span>
                 <span className="text-foreground"> {t('property_in')}</span>
@@ -490,7 +490,7 @@ export const ModernHeroSection: React.FC<ModernHeroSectionProps> = ({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <Button onClick={handlePostProperty} size="lg" className="relative px-8 py-4 text-lg font-semibold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-all duration-300 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-primary/10 before:via-accent/10 before:to-primary/10 before:animate-pulse before:-z-10">
+            <Button onClick={handlePostProperty} size="lg" className="relative px-8 py-4 text-lg font-semibold rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-all duration-300 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl hover:shadow-secondary/30 hover:scale-105 hover:-translate-y-0.5 before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-primary/10 before:via-accent/10 before:to-primary/10 before:animate-pulse before:-z-10">
               <Home className="mr-2 h-5 w-5" />
               {t('post_free_property_ad')}
             </Button>
