@@ -55,10 +55,10 @@ export const Header: React.FC = () => {
             
             {/* Left: Logo */}
             <div 
-              className="flex items-center gap-3 cursor-pointer group flex-shrink-0 ml-0"
+              className="flex items-center gap-2 sm:gap-3 cursor-pointer group flex-shrink-0 ml-0"
               onClick={() => navigate('/')}
             >
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:shadow-primary/30 transition-all duration-300 overflow-hidden">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:shadow-primary/30 transition-all duration-300 overflow-hidden">
                 <img 
                   src="/uploads/324f6fd3-8142-434c-a7ea-4f1aabf59921.png" 
                   alt="Property Radar Logo" 
@@ -70,7 +70,7 @@ export const Header: React.FC = () => {
                   onLoad={() => console.log('NEW LOGO LOADED SUCCESSFULLY!')}
                 />
               </div>
-              <span className="text-3xl font-bold text-primary dark:text-blue-400 whitespace-nowrap">PropertyShodh</span>
+              <span className="text-2xl md:text-3xl font-bold text-primary dark:text-blue-400 whitespace-nowrap">PropertyShodh</span>
             </div>
 
             {/* Center: Navigation */}
@@ -170,7 +170,7 @@ export const Header: React.FC = () => {
             </div>
 
             {/* Mobile Menu */}
-            <div className="lg:hidden flex items-center gap-2 flex-shrink-0">
+            <div className="lg:hidden flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <LanguageToggle />
               <ThemeToggle />
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
