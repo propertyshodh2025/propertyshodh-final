@@ -207,25 +207,6 @@ export const OneTimeOnboardingDialog: React.FC<OneTimeOnboardingDialogProps> = (
                 >
                   Get Started
                 </Button>
-                
-                {/* 🚨 EMERGENCY SKIP BUTTON */}
-                <Button
-                  onClick={() => {
-                    if (user?.id) {
-                      // Set multiple localStorage flags to ensure popup never shows again
-                      localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
-                      localStorage.setItem(`emergency_skip_${user.id}`, 'true');
-                      localStorage.setItem(`popup_disabled_${user.id}`, 'true');
-                      console.log(`🚨 [EMERGENCY SKIP] User ${user.id} manually skipped onboarding - will NEVER show again`);
-                      onComplete();
-                    }
-                  }}
-                  variant="destructive"
-                  size="sm"
-                  className="w-full text-xs"
-                >
-                  🚨 EMERGENCY: Never Show This Again (Skip Onboarding)
-                </Button>
               </div>
             </>
           )}

@@ -171,18 +171,6 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
     }
   };
 
-  const handleClose = () => {
-    // Never allow closing when mandatory
-    if (!loading && !mandatory) {
-      setStep('terms');
-      setPhoneNumber('');
-      setOtp('');
-      setTermsAccepted(false);
-      setPrivacyAccepted(false);
-      setPolicyView(null);
-      onOpenChange(false);
-    }
-  };
 
   const handleBackFromPhone = () => {
     setStep('terms');
@@ -209,8 +197,8 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
   // Show policy viewer
   if (policyView) {
     return (
-      <Dialog open={open} onOpenChange={mandatory ? undefined : handleClose}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] z-[60]" onPointerDownOutside={mandatory ? (e) => e.preventDefault() : undefined} onEscapeKeyDown={mandatory ? (e) => e.preventDefault() : undefined}>
+      <Dialog open={open} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] z-[60]" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-center text-xl font-bold">
               {policyView === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
@@ -230,8 +218,8 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
   }
 
   return (
-    <Dialog open={open} onOpenChange={mandatory ? undefined : handleClose}>
-      <DialogContent className="sm:max-w-md z-[60]" onPointerDownOutside={mandatory ? (e) => e.preventDefault() : undefined} onEscapeKeyDown={mandatory ? (e) => e.preventDefault() : undefined}>
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="sm:max-w-md z-[60]" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
             {step === 'terms' ? 'Welcome to PropertyShodh!' : 
@@ -332,24 +320,6 @@ export const EnhancedMobileVerificationDialog: React.FC<EnhancedMobileVerificati
                   disabled={!canProceedFromTerms}
                 >
                   Continue to Mobile Verification
-                </Button>
-                
-                {/* 🚨 EMERGENCY SKIP BUTTON */}
-                <Button
-                  onClick={() => {
-                    if (user?.id) {
-                      localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
-                      console.log(`🚨 [EMERGENCY SKIP] User manually skipped onboarding - will never show again`);
-                      onComplete();
-                      if (!mandatory) {
-                        onOpenChange(false);
-                      }
-                    }
-                  }}
-                  variant="outline"
-                  className="w-full text-xs"
-                >
-                  🚨 Never Show This Again (Emergency Skip)
                 </Button>
               </div>
 
