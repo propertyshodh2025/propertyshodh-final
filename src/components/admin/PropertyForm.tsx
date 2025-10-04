@@ -219,11 +219,15 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
       }
       
       // Prepare the data to save
-      const dataToSave = {
+      const dataToSave: any = {
         ...formData,
-        property_category: finalPropertyCategory,
-        agricultural_land_type: formData.agricultural_land_type || null
+        property_category: finalPropertyCategory
       };
+      
+      // Add agricultural_land_type only if it has a value
+      if (formData.agricultural_land_type) {
+        dataToSave.agricultural_land_type = formData.agricultural_land_type;
+      }
       
       // Remove the temporary fields that shouldn't be saved to the database
       delete (dataToSave as any).primary_category;

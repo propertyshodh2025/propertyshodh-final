@@ -1076,13 +1076,12 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
       const generatedTitle = formData.title || `${formData.bhk || ''} BHK ${formData.property_type} in ${formData.location}`;
       
         // Prepare property data with new enhanced fields
-        const propertyData = {
+        const propertyData: any = {
           title: generatedTitle,
           description: formData.detailed_description || formData.description || `Beautiful ${formData.property_type} for ${formData.transaction_type}`,
           full_address: formData.full_address,
         property_type: formData.property_type,
         property_category: finalPropertyCategory,
-        agricultural_land_type: formData.agricultural_land_type || null,
         transaction_type: formData.transaction_type,
         bhk: formData.bhk,
         bathrooms: formData.bathrooms || 1,
@@ -1198,6 +1197,11 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
+      // Add agricultural_land_type only if the form data has it and it's not null
+      if (formData.agricultural_land_type) {
+        propertyData.agricultural_land_type = formData.agricultural_land_type;
+      }
 
       const { data: inserted, error } = await supabase
         .from('properties')

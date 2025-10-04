@@ -670,7 +670,7 @@ export const ConversationalAdminPropertyForm = ({
       const generatedTitle = (formData.title && formData.title.trim()) || `${formData.bhk || ''} BHK ${formData.property_type || ''} in ${formData.location || ''}`.replace(/\s+/g, ' ').trim();
       const finalDescription = formData.detailed_description || formData.description || `Beautiful ${formData.property_type || 'property'} for ${formData.transaction_type || 'sale/rent'}`;
 
-      const propertyData = {
+      const propertyData: any = {
         title: generatedTitle,
         description: finalDescription,
         property_type: formData.property_type || '',
@@ -692,7 +692,6 @@ export const ConversationalAdminPropertyForm = ({
         property_age: formData.property_age || '',
         transaction_type: formData.transaction_type || '',
         property_category: finalPropertyCategory,
-        agricultural_land_type: formData.agricultural_land_type || null,
         additional_notes: formData.additional_details || '',
         full_address: formData.full_address || '',
         approval_status: formData.approval_status || 'pending',
@@ -706,6 +705,11 @@ export const ConversationalAdminPropertyForm = ({
         broadband_ready: formData.broadband_ready || false,
         ...(property ? {} : { created_at: new Date().toISOString() })
       };
+
+      // Add agricultural_land_type only if it has a value
+      if (formData.agricultural_land_type) {
+        propertyData.agricultural_land_type = formData.agricultural_land_type;
+      }
 
       if (property) {
         const { error } = await supabase
