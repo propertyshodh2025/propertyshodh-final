@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { validatePropertyTitle, cleanPropertyTitle } from '@/lib/propertyUtils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { createMinimalPropertyData } from '@/lib/safePropertySubmission';
 
 interface PropertyFormProps {
   property?: Property | null;
@@ -218,20 +219,23 @@ export const PropertyForm = ({ property, onSave, onCancel }: PropertyFormProps) 
         finalPropertyCategory = formData.secondary_category.toLowerCase();
       }
       
-      // Prepare the data to save
-      const dataToSave: any = {
+      // Prepare form data with updated values
+      const formDataWithDefaults = {
         ...formData,
-        property_category: finalPropertyCategory
+        property_category: finalPropertyCategory,
+        listing_status: formData.listing_status || 'Active',
+        approval_status: 'pending',
+        verification_status: 'unverified',
+        submitted_by_user: false,
+        updated_at: new Date().toISOString()
       };
       
-      // Add agricultural_land_type only if it has a value
-      if (formData.agricultural_land_type) {
-        dataToSave.agricultural_land_type = formData.agricultural_land_type;
-      }
-      
       // Remove the temporary fields that shouldn't be saved to the database
-      delete (dataToSave as any).primary_category;
-      delete (dataToSave as any).secondary_category;
+      delete (formDataWithDefaults as any).primary_category;
+      delete (formDataWithDefaults as any).secondary_category;
+      
+      // Create safe property data that only includes existing database columns
+      const dataToSave = createMinimalPropertyData(formDataWithDefaults);
       
       // Validate and clean the property title
       const titleValidation = validatePropertyTitle(

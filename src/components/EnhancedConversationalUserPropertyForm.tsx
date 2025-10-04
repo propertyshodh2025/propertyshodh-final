@@ -15,6 +15,7 @@ import { LanguageToggle } from '@/components/LanguageToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LAND_MEASUREMENT_UNITS, convertToSquareFeet, getAreaDisplayText, validateAreaValue } from '@/lib/landUnits';
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
+import { createMinimalPropertyData } from '@/lib/safePropertySubmission';
 
 interface EnhancedConversationalUserPropertyFormProps {
   isOpen: boolean;
@@ -1075,122 +1076,16 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
       // Generate title if not provided
       const generatedTitle = formData.title || `${formData.bhk || ''} BHK ${formData.property_type} in ${formData.location}`;
       
-        // Prepare property data with new enhanced fields
-        const propertyData: any = {
-          title: generatedTitle,
-          description: formData.detailed_description || formData.description || `Beautiful ${formData.property_type} for ${formData.transaction_type}`,
-          full_address: formData.full_address,
-        property_type: formData.property_type,
+      // Prepare form data with generated values
+      const formDataWithDefaults = {
+        ...formData,
+        title: generatedTitle,
+        description: formData.detailed_description || formData.description || `Beautiful ${formData.property_type} for ${formData.transaction_type}`,
         property_category: finalPropertyCategory,
-        transaction_type: formData.transaction_type,
-        bhk: formData.bhk,
-        bathrooms: formData.bathrooms || 1,
-        price: formData.price,
-        location: formData.location,
-        city: formData.city,
-        locality: formData.locality,
-        pincode: formData.pincode,
-        carpet_area: formData.carpet_area,
-        built_up_area: formData.built_up_area,
-        super_built_up_area: formData.super_built_up_area,
-        plot_area: formData.plot_area,
-        
-        // Enhanced apartment fields
-        floor_number: formData.floor_number,
-        total_floors: formData.total_floors,
-        lift_available: formData.lift_available,
-        society_name: formData.society_name,
-        society_maintenance: formData.society_maintenance,
-        building_age: formData.building_age,
-        floor_plan_type: formData.floor_plan_type,
-        balconies: formData.balconies,
-        view_description: formData.view_description,
-        modular_kitchen: formData.modular_kitchen,
-        wardrobes_count: formData.wardrobes_count,
-        
-        // Enhanced plot fields
-        plot_length: formData.plot_length,
-        plot_width: formData.plot_width,
-        plot_shape: formData.plot_shape,
-        boundary_wall: formData.boundary_wall,
-        plot_corner: formData.plot_corner,
-        development_permissions: formData.development_permissions,
-        zone_classification: formData.zone_classification,
-        
-        // Enhanced commercial fields
-        office_type: formData.office_type,
-        cabin_count: formData.cabin_count,
-        conference_rooms: formData.conference_rooms,
-        reception_area: formData.reception_area,
-        it_infrastructure: formData.it_infrastructure,
-        building_grade: formData.building_grade,
-        front_footage: formData.front_footage,
-        display_windows: formData.display_windows,
-        foot_traffic_rating: formData.foot_traffic_rating,
-        business_licenses: formData.business_licenses,
-        
-        // Construction & quality
-        construction_materials: formData.construction_materials,
-        construction_grade: formData.construction_grade,
-        structural_warranty: formData.structural_warranty,
-        bathroom_fittings: formData.bathroom_fittings,
-        
-        // Utilities & infrastructure
-        water_connection_type: formData.water_connection_type,
-        electricity_load: formData.electricity_load,
-        sewerage_connection: formData.sewerage_connection,
-        broadband_ready: formData.broadband_ready,
-        backup_power: formData.backup_power,
-        
-        // Legal & documentation
-        title_deed_clear: formData.title_deed_clear,
-        approvals_obtained: formData.approvals_obtained,
-        survey_number: formData.survey_number,
-        khata_number: formData.khata_number,
-        revenue_records: formData.revenue_records,
-        
-        // Investment & financial
-        ready_to_move: formData.ready_to_move,
-        possession_timeline: formData.possession_timeline,
-        investment_potential: formData.investment_potential,
-        appreciation_forecast: formData.appreciation_forecast,
-        
-        // Agricultural
-        soil_type: formData.soil_type,
-        water_source: formData.water_source,
-        irrigation_type: formData.irrigation_type,
-        crop_history: formData.crop_history,
-        farm_equipment_included: formData.farm_equipment_included,
-        
-        // Accessibility & connectivity
-        public_transport_distance: formData.public_transport_distance,
-        highway_connectivity: formData.highway_connectivity,
-        airport_distance: formData.airport_distance,
-        metro_connectivity: formData.metro_connectivity,
-        
-        // Security & safety
-        security_features: formData.security_features,
-        cctv_surveillance: formData.cctv_surveillance,
-        fire_safety_features: formData.fire_safety_features,
-        earthquake_resistant: formData.earthquake_resistant,
-        
-        amenities: formData.amenities,
-        highlights: formData.highlights,
         images: uploadedImageUrls,
-        furnishing: formData.furnishing,
-        parking_spaces: formData.parking_spaces,
-        parking_type: formData.parking_type,
-        built_year: formData.built_year,
-        property_age: formData.property_age,
-        facing: formData.facing,
-        ownership_type: formData.ownership_type,
         listing_status: 'active',
         approval_status: 'pending',
         verification_status: 'unverified',
-        full_name: formData.full_name,
-        contact_number: formData.contact_number,
-        email_address: formData.email_address,
-        preferred_contact_time: formData.preferred_contact_time,
         language_preference: formData.language_preference || 'english',
         user_id: user.id,
         submitted_by_user: true,
@@ -1198,10 +1093,8 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
         updated_at: new Date().toISOString()
       };
 
-      // Add agricultural_land_type only if the form data has it and it's not null
-      if (formData.agricultural_land_type) {
-        propertyData.agricultural_land_type = formData.agricultural_land_type;
-      }
+      // Create safe property data that only includes existing database columns
+      const propertyData = createMinimalPropertyData(formDataWithDefaults);
 
       const { data: inserted, error } = await supabase
         .from('properties')

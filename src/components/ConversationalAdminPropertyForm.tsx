@@ -17,6 +17,7 @@ import { TranslatableText } from '@/components/TranslatableText';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AURANGABAD_AREAS } from '@/lib/aurangabadAreas';
+import { createMinimalPropertyData } from '@/lib/safePropertySubmission';
 
 interface ConversationalAdminPropertyFormProps {
   isOpen: boolean;
@@ -670,46 +671,25 @@ export const ConversationalAdminPropertyForm = ({
       const generatedTitle = (formData.title && formData.title.trim()) || `${formData.bhk || ''} BHK ${formData.property_type || ''} in ${formData.location || ''}`.replace(/\s+/g, ' ').trim();
       const finalDescription = formData.detailed_description || formData.description || `Beautiful ${formData.property_type || 'property'} for ${formData.transaction_type || 'sale/rent'}`;
 
-      const propertyData: any = {
+      // Prepare form data with generated values
+      const formDataWithDefaults = {
+        ...formData,
         title: generatedTitle,
         description: finalDescription,
-        property_type: formData.property_type || '',
-        bhk: formData.bhk || 1,
-        price: formData.price || 0,
-        location: formData.location || '',
-        city: 'Aurangabad',
-        carpet_area: formData.carpet_area || 0,
-        amenities: formData.amenities || [],
+        property_category: finalPropertyCategory,
+        city: formData.city || 'Aurangabad',
+        images: imageUrls,
         listing_status: formData.listing_status || 'active',
         agent_name: (formData.agent_name && formData.agent_name.trim()) || (formData.full_name || ''),
         agent_phone: (formData.agent_phone && formData.agent_phone.trim()) || (formData.contact_number || ''),
-        google_map_link: formData.google_map_link || '',
-        images: imageUrls,
-        furnishing: formData.furnishing || '',
-        bathrooms: formData.bathrooms || 1,
-        balconies: formData.balconies || 0,
-        parking_type: formData.parking || '',
-        property_age: formData.property_age || '',
-        transaction_type: formData.transaction_type || '',
-        property_category: finalPropertyCategory,
-        additional_notes: formData.additional_details || '',
-        full_address: formData.full_address || '',
         approval_status: formData.approval_status || 'pending',
-        highlights: formData.highlights || [],
         submitted_by_user: false,
         updated_at: new Date().toISOString(),
-        // Security and infrastructure features
-        cctv_surveillance: formData.cctv_surveillance || false,
-        earthquake_resistant: formData.earthquake_resistant || false,
-        sewerage_connection: formData.sewerage_connection || false,
-        broadband_ready: formData.broadband_ready || false,
         ...(property ? {} : { created_at: new Date().toISOString() })
       };
-
-      // Add agricultural_land_type only if it has a value
-      if (formData.agricultural_land_type) {
-        propertyData.agricultural_land_type = formData.agricultural_land_type;
-      }
+      
+      // Create safe property data that only includes existing database columns
+      const propertyData = createMinimalPropertyData(formDataWithDefaults);
 
       if (property) {
         const { error } = await supabase
