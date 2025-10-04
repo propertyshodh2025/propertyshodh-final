@@ -440,16 +440,10 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
           required: true
         } as ChatStep,
         {
-          question: "Please provide the complete address of your property:",
+          question: "Please provide the complete address of your property (optional):",
           type: 'text',
           key: 'full_address',
-          required: true,
-          validation: (value: string) => {
-            if (!value || value.trim().length < 15) {
-              return "Please enter a complete address (at least 15 characters)";
-            }
-            return null;
-          }
+          required: false
         } as ChatStep,
         {
           question: "What's the pincode of your property?",
@@ -480,16 +474,10 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
     // Description after price
     if (formData.price > 0) {
       baseSteps.push({
-        question: "Please provide a detailed description of your property. What makes it special?",
+        question: "Please provide a detailed description of your property (optional). What makes it special?",
         type: 'text',
         key: 'detailed_description',
-        required: true,
-        validation: (value: string) => {
-          if (!value || value.trim().length < 25) {
-            return "Please provide a detailed description (at least 25 characters)";
-          }
-          return null;
-        }
+        required: false
       } as ChatStep);
     }
 
@@ -1224,7 +1212,7 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
           <div className="space-y-4">
             <ChatInput
               type={step.type === 'number' ? 'number' : 'text'}
-              placeholder={`Enter ${step.key.replace('_', ' ')}`}
+              placeholder={`Enter ${step.key.replace('_', ' ')}${!step.required ? ' (optional)' : ''}`}
               onSubmit={(value) => {
                 const processedValue = step.type === 'number' ? Number(value) : value;
                 if (step.validation) {
@@ -1241,15 +1229,27 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
                 handleStepAnswer(step.key, processedValue);
               }}
             />
-            {currentStep > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep(prev => prev - 1)}
-                size="sm"
-              >
-                Previous
-              </Button>
-            )}
+            <div className="flex justify-between items-center">
+              {currentStep > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentStep(prev => prev - 1)}
+                  size="sm"
+                >
+                  Previous
+                </Button>
+              )}
+              {!step.required && (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleStepAnswer(step.key, '')}
+                  size="sm"
+                  className="ml-auto text-muted-foreground hover:text-foreground"
+                >
+                  Skip
+                </Button>
+              )}
+            </div>
           </div>
         );
 
@@ -1367,14 +1367,17 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
                 </div>
                 
                 {/* User Response */}
-                {index < currentStep && formData[step.key as keyof FormData] && (
+                {index < currentStep && (formData[step.key as keyof FormData] || formData.hasOwnProperty(step.key)) && (
                   <div className="flex items-start space-x-3 justify-end">
                     <div className="flex-1 max-w-xs bg-primary rounded-2xl rounded-tr-sm p-3 shadow-sm">
                       <p className="text-sm text-primary-foreground">
-                        {Array.isArray(formData[step.key as keyof FormData]) 
-                          ? (formData[step.key as keyof FormData] as any[]).join(', ')
-                          : getDisplayValue(step.key, formData[step.key as keyof FormData], step)
-                        }
+                        {formData[step.key as keyof FormData] ? (
+                          Array.isArray(formData[step.key as keyof FormData]) 
+                            ? (formData[step.key as keyof FormData] as any[]).join(', ')
+                            : getDisplayValue(step.key, formData[step.key as keyof FormData], step)
+                        ) : (
+                          !step.required ? 'Skipped' : ''
+                        )}
                       </p>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-sm font-medium">

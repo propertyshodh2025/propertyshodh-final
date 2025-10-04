@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumberWithLocale } from '@/lib/locale';
 import { translateEnum } from '@/lib/staticTranslations';
 import { shouldPropertyHaveBHK, getPropertyTypeDisplayName } from '@/lib/propertyUtils';
+import { TranslatableText } from '@/components/TranslatableText';
 
 interface PropertyCardProps {
   property: Property;
@@ -18,7 +19,7 @@ interface PropertyCardProps {
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
   const { toast } = useToast();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
 
   const formatPrice = (price: number) => {
@@ -49,8 +50,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
     } else {
       navigator.clipboard.writeText(propertyUrl);
       toast({
-        title: "Link Copied!",
-        description: "Property link copied to clipboard"
+        title: t('link_copied'),
+        description: t('property_link_copied')
       });
     }
   };
@@ -94,7 +95,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
         </div>
         
         <h3 className="font-semibold text-lg mb-3 line-clamp-2 text-foreground hover:text-primary transition-colors">
-          {property.title}
+          <TranslatableText text={property.title} context="property.title" />
         </h3>
         
         <div className="flex items-center text-muted-foreground mb-4">
@@ -129,8 +130,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
         </div>
 
         {property.amenities && property.amenities.length > 0 && (
-          <div className="mb-4">
-            <span className="text-sm text-muted-foreground mb-2 block">Amenities:</span>
+        <div className="mb-4">
+            <span className="text-sm text-muted-foreground mb-2 block">{t('amenities')}:</span>
             <div className="flex flex-wrap gap-1">
               {property.amenities.slice(0, 3).map(amenity => (
                 <Badge key={amenity} variant="outline" className="text-xs">
@@ -139,7 +140,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
               ))}
               {property.amenities.length > 3 && (
                 <Badge variant="outline" className="text-xs">
-                  +{property.amenities.length - 3} more
+                  +{property.amenities.length - 3} {t('more')}
                 </Badge>
               )}
             </div>
@@ -150,7 +151,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
           {property.contact_number && (
             <Button size="sm" onClick={() => handleWhatsApp(property.contact_number)} className="flex-1">
               <Phone className="h-4 w-4 mr-2" />
-              WhatsApp
+              {t('whatsapp')}
             </Button>
           )}
           
@@ -162,7 +163,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
 
           <Link to={`/property/${property.id}`} className="flex-1">
             <Button size="sm" variant="outline" className="w-full">
-              View Details
+              {t('view_details')}
             </Button>
           </Link>
         </div>
