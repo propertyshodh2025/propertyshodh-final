@@ -411,13 +411,14 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
     // Transaction type
     if (formData.property_type) {
       baseSteps.push({
-        question: "Are you looking to sell, rent, or lease your property?",
+        question: "What would you like to do with your property?",
         type: 'select',
         key: 'transaction_type',
         options: [
           { id: 'buy', label: '💰 Sell', value: 'buy' },
           { id: 'rent', label: '🏠 Rent', value: 'rent' },
-          { id: 'lease', label: '📄 Lease', value: 'lease' }
+          { id: 'lease', label: '📄 Lease', value: 'lease' },
+          { id: 'develop', label: '🏗️ Develop my property (Partner with builders)', value: 'develop' }
         ],
         required: true
       });
@@ -967,13 +968,31 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
     return formData.price > 0;
   };
 
+  const getDefaultDescription = (propertyType: string, transactionType: string): string => {
+    if (transactionType === 'develop') {
+      return `Excellent ${propertyType} property available for development partnership with experienced builders. Great investment opportunity.`;
+    } else if (transactionType === 'buy') {
+      return `Beautiful ${propertyType} for sale`;
+    } else if (transactionType === 'rent') {
+      return `Beautiful ${propertyType} for rent`;
+    } else if (transactionType === 'lease') {
+      return `Beautiful ${propertyType} for lease`;
+    } else {
+      return `Beautiful ${propertyType} available`;
+    }
+  };
+
   const getPropertyPriceQuestion = () => {
     if (formData.transaction_type === 'buy') {
       return "What's your expected selling price? (in ₹)";
     } else if (formData.transaction_type === 'rent') {
       return "What's your expected monthly rent? (in ₹)";
-    } else {
+    } else if (formData.transaction_type === 'lease') {
       return "What's your expected lease amount? (in ₹)";
+    } else if (formData.transaction_type === 'develop') {
+      return "What's your expected property value for development partnership? (in ₹)";
+    } else {
+      return "What's your expected amount? (in ₹)";
     }
   };
 
@@ -1085,7 +1104,7 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
       const formDataWithDefaults = {
         ...formData,
         title: generatedTitle,
-        description: formData.detailed_description || formData.description || `Beautiful ${formData.property_type} for ${formData.transaction_type}`,
+        description: formData.detailed_description || formData.description || getDefaultDescription(formData.property_type, formData.transaction_type),
         property_category: finalPropertyCategory,
         images: uploadedImageUrls,
         listing_status: 'active',

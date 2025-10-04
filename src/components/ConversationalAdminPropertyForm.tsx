@@ -9,6 +9,7 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { ChatProgress } from '@/components/chat/ChatProgress';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { Combobox } from '@/components/ui/combobox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Property } from '@/types/database';
@@ -157,10 +158,42 @@ export const ConversationalAdminPropertyForm = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { language } = useLanguage();
 
+  // Helper function to get display value for user responses
+  const getDisplayValue = (key: string, value: any, options?: any[]): string => {
+    if (value === null || value === undefined) return '';
+    
+    // For select type steps, find the option with matching value and return its label
+    if (options) {
+      const option = options.find(opt => opt.value === value);
+      if (option) {
+        // Remove emoji from label for cleaner display
+        return option.label.replace(/^[\u{1F300}-\u{1F9FF}]\s*/u, '').trim();
+      }
+    }
+    
+    return String(value);
+  };
+
+  const getDefaultDescription = (propertyType: string, transactionType: string): string => {
+    if (transactionType === 'develop') {
+      return `Excellent ${propertyType} property available for development partnership with experienced builders. Great investment opportunity.`;
+    } else if (transactionType === 'buy') {
+      return `Beautiful ${propertyType} for sale`;
+    } else if (transactionType === 'rent') {
+      return `Beautiful ${propertyType} for rent`;
+    } else if (transactionType === 'lease') {
+      return `Beautiful ${propertyType} for lease`;
+    } else {
+      return `Beautiful ${propertyType} available`;
+    }
+  };
+
   const getPropertyPriceQuestion = () => {
     if (formData.transaction_type === 'buy') return "What's your expected selling price? (in ₹)";
     if (formData.transaction_type === 'rent') return "What's your expected monthly rent? (in ₹)";
-    return "What's your expected lease amount? (in ₹)";
+    if (formData.transaction_type === 'lease') return "What's your expected lease amount? (in ₹)";
+    if (formData.transaction_type === 'develop') return "What's your expected property value for development partnership? (in ₹)";
+    return "What's your expected amount? (in ₹)";
   };
 
   const generateChatSteps = (currentFormData = formData) => {
@@ -244,12 +277,13 @@ export const ConversationalAdminPropertyForm = ({
     if (currentFormData.property_type) {
       steps.push({
         id: 'transaction_type',
-        question: 'Are you looking to sell, rent, or lease your property?',
+        question: 'What would you like to do with your property?',
         type: 'select' as const,
         options: [
           { id: 'buy', label: '💰 Sell', value: 'buy' },
           { id: 'rent', label: '🏠 Rent', value: 'rent' },
-          { id: 'lease', label: '📄 Lease', value: 'lease' }
+          { id: 'lease', label: '📄 Lease', value: 'lease' },
+          { id: 'develop', label: '🏗️ Develop my property (Partner with builders)', value: 'develop' }
         ]
       });
     }
@@ -259,7 +293,7 @@ export const ConversationalAdminPropertyForm = ({
         {
           id: 'location',
           question: 'Where is your property located in Aurangabad?',
-          type: 'select' as const,
+          type: 'location-dropdown' as const,
           options: AURANGABAD_AREAS.map(area => ({ id: area.toLowerCase().replace(/\s+/g, '-'), label: area, value: area }))
         },
         {
@@ -271,15 +305,10 @@ export const ConversationalAdminPropertyForm = ({
         },
         {
           id: 'full_address',
-          question: 'Please provide the complete address of your property:',
+          question: 'Please provide the complete address of your property (optional):',
           type: 'textarea' as const,
           placeholder: 'e.g., Flat 301, ABC Apartments, Near XYZ Mall, Main Road, Locality Name, City - Pincode',
-          validation: (value: string) => {
-            if (!value || value.trim().length < 10) {
-              return 'Please enter a complete address (at least 10 characters)';
-            }
-            return null;
-          }
+          optional: true
         },
         {
           id: 'pincode',
@@ -362,15 +391,10 @@ export const ConversationalAdminPropertyForm = ({
     if (currentFormData.price && Number(currentFormData.price) > 0) {
       steps.push({
         id: 'detailed_description',
-        question: 'Please provide a detailed description of your property. Mention unique features, nearby amenities, and what makes it special:',
+        question: 'Please provide a detailed description of your property (optional). Mention unique features, nearby amenities, and what makes it special:',
         type: 'textarea' as const,
         placeholder: 'e.g., This beautiful property features spacious rooms with excellent ventilation, modern amenities, close to schools and hospitals, with easy access to public transportation...',
-        validation: (value: string) => {
-          if (!value || value.trim().length < 20) {
-            return 'Please provide a detailed description (at least 20 characters)';
-          }
-          return null;
-        }
+        optional: true
       });
     }
 
@@ -669,7 +693,7 @@ export const ConversationalAdminPropertyForm = ({
       
       // Generate title/description similar to user flow
       const generatedTitle = (formData.title && formData.title.trim()) || `${formData.bhk || ''} BHK ${formData.property_type || ''} in ${formData.location || ''}`.replace(/\s+/g, ' ').trim();
-      const finalDescription = formData.detailed_description || formData.description || `Beautiful ${formData.property_type || 'property'} for ${formData.transaction_type || 'sale/rent'}`;
+      const finalDescription = formData.detailed_description || formData.description || getDefaultDescription(formData.property_type || 'property', formData.transaction_type || 'buy');
 
       // Prepare form data with generated values
       const formDataWithDefaults = {
@@ -806,31 +830,57 @@ export const ConversationalAdminPropertyForm = ({
           />
         );
       
+      case 'location-dropdown':
+        return (
+          <div className="space-y-4">
+            <Combobox
+              options={step.options || []}
+              value={formData[step.id as keyof AdminFormData] as string || ''}
+              onValueChange={(value) => handleStepAnswer(value)}
+              placeholder="Search and select a location..."
+              emptyMessage="No location found."
+              className="w-full"
+            />
+          </div>
+        );
+      
       case 'input':
       case 'textarea':
         return (
-          <ChatInput
-            placeholder={step.placeholder || ''}
-            onSubmit={(value) => {
-              console.log('ChatInput submission for step:', step.id, 'value:', value);
-              if (step.validation) {
-                const validationResult = step.validation(value);
-                console.log('Validation result for', step.id, ':', validationResult);
-                if (validationResult) {
-                  toast({
-                    title: "Validation Error",
-                    description: validationResult,
-                    variant: "destructive"
-                  });
-                  return;
+          <div className="space-y-4">
+            <ChatInput
+              placeholder={(step.placeholder || '') + (step.optional ? ' (optional)' : '')}
+              onSubmit={(value) => {
+                console.log('ChatInput submission for step:', step.id, 'value:', value);
+                if (step.validation) {
+                  const validationResult = step.validation(value);
+                  console.log('Validation result for', step.id, ':', validationResult);
+                  if (validationResult) {
+                    toast({
+                      title: "Validation Error",
+                      description: validationResult,
+                      variant: "destructive"
+                    });
+                    return;
+                  }
                 }
-              }
-              handleStepAnswer(value);
-            }}
-            multiline={step.type === 'textarea'}
-            type={step.inputType}
-            validation={step.validation}
-          />
+                handleStepAnswer(value);
+              }}
+              multiline={step.type === 'textarea'}
+              type={step.inputType}
+              validation={step.validation}
+            />
+            {step.optional && (
+              <Button
+                variant="ghost"
+                onClick={() => handleStepAnswer('')}
+                size="sm"
+                className="w-full text-muted-foreground hover:text-foreground"
+              >
+                Skip this step
+              </Button>
+            )}
+          </div>
         );
       
       case 'images':
@@ -926,11 +976,15 @@ export const ConversationalAdminPropertyForm = ({
                 </>
               )}
               
-              {index < currentStep && formData[step.id as keyof AdminFormData] && (
+              {index < currentStep && (formData[step.id as keyof AdminFormData] || (step.optional && formData.hasOwnProperty(step.id))) && (
                 <ChatMessage
-                  message={Array.isArray(formData[step.id as keyof AdminFormData]) 
-                    ? `Selected: ${(formData[step.id as keyof AdminFormData] as string[]).join(', ')}`
-                    : `${formData[step.id as keyof AdminFormData]}`}
+                  message={formData[step.id as keyof AdminFormData] ? (
+                    Array.isArray(formData[step.id as keyof AdminFormData]) 
+                      ? `Selected: ${(formData[step.id as keyof AdminFormData] as string[]).join(', ')}`
+                      : getDisplayValue(step.id, formData[step.id as keyof AdminFormData], step.options)
+                  ) : (
+                    step.optional ? 'Skipped' : ''
+                  )}
                   isBot={false}
                   timestamp={new Date()}
                 />

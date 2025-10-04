@@ -7,6 +7,7 @@ import { formatINRShort } from '@/lib/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { TranslatableText } from '@/components/TranslatableText';
+import { translateEnum } from '@/lib/staticTranslations';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface Property {
@@ -245,8 +246,7 @@ export const MiniFeaturedCarousel = () => {
                     }`}>
                       <MapPin className={`shrink-0 ${isMobile ? 'h-4 w-4' : 'h-3 w-3'}`} />
                       <span className="truncate">
-                        <TranslatableText text={property.location} context="property.location" />, 
-                        <TranslatableText text={property.city} context="property.city" />
+                        {translateEnum(property.location, language)}, {translateEnum(property.city, language)}
                       </span>
                     </div>
                   </div>

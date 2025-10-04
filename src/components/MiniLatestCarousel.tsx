@@ -6,7 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatINRShort } from '@/lib/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
-import { TranslatableText } from '@/components/TranslatableText'; // Import TranslatableText
+import { TranslatableText } from '@/components/TranslatableText';
+import { translateEnum } from '@/lib/staticTranslations';
 
 interface Property {
   id: string;
@@ -105,7 +106,7 @@ export const MiniLatestCarousel = () => {
   if (loading) {
     return (
       <div className="w-full overflow-hidden py-4 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold mb-4">Latest Property</h2>
+        <h2 className="text-2xl font-bold mb-4">{t('latest_property')}</h2>
         <div className="flex gap-4 animate-pulse">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="min-w-[280px] h-64 bg-muted rounded-lg" />
@@ -118,7 +119,7 @@ export const MiniLatestCarousel = () => {
   if (error) {
     return (
       <div className="w-full py-4 px-4 sm:px-6 lg:px-8 text-red-500">
-        <h2 className="text-2xl font-bold mb-4">Latest Property</h2>
+        <h2 className="text-2xl font-bold mb-4">{t('latest_property')}</h2>
         <p>{t('error_loading_properties')}: {error}</p>
       </div>
     );
@@ -127,7 +128,7 @@ export const MiniLatestCarousel = () => {
   if (properties.length === 0) {
     return (
       <div className="w-full py-4 px-4 sm:px-6 lg:px-8 text-muted-foreground">
-        <h2 className="text-2xl font-bold mb-4">Latest Property</h2>
+        <h2 className="text-2xl font-bold mb-4">{t('latest_property')}</h2>
         <p>{t('no_latest_properties_available')}</p>
       </div>
     );
@@ -135,7 +136,7 @@ export const MiniLatestCarousel = () => {
 
   return (
     <div className="w-full overflow-hidden py-4 px-4 sm:px-6 lg:px-8">
-      <h2 className="text-2xl font-bold mb-4 text-white dark:text-gray-200">Latest Property</h2>
+      <h2 className="text-2xl font-bold mb-4 text-white dark:text-gray-200">{t('latest_property')}</h2>
       <style jsx>{`
         .marquee {
           animation: marquee-scroll linear infinite;
@@ -186,7 +187,7 @@ export const MiniLatestCarousel = () => {
                 </p>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
                   <MapPin className="h-3 w-3" />
-                  <span className="truncate"><TranslatableText text={property.location} context="property.location" />, <TranslatableText text={property.city} context="property.city" /></span>
+                  <span className="truncate">{translateEnum(property.location, language)}, {translateEnum(property.city, language)}</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">

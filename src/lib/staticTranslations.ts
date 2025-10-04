@@ -10,6 +10,8 @@ const MAP: Record<string, string> = {
   'for rent': 'भाड्याने',
   'lease': 'लीज',
   'for lease': 'लीज',
+  'sell': 'विक्री',
+  'purchase': 'खरेदी',
 
   // Categories
   'residential': 'निवासी',

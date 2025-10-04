@@ -436,7 +436,16 @@ const translations = {
     'oldest_first': 'Oldest First',
     'relevance': 'Relevance',
     'property.featured': 'Featured',
-    'property.noImage': 'No image available'
+    'property.noImage': 'No image available',
+    'featured': 'Featured',
+    'new': 'New',
+    'bhk': 'BHK',
+    'bath': 'Bath',
+    'sq_ft': 'sq ft',
+    'latest_property': 'Latest Property',
+    'error_loading_properties': 'Error loading properties',
+    'no_featured_properties_available': 'No featured properties available',
+    'no_latest_properties_available': 'No latest properties available'
   },
   marathi: {
     // Personal Information
@@ -865,7 +874,16 @@ const translations = {
     'oldest_first': 'सर्वात जुनी',
     'relevance': 'संबंध',
     'property.featured': 'फीचर्ड',
-    'property.noImage': 'प्रतिमा उपलब्ध नाही'
+    'property.noImage': 'प्रतिमा उपलब्ध नाही',
+    'featured': 'फीचर्ड',
+    'new': 'नवे',
+    'bhk': 'BHK',
+    'bath': 'स्नानगृह',
+    'sq_ft': 'चौ. फु.',
+    'latest_property': 'नवीनतम मालमत्ता',
+    'error_loading_properties': 'मालमत्ता लोड करताना त्रुटी',
+    'no_featured_properties_available': 'कोणत्याही फीचर्ड मालमत्ता उपलब्ध नाहीत',
+    'no_latest_properties_available': 'कोणत्याही नवीनतम मालमत्ता उपलब्ध नाहीत'
   }
 };
 
