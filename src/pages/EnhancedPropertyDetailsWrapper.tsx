@@ -15,6 +15,15 @@ const EnhancedPropertyDetailsWrapper: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Scroll to top when component mounts or property ID changes
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth'
+    });
+  }, [id]);
+
   useEffect(() => {
     const fetchProperty = async () => {
       if (!id) {

@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { QuickReplyButtons } from '@/components/chat/QuickReplyButtons';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { Combobox } from '@/components/ui/combobox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +25,7 @@ interface EnhancedConversationalUserPropertyFormProps {
 
 interface ChatStep {
   question: string;
-  type: 'select' | 'multi-select' | 'text' | 'number' | 'images';
+  type: 'select' | 'multi-select' | 'text' | 'number' | 'images' | 'location-dropdown';
   key: string;
   options?: any[];
   required: boolean;
@@ -248,6 +249,22 @@ const AURANGABAD_LOCATIONS = AURANGABAD_AREAS.map(area => ({
   value: area
 }));
 
+// Helper function to get display value for user responses
+const getDisplayValue = (key: string, value: any, step: ChatStep): string => {
+  if (value === null || value === undefined) return '';
+  
+  // For select and location-dropdown type steps, find the option with matching value and return its label
+  if ((step.type === 'select' || step.type === 'location-dropdown') && step.options) {
+    const option = step.options.find(opt => opt.value === value);
+    if (option) {
+      // Remove emoji from label for cleaner display
+      return option.label.replace(/^[\u{1F300}-\u{1F9FF}]\s*/u, '').trim();
+    }
+  }
+  
+  return String(value);
+};
+
 export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: EnhancedConversationalUserPropertyFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -411,7 +428,7 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
       baseSteps.push(
         {
           question: "Where is your property located in Aurangabad?",
-          type: 'select',
+          type: 'location-dropdown',
           key: 'location',
           options: AURANGABAD_LOCATIONS,
           required: true
@@ -1271,6 +1288,32 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
           </div>
         );
 
+      case 'location-dropdown':
+        return (
+          <div className="space-y-4">
+            <Combobox
+              options={step.options || []}
+              value={formData[step.key as keyof FormData] as string || ''}
+              onValueChange={(value) => {
+                handleStepAnswer(step.key, value);
+              }}
+              placeholder="Search and select a location..."
+              emptyMessage="No location found."
+              className="w-full"
+            />
+            {currentStep > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(prev => prev - 1)}
+                size="sm"
+                className="mt-4"
+              >
+                Previous
+              </Button>
+            )}
+          </div>
+        );
+
       default:
         return null;
     }
@@ -1330,7 +1373,7 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
                       <p className="text-sm text-primary-foreground">
                         {Array.isArray(formData[step.key as keyof FormData]) 
                           ? (formData[step.key as keyof FormData] as any[]).join(', ')
-                          : String(formData[step.key as keyof FormData])
+                          : getDisplayValue(step.key, formData[step.key as keyof FormData], step)
                         }
                       </p>
                     </div>
