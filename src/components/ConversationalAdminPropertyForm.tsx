@@ -376,7 +376,7 @@ export const ConversationalAdminPropertyForm = ({
           type: 'input' as const, 
           inputType: 'number' as const 
         });
-      } else {
+        
         // Add bedrooms question for other residential property types
         const effectiveCategory = currentFormData.primary_category === 'land' 
           ? currentFormData.secondary_category 
