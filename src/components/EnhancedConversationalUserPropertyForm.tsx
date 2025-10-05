@@ -767,6 +767,30 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
       );
     }
 
+    // Add bedrooms question for all residential property types (except plots)
+    const effectiveCategory = formData.primary_category === 'land' 
+      ? formData.secondary_category 
+      : formData.primary_category;
+    
+    if (effectiveCategory === 'residential' && 
+        formData.property_type && 
+        !['plot_land', 'plot', 'commercial_plot'].includes(formData.property_type) &&
+        !formData.bhk) { // Only add if BHK not already asked
+      steps.push({
+        question: "How many bedrooms does your property have?",
+        type: 'select' as const,
+        key: 'bedrooms',
+        options: [
+          { id: '1', label: '1 Bedroom', value: 1 },
+          { id: '2', label: '2 Bedrooms', value: 2 },
+          { id: '3', label: '3 Bedrooms', value: 3 },
+          { id: '4', label: '4 Bedrooms', value: 4 },
+          { id: '5', label: '5+ Bedrooms', value: 5 }
+        ],
+        required: true
+      });
+    }
+
     // Common details for all property types
     const commonDetails: ChatStep[] = [
       {
@@ -807,15 +831,28 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
           { id: 'none', label: '❌ No Parking', value: 'No Parking' }
         ],
         required: true
-      },
-      {
+      }
+    ];
+
+    // Add parking spaces question only for covered/stilt parking
+    if (formData.parking_type && 
+        ['Covered Parking', 'Stilt Parking'].includes(formData.parking_type)) {
+      commonDetails.push({
         question: "How many parking spaces are available?",
         type: 'number' as const,
         key: 'parking_spaces',
         required: true,
         validation: (value: number) => value >= 0 ? null : "Please enter a valid number of parking spaces"
+      });
+    } else if (formData.parking_type) {
+      // Set default parking spaces based on type
+      if (formData.parking_type === 'Open Parking') {
+        // Set a default value for open parking (typically 1)
+        formData.parking_spaces = 1;
+      } else if (formData.parking_type === 'No Parking') {
+        formData.parking_spaces = 0;
       }
-    ];
+    }
 
     if (formData.property_type !== 'plot' && formData.property_type !== 'commercial_plot' && formData.property_category !== 'agricultural') {
       commonDetails.push({
@@ -1028,6 +1065,24 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
         };
       }
       
+      // Auto-manage parking amenity based on parking type
+      if (key === 'parking_type') {
+        const currentAmenities = (prev.amenities || []).filter(a => a !== 'parking');
+        if (value && value !== 'No Parking') {
+          // Add parking amenity for any parking type except "No Parking"
+          updated = {
+            ...updated,
+            amenities: [...currentAmenities, 'parking']
+          };
+        } else {
+          // Remove parking amenity if no parking
+          updated = {
+            ...updated,
+            amenities: currentAmenities
+          };
+        }
+      }
+      
       console.log('Updated form data:', updated);
       return updated;
     });
@@ -1097,8 +1152,9 @@ export const EnhancedConversationalUserPropertyForm = ({ isOpen, onClose }: Enha
         finalPropertyCategory = formData.secondary_category.toLowerCase();
       }
       
-      // Generate title if not provided
-      const generatedTitle = formData.title || `${formData.bhk || ''} BHK ${formData.property_type} in ${formData.location}`;
+      // Generate title if not provided - use bedrooms or bhk count
+      const bedroomCount = formData.bedrooms || formData.bhk || '';
+      const generatedTitle = formData.title || `${bedroomCount ? bedroomCount + ' BHK' : ''} ${formData.property_type} in ${formData.location}`.replace(/\s+/g, ' ').trim();
       
       // Prepare form data with generated values
       const formDataWithDefaults = {

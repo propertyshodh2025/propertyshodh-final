@@ -376,6 +376,50 @@ export const ConversationalAdminPropertyForm = ({
           type: 'input' as const, 
           inputType: 'number' as const 
         });
+      } else {
+        // Add bedrooms question for other residential property types
+        const effectiveCategory = currentFormData.primary_category === 'land' 
+          ? currentFormData.secondary_category 
+          : currentFormData.primary_category;
+        
+        if (effectiveCategory === 'residential' && 
+            !['plot', 'commercial_plot', 'farm', 'farmhouse', 'land', 'agricultural_land'].includes(pt) &&
+            !currentFormData.bhk) {
+          steps.push({
+            id: 'bedrooms',
+            question: "How many bedrooms does your property have?",
+            type: 'select' as const,
+            options: [1,2,3,4,5].map(n => ({ id: String(n), label: `${n} Bedroom${n > 1 ? 's' : ''}`, value: n }))
+          });
+        }
+      }
+      
+      // Add parking questions for all property types (except plots)
+      if (!['plot', 'commercial_plot', 'farm', 'farmhouse', 'land', 'agricultural_land'].includes(pt)) {
+        steps.push(
+          {
+            id: 'parking_type',
+            question: 'What type of parking is available?',
+            type: 'select' as const,
+            options: [
+              { id: 'covered', label: '🏠 Covered Parking', value: 'Covered Parking' },
+              { id: 'open', label: '🚗 Open Parking', value: 'Open Parking' },
+              { id: 'stilt', label: '🏢 Stilt Parking', value: 'Stilt Parking' },
+              { id: 'none', label: '❌ No Parking', value: 'No Parking' }
+            ]
+          }
+        );
+        
+        // Add parking spaces question only for covered/stilt parking
+        if (currentFormData.parking_type && 
+            ['Covered Parking', 'Stilt Parking'].includes(currentFormData.parking_type)) {
+          steps.push({
+            id: 'parking_spaces',
+            question: 'How many parking spaces are available?',
+            type: 'input' as const,
+            inputType: 'number' as const
+          });
+        }
       }
     }
 
@@ -589,12 +633,37 @@ export const ConversationalAdminPropertyForm = ({
       };
     }
     
+    // Auto-manage parking amenity based on parking type
+    if (step.id === 'parking_type') {
+      const currentAmenities = (formData.amenities || []).filter(a => a !== 'Parking');
+      if (value && value !== 'No Parking') {
+        // Add parking amenity for any parking type except "No Parking"
+        updatedFormData = {
+          ...updatedFormData,
+          amenities: [...currentAmenities, 'Parking']
+        };
+      } else {
+        // Remove parking amenity if no parking
+        updatedFormData = {
+          ...updatedFormData,
+          amenities: currentAmenities
+        };
+      }
+      
+      // Auto-set parking spaces for open parking and no parking
+      if (value === 'Open Parking') {
+        updatedFormData.parking_spaces = 1;
+      } else if (value === 'No Parking') {
+        updatedFormData.parking_spaces = 0;
+      }
+    }
+    
     setFormData(updatedFormData);
     console.log('Updated form data:', updatedFormData);
 
     simulateTyping(() => {
       // Check if this step might trigger new questions (regenerate chatSteps)
-      const shouldRegenerateSteps = ['primary_category', 'secondary_category', 'property_category', 'property_type', 'transaction_type', 'carpet_area', 'plot_area', 'bhk', 'price', 'amenities'].includes(step.id);
+      const shouldRegenerateSteps = ['primary_category', 'secondary_category', 'property_category', 'property_type', 'transaction_type', 'carpet_area', 'plot_area', 'bhk', 'bedrooms', 'parking_type', 'price', 'amenities'].includes(step.id);
       
       console.log('Should regenerate steps:', shouldRegenerateSteps, 'for step:', step.id);
       
@@ -691,8 +760,9 @@ export const ConversationalAdminPropertyForm = ({
         finalPropertyCategory = formData.secondary_category.toLowerCase();
       }
       
-      // Generate title/description similar to user flow
-      const generatedTitle = (formData.title && formData.title.trim()) || `${formData.bhk || ''} BHK ${formData.property_type || ''} in ${formData.location || ''}`.replace(/\s+/g, ' ').trim();
+      // Generate title/description similar to user flow - use bedrooms or bhk count
+      const bedroomCount = formData.bedrooms || formData.bhk || '';
+      const generatedTitle = (formData.title && formData.title.trim()) || `${bedroomCount ? bedroomCount + ' BHK' : ''} ${formData.property_type || ''} in ${formData.location || ''}`.replace(/\s+/g, ' ').trim();
       const finalDescription = formData.detailed_description || formData.description || getDefaultDescription(formData.property_type || 'property', formData.transaction_type || 'buy');
 
       // Prepare form data with generated values
